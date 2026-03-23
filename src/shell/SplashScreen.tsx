@@ -1,16 +1,15 @@
 /**
  * Slate v3 — Splash Screen: "Clean Slate"
  *
- * The word "Slate" is WRITTEN — revealed left to right as if an invisible
- * hand is writing it on a dark polished surface. Not cursive, not handwritten.
- * Still Playfair Display, still elegant. But the motion tells the story:
- * a clean slate, written fresh every time you enter.
+ * Each letter of "Slate" is DRAWN — the actual glyph outline traces itself
+ * as if being written by an invisible hand. Not a reveal, not a fade — the
+ * pen traces the path of each letter in sequence: S... l... a... t... e...
+ * Then the fill materializes behind the strokes. Then the gold period settles.
  *
- * Design principles:
- * - Restraint over spectacle
- * - Motion tells the story; texture supports it
- * - A few perfect gold motes, not a particle shower
- * - Sharp, classy, modern — Cartier, not carnival
+ * The SVG paths are extracted from Playfair Display Black (900 weight)
+ * using fonttools. Each path is animated with stroke-dasharray/dashoffset.
+ *
+ * Design: restraint, motion, story. Sharp, classy, modern.
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -36,14 +35,48 @@ const BG_CENTER = '#1A1D23';
 const BG_MID    = '#131619';
 const BG_BASE   = '#0D1117';
 
+// ─── Letter path data (Playfair Display Black, extracted via fonttools) ──
+const LETTERS = [
+  {
+    char: 'S',
+    xOffset: 0,
+    pathLength: 4011,
+    path: 'M302 722Q367 722 403.0 709.0Q439 696 464 682Q476 675 483.5 671.5Q491 668 498 668Q508 668 512.5 679.0Q517 690 520 712H543Q542 691 540.5 663.0Q539 635 538.5 589.0Q538 543 538 468H515Q511 523 489.5 575.0Q468 627 430.5 661.0Q393 695 341 695Q297 695 268.0 671.0Q239 647 239 602Q239 565 257.0 538.5Q275 512 313.5 483.0Q352 454 415 410Q460 379 496.5 348.0Q533 317 555.0 278.0Q577 239 577 184Q577 117 539.5 73.0Q502 29 440.0 7.5Q378 -14 305 -14Q237 -14 196.5 -2.0Q156 10 128 23Q106 37 94 37Q84 37 79.5 26.0Q75 15 72 -7H49Q51 19 51.5 53.5Q52 88 52.5 143.0Q53 198 53 283H76Q80 213 98.5 152.0Q117 91 155.5 53.5Q194 16 258 16Q295 16 321.5 27.5Q348 39 363.0 61.0Q378 83 378 114Q378 156 359.0 187.5Q340 219 307.5 246.5Q275 274 232 302Q185 334 144.0 366.0Q103 398 78.5 438.0Q54 478 54 533Q54 599 89.0 640.5Q124 682 181.0 702.0Q238 722 302 722Z',
+  },
+  {
+    char: 'l',
+    xOffset: 613,
+    pathLength: 2184,
+    path: 'M254 782V93Q254 51 266.5 36.0Q279 21 310 21V0Q290 1 250.0 2.5Q210 4 168 4Q126 4 83.0 2.5Q40 1 18 0V21Q49 21 61.5 36.0Q74 51 74 93V662Q74 707 62.0 728.5Q50 750 18 750V771Q50 768 80 768Q130 768 173.5 771.5Q217 775 254 782Z',
+  },
+  {
+    char: 'a',
+    xOffset: 941,
+    pathLength: 3214,
+    path: 'M156 -7Q109 -7 79.0 11.0Q49 29 35.5 58.0Q22 87 22 119Q22 161 41.0 187.5Q60 214 90.5 230.5Q121 247 155.0 258.0Q189 269 219.5 279.5Q250 290 269.0 304.5Q288 319 288 342V431Q288 447 282.5 466.0Q277 485 262.0 499.0Q247 513 217 513Q201 513 186.5 508.5Q172 504 161 496Q196 483 212.0 459.5Q228 436 228 408Q228 368 200.0 345.0Q172 322 134 322Q94 322 72.0 347.0Q50 372 50 409Q50 440 65.5 461.5Q81 483 112 501Q142 518 184.0 525.5Q226 533 272 533Q321 533 363.0 523.5Q405 514 435 483Q456 461 462.0 428.0Q468 395 468 343V75Q468 50 471.5 41.0Q475 32 484 32Q492 32 499.5 37.0Q507 42 514 47L524 30Q502 11 469.5 2.0Q437 -7 401 -7Q358 -7 334.5 3.5Q311 14 301.5 31.5Q292 49 291 69Q270 36 238.5 14.5Q207 -7 156 -7ZM251 73Q262 73 270.5 76.5Q279 80 288 90V301Q281 288 269.5 275.5Q258 263 246.0 250.0Q234 237 223.5 222.0Q213 207 206.5 187.5Q200 168 200 142Q200 104 214.5 88.5Q229 73 251 73Z',
+  },
+  {
+    char: 't',
+    xOffset: 1472,
+    pathLength: 2177,
+    path: 'M252 681V519H350V499H252V84Q252 65 259.0 56.5Q266 48 282 48Q293 48 308.0 54.5Q323 61 336 77L351 65Q330 29 295.5 7.5Q261 -14 209 -14Q176 -14 149.5 -5.5Q123 3 106 20Q84 42 78.0 74.5Q72 107 72 159V499H-4V519H72V637Q125 637 168.5 647.5Q212 658 252 681Z',
+  },
+  {
+    char: 'e',
+    xOffset: 1822,
+    pathLength: 2826,
+    path: 'M288 533Q376 533 426.5 481.5Q477 430 477 309H164L162 328H331Q332 377 327.0 418.5Q322 460 311.0 485.0Q300 510 281 510Q254 510 237.0 467.5Q220 425 215 322L219 314Q218 304 218.0 294.0Q218 284 218 273Q218 203 235.5 164.0Q253 125 279.5 110.0Q306 95 333 95Q347 95 366.5 99.0Q386 103 409.0 117.5Q432 132 454 162L471 156Q459 116 432.5 76.5Q406 37 364.0 11.5Q322 -14 262 -14Q198 -14 145.5 12.0Q93 38 62.0 98.0Q31 158 31 259Q31 355 65.0 415.5Q99 476 157.5 504.5Q216 533 288 533Z',
+  },
+];
+
+const UPEM = 1000;
+const TOTAL_WIDTH = 2325;
+
 // ─── Gold Dust ──────────────────────────────────────────────────────────
-// A few perfect motes. Like chalk dust catching warm light in a quiet room.
-// You almost wonder if you imagined them.
 function GoldDust({ active }: { active: boolean }) {
   const motes = useMemo(() =>
     Array.from({ length: 8 }, (_, i) => ({
       id: i,
-      // Spread across the text width
       x: 30 + Math.random() * 40,
       startY: 36 + Math.random() * 8,
       delay: 0.2 + Math.random() * 1.8,
@@ -61,21 +94,10 @@ function GoldDust({ active }: { active: boolean }) {
     }}>
       <style>{`
         @keyframes dustDrift {
-          0% {
-            opacity: 0;
-            transform: translate(0, 0) scale(0.6);
-          }
-          15% {
-            opacity: var(--d-opacity);
-            transform: translate(0, 2px) scale(1);
-          }
-          60% {
-            opacity: var(--d-opacity);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(var(--d-drift), var(--d-fall)) scale(0.3);
-          }
+          0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+          15% { opacity: var(--d-opacity); transform: translate(0, 2px) scale(1); }
+          60% { opacity: var(--d-opacity); }
+          100% { opacity: 0; transform: translate(var(--d-drift), var(--d-fall)) scale(0.3); }
         }
       `}</style>
       {active && motes.map(m => (
@@ -101,131 +123,117 @@ function GoldDust({ active }: { active: boolean }) {
   );
 }
 
-// ─── The Writing Reveal ─────────────────────────────────────────────────
-// CSS clip-path wipe from left to right. The text is always there — it's
-// revealed progressively, like an invisible hand writing it. The leading
-// edge has a soft luminous glow, like chalk pressing down.
-function WrittenText({ progress, showPeriod }: { progress: number; showPeriod: boolean }) {
-  // progress: 0 = nothing visible, 1 = fully revealed
-  // We use clip-path to reveal left-to-right
-  const clipPercent = progress * 100;
+// ─── Drawn Text ─────────────────────────────────────────────────────────
+// Each letter's outline traces itself via stroke-dashoffset animation,
+// then the fill fades in. Letters are sequenced with staggered delays.
+function DrawnText({ drawPhase, fillVisible, showPeriod }: {
+  drawPhase: number; // 0=nothing, 1=drawing S, 2=drawing l, 3=a, 4=t, 5=e, 6=done
+  fillVisible: boolean;
+  showPeriod: boolean;
+}) {
+  // Timing: each letter takes ~0.5s to draw, with slight overlaps
+  // drawPhase maps to which letters have started drawing
+  const getLetterState = (index: number) => {
+    if (drawPhase > index + 1) return 'drawn';  // fully traced
+    if (drawPhase > index) return 'drawing';      // currently tracing
+    return 'hidden';                               // not started
+  };
 
   return (
-    <div style={{ position: 'relative', width: 520, height: 130 }}>
-      {/* The text, clipped to reveal left-to-right */}
-      <div style={{
-        position: 'relative',
-        clipPath: `inset(0 ${100 - clipPercent}% 0 0)`,
-        transition: 'none', // controlled by JS animation frame
-      }}>
-        {/* Chalk-textured text via SVG */}
-        <svg
-          viewBox="0 0 520 130"
-          width="520"
-          height="130"
-          style={{ overflow: 'visible', display: 'block' }}
-        >
-          <defs>
-            {/* Very subtle chalk grain — 95% clean, 5% texture */}
-            <filter id="subtleChalk" x="-2%" y="-2%" width="104%" height="104%">
-              <feTurbulence
-                type="fractalNoise"
-                baseFrequency="0.8"
-                numOctaves="4"
-                seed="7"
-                result="noise"
+    <div style={{ position: 'relative', width: 520, height: 140 }}>
+      <svg
+        viewBox={`0 -50 ${TOTAL_WIDTH} ${UPEM + 100}`}
+        width="520"
+        height="140"
+        style={{ overflow: 'visible', display: 'block' }}
+      >
+        <defs>
+          {/* Subtle chalk grain */}
+          <filter id="chalkGrain" x="-2%" y="-2%" width="104%" height="104%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" seed="7" result="noise" />
+            <feColorMatrix in="noise" type="saturate" values="0" result="grayNoise" />
+            <feComponentTransfer in="grayNoise" result="thresh">
+              <feFuncA type="discrete" tableValues="0 0.1 0.4 0.7 0.85 0.95 1 1" />
+            </feComponentTransfer>
+            <feComposite in="SourceGraphic" in2="thresh" operator="in" />
+          </filter>
+
+          {/* Warm stroke gradient */}
+          <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#E8DCC0" />
+            <stop offset="50%" stopColor="#FFFFFF" />
+            <stop offset="100%" stopColor="#E8DCC0" />
+          </linearGradient>
+        </defs>
+
+        {/* Fill layer — fades in after all strokes complete */}
+        {LETTERS.map((letter, i) => (
+          <g key={`fill-${i}`} transform={`translate(${letter.xOffset}, 0) scale(1,-1) translate(0,-${UPEM})`}>
+            {/* Base white fill */}
+            <path
+              d={letter.path}
+              fill="#FFFFFF"
+              style={{
+                opacity: fillVisible ? 0.9 : 0,
+                transition: `opacity 0.8s ease ${i * 0.08}s`,
+              }}
+            />
+            {/* Chalk grain overlay */}
+            <path
+              d={letter.path}
+              fill="#F0ECE4"
+              filter="url(#chalkGrain)"
+              style={{
+                opacity: fillVisible ? 0.3 : 0,
+                transition: `opacity 0.8s ease ${i * 0.08}s`,
+              }}
+            />
+          </g>
+        ))}
+
+        {/* Stroke layer — each letter traces itself */}
+        {LETTERS.map((letter, i) => {
+          const state = getLetterState(i);
+          const isDrawing = state === 'drawing';
+          const isDrawn = state === 'drawn';
+
+          return (
+            <g key={`stroke-${i}`} transform={`translate(${letter.xOffset}, 0) scale(1,-1) translate(0,-${UPEM})`}>
+              <path
+                d={letter.path}
+                fill="none"
+                stroke="url(#strokeGrad)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  strokeDasharray: letter.pathLength,
+                  strokeDashoffset: (isDrawing || isDrawn) ? 0 : letter.pathLength,
+                  transition: isDrawing
+                    ? `stroke-dashoffset 0.55s cubic-bezier(0.25, 0.1, 0.25, 1)`
+                    : 'none',
+                  opacity: (isDrawing || isDrawn) ? (fillVisible ? 0 : 1) : 0,
+                }}
               />
-              <feColorMatrix
-                in="noise"
-                type="saturate"
-                values="0"
-                result="grayNoise"
-              />
-              <feComponentTransfer in="grayNoise" result="threshNoise">
-                <feFuncA type="discrete" tableValues="0 0.1 0.4 0.7 0.85 0.95 1 1" />
-              </feComponentTransfer>
-              <feComposite in="SourceGraphic" in2="threshNoise" operator="in" />
-            </filter>
-          </defs>
+            </g>
+          );
+        })}
 
-          {/* Base: clean white fill for readability */}
-          <text
-            x="50%"
-            y="100"
-            textAnchor="middle"
-            fontFamily="'Playfair Display', Georgia, serif"
-            fontSize="115"
-            fontWeight="900"
-            fill="#FFFFFF"
-            opacity="0.88"
-          >
-            Slate
-          </text>
-
-          {/* Overlay: chalk grain texture at low opacity */}
-          <text
-            x="50%"
-            y="100"
-            textAnchor="middle"
-            fontFamily="'Playfair Display', Georgia, serif"
-            fontSize="115"
-            fontWeight="900"
-            fill="#F0ECE4"
-            filter="url(#subtleChalk)"
-            opacity="0.35"
-          >
-            Slate
-          </text>
-        </svg>
-      </div>
-
-      {/* Leading edge glow — a soft warm light at the writing point */}
-      {progress > 0.02 && progress < 0.98 && (
-        <div style={{
-          position: 'absolute',
-          top: '15%',
-          left: `${clipPercent - 1}%`,
-          width: 3,
-          height: '70%',
-          background: `linear-gradient(180deg, transparent, rgba(240,180,41,0.15) 30%, rgba(255,255,255,0.12) 50%, rgba(240,180,41,0.15) 70%, transparent)`,
-          filter: 'blur(6px)',
-          pointerEvents: 'none',
-          transition: 'none',
-        }} />
-      )}
-
-      {/* Gold period — appears with a gentle settle after text is written */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-      }}>
-        <svg
-          viewBox="0 0 520 130"
-          width="520"
-          height="130"
-          style={{ overflow: 'visible', display: 'block' }}
-        >
-          <text
-            x="385"
-            y="100"
-            fontFamily="'Playfair Display', Georgia, serif"
-            fontSize="115"
-            fontWeight="900"
+        {/* Gold period */}
+        <g transform={`translate(2325, 0) scale(1,-1) translate(0,-${UPEM})`}>
+          <circle
+            cx="60"
+            cy="60"
+            r="50"
             fill={brand.gold}
             style={{
               opacity: showPeriod ? 1 : 0,
-              transition: 'opacity 0.6s ease',
-              filter: `drop-shadow(0 0 6px ${brand.gold}50)`,
+              transition: 'opacity 0.5s ease',
+              filter: `drop-shadow(0 0 8px ${brand.gold}40)`,
             } as React.CSSProperties}
-          >
-            .
-          </text>
-        </svg>
-      </div>
+          />
+        </g>
+      </svg>
     </div>
   );
 }
@@ -237,7 +245,8 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ onEnter }: SplashScreenProps) {
   const [phase, setPhase] = useState<'splash' | 'fadeout' | 'disclaimer'>('splash');
-  const [writeProgress, setWriteProgress] = useState(0);
+  const [drawPhase, setDrawPhase] = useState(0);
+  const [fillVisible, setFillVisible] = useState(false);
   const [showPeriod, setShowPeriod] = useState(false);
   const [dustActive, setDustActive] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(false);
@@ -246,52 +255,44 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
   const [subtitleVisible, setSubtitleVisible] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
 
-  // Animate the writing progress with requestAnimationFrame for smoothness
-  useEffect(() => {
-    let startTime: number | null = null;
-    let rafId: number;
-    const WRITE_DELAY = 800;   // ms before writing starts
-    const WRITE_DURATION = 2200; // ms to write the full word
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-
-      if (elapsed >= WRITE_DELAY) {
-        const writeElapsed = elapsed - WRITE_DELAY;
-        // Ease-out cubic for natural hand deceleration
-        const t = Math.min(writeElapsed / WRITE_DURATION, 1);
-        const eased = 1 - Math.pow(1 - t, 3);
-        setWriteProgress(eased);
-      }
-
-      if (elapsed < WRITE_DELAY + WRITE_DURATION + 100) {
-        rafId = requestAnimationFrame(animate);
-      }
-    };
-
-    rafId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafId);
-  }, []);
-
-  // Sequence the rest of the elements
   useEffect(() => {
     const debug = window.location.search.includes('debug');
+
+    // Letter drawing sequence — each letter starts 0.45s after the previous
+    // S starts at 0.8s, then l at 1.25s, a at 1.7s, t at 2.15s, e at 2.6s
+    const DRAW_START = 800;
+    const LETTER_GAP = 450;
+
     const timers = [
       setTimeout(() => setBadgeVisible(true), 300),
-      // Dust starts mid-write
-      setTimeout(() => setDustActive(true), 1800),
-      // Period appears after writing completes
-      setTimeout(() => setShowPeriod(true), 3200),
-      // Then the rest cascades in
-      setTimeout(() => setTaglineVisible(true), 3800),
-      setTimeout(() => setDotsVisible(true), 4200),
-      setTimeout(() => setSubtitleVisible(true), 4600),
-      setTimeout(() => setFooterVisible(true), 4800),
-      // Auto-advance (unless debug mode)
+
+      // Draw each letter in sequence
+      setTimeout(() => setDrawPhase(1), DRAW_START),           // S
+      setTimeout(() => setDrawPhase(2), DRAW_START + LETTER_GAP),     // l
+      setTimeout(() => setDrawPhase(3), DRAW_START + LETTER_GAP * 2), // a
+      setTimeout(() => setDrawPhase(4), DRAW_START + LETTER_GAP * 3), // t
+      setTimeout(() => setDrawPhase(5), DRAW_START + LETTER_GAP * 4), // e
+      setTimeout(() => setDrawPhase(6), DRAW_START + LETTER_GAP * 5), // done
+
+      // Dust starts mid-drawing
+      setTimeout(() => setDustActive(true), DRAW_START + LETTER_GAP * 2),
+
+      // Fill materializes after all strokes complete
+      setTimeout(() => setFillVisible(true), DRAW_START + LETTER_GAP * 5 + 200),
+
+      // Period settles in
+      setTimeout(() => setShowPeriod(true), DRAW_START + LETTER_GAP * 5 + 600),
+
+      // Rest cascades
+      setTimeout(() => setTaglineVisible(true), DRAW_START + LETTER_GAP * 5 + 1000),
+      setTimeout(() => setDotsVisible(true), DRAW_START + LETTER_GAP * 5 + 1400),
+      setTimeout(() => setSubtitleVisible(true), DRAW_START + LETTER_GAP * 5 + 1800),
+      setTimeout(() => setFooterVisible(true), DRAW_START + LETTER_GAP * 5 + 2000),
+
+      // Auto-advance
       ...(debug ? [] : [
-        setTimeout(() => setPhase('fadeout'), 6500),
-        setTimeout(() => setPhase('disclaimer'), 7100),
+        setTimeout(() => setPhase('fadeout'), DRAW_START + LETTER_GAP * 5 + 3500),
+        setTimeout(() => setPhase('disclaimer'), DRAW_START + LETTER_GAP * 5 + 4100),
       ]),
     ];
     return () => timers.forEach(clearTimeout);
@@ -412,7 +413,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       transition: 'opacity 0.6s ease',
       paddingBottom: 80,
     }}>
-      {/* Very subtle warm light accent — barely perceptible */}
+      {/* Subtle warm light */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `
@@ -422,18 +423,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         pointerEvents: 'none',
       }} />
 
-      {/* Faint surface line — like a chalk ledge */}
-      <div style={{
-        position: 'absolute',
-        top: '52%',
-        left: '18%',
-        right: '18%',
-        height: 1,
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.02) 30%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.02) 70%, transparent)',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Gold dust — restrained, classy */}
+      {/* Gold dust */}
       <GoldDust active={dustActive} />
 
       {/* Confidential badge */}
@@ -457,9 +447,9 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         </div>
       </div>
 
-      {/* The Writing — "Slate." revealed left to right */}
+      {/* The Drawing — "Slate." traced letter by letter */}
       <div style={{ marginBottom: 14 }}>
-        <WrittenText progress={writeProgress} showPeriod={showPeriod} />
+        <DrawnText drawPhase={drawPhase} fillVisible={fillVisible} showPeriod={showPeriod} />
       </div>
 
       {/* Tagline */}
