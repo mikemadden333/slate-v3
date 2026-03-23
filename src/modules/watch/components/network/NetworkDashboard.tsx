@@ -511,6 +511,45 @@ export default function NetworkDashboard({
         </div>
       </div>
 
+      {/* ═══ NETWORK RISK HEATMAP ═══ */}
+      <SectionLabel>NETWORK RISK HEATMAP</SectionLabel>
+      <div style={{
+        display: 'flex', gap: 2, marginBottom: 20, borderRadius: 8, overflow: 'hidden',
+        height: 32,
+      }}>
+        {sortedRisks.map(risk => {
+          const campus = CAMPUSES.find(c => c.id === risk.campusId);
+          if (!campus) return null;
+          const pct = 100 / sortedRisks.length;
+          const bgColor = risk.label === 'HIGH' || risk.label === 'CRITICAL'
+            ? `rgba(220,38,38,${Math.min(risk.score / 100, 1)})`
+            : risk.label === 'ELEVATED'
+            ? `rgba(217,119,6,${Math.min(risk.score / 100 + 0.2, 1)})`
+            : `rgba(22,163,74,${Math.min(risk.score / 100 + 0.3, 1)})`;
+          return (
+            <div
+              key={campus.id}
+              onClick={() => onSelectCampus(campus.id)}
+              title={`${campus.short}: ${risk.score} (${risk.label})`}
+              style={{
+                flex: `0 0 ${pct}%`, background: bgColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', transition: 'opacity .15s',
+                position: 'relative',
+              }}
+            >
+              <span style={{
+                fontSize: 9, fontWeight: 800, color: '#fff',
+                fontFamily: FONT.body, letterSpacing: '.05em',
+                textShadow: '0 1px 2px rgba(0,0,0,.3)',
+              }}>
+                {campus.short.slice(0, 4).toUpperCase()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
       {/* ═══ CAMPUS RISK MATRIX ═══ */}
       <SectionLabel>YOUR CAMPUSES AT A GLANCE</SectionLabel>
       <div style={{

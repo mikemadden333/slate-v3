@@ -35,8 +35,10 @@ import IntelQuery from '../shared/IntelQuery';
 
 interface Campus {
   id: number; name: string; short: string; communityArea: string;
-  lat: number; lng: number; address: string;
-  arrivalTime?: string; dismissalTime?: string;
+  lat: number; lng: number; addr: string;
+  arrH: number; arrM: number; dH: number; dM: number;
+  enroll: number;
+  [key: string]: any;
 }
 
 interface Props {
@@ -173,6 +175,16 @@ function useCampusBriefing(
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastKeyRef = useRef('');
+  const lastCampusRef = useRef(campus.id);
+
+  // Force-clear briefing when campus changes so it never shows stale text
+  useEffect(() => {
+    if (campus.id !== lastCampusRef.current) {
+      lastCampusRef.current = campus.id;
+      lastKeyRef.current = '';  // Reset debounce key
+      setText('');              // Clear stale briefing immediately
+    }
+  }, [campus.id]);
 
   const generate = useCallback(async () => {
     setLoading(true);
@@ -243,6 +255,7 @@ Format rules:
       iceAlerts.length, violent7d, violent24h, topTypes, tempF]);
 
   // Debounce: wait 3s after data changes before generating
+  // Also triggers when text is cleared (campus switch) since key won't match
   useEffect(() => {
     if (!dataReady) return;
 
@@ -309,10 +322,10 @@ const StatusBadge = ({ label }: { label: string }) => {
 };
 
 // ─── SECTION: CAMPUS HEADER ──────────────────────────────────────────────────
-
-const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h }: {
+const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h, allRisks, schoolPeriod, iceAlerts }: {
   campus: Campus; risk: CampusRisk; incidents: Incident[]; tempF: number;
-  violent7d: number; violent24h: number;
+  violent7d: number; violent24h: number; allRisks: CampusRisk[];
+  schoolPeriod: string; iceAlerts: IceAlert[];
 }) => {
   const now = Date.now();
   const zoneCount = risk.contagionZones?.length ?? 0;
@@ -327,9 +340,39 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h }:
       return d <= 1.0 && t >= dayStart && t < dayEnd && SERIOUS_VIOLENT.test(inc.type);
     }).length;
   });
-
   const avg30d = Math.round(violent7d / 7 * 30);
   const trendPct = avg30d > 0 ? Math.round(((violent7d / 7 * 30) / avg30d - 1) * 100) : 0;
+
+  // Network rank
+  const sorted = [...allRisks].sort((a, b) => b.score - a.score);
+  const rank = sorted.findIndex(r => r.campusId === campus.id) + 1;
+  const networkAvg = allRisks.length > 0 ? Math.round(allRisks.reduce((s, r) => s + r.score, 0) / allRisks.length) : 0;
+
+  // Dismissal countdown
+  const nowDate = new Date();
+  const dismissalToday = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), campus.dH, campus.dM);
+  const arrivalToday = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), campus.arrH, campus.arrM);
+  const minsToD = Math.max(0, Math.floor((dismissalToday.getTime() - now) / 60000));
+  const minsToA = Math.max(0, Math.floor((arrivalToday.getTime() - now) / 60000));
+  const isWeekend = nowDate.getDay() === 0 || nowDate.getDay() === 6;
+
+  // School period display
+  const periodLabels: Record<string, { label: string; color: string; bg: string }> = {
+    PRE_ARRIVAL:  { label: 'PRE-ARRIVAL',  color: '#2563EB', bg: '#EFF6FF' },
+    ARRIVAL:      { label: 'ARRIVAL',       color: '#D97706', bg: '#FFFBEB' },
+    IN_SESSION:   { label: 'IN SESSION',    color: '#16A34A', bg: '#F0FDF4' },
+    DISMISSAL:    { label: 'DISMISSAL',     color: '#DC2626', bg: '#FEF2F2' },
+    AFTER_HOURS:  { label: 'AFTER HOURS',   color: '#6B7280', bg: '#F9FAFB' },
+    WEEKEND:      { label: 'WEEKEND',       color: '#6B7280', bg: '#F9FAFB' },
+  };
+  const period = periodLabels[schoolPeriod] ?? periodLabels.AFTER_HOURS;
+
+  // Total incidents nearby (all types, 7d)
+  const totalNearby7d = incidents.filter(inc => {
+    const d = haversine(campus.lat, campus.lng, inc.lat, inc.lng);
+    const age = (now - new Date(inc.date).getTime()) / (1000 * 3600 * 24);
+    return d <= 1.0 && age <= 7;
+  }).length;
 
   return (
     <div style={{
@@ -337,6 +380,7 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h }:
       borderTop: `4px solid ${risk.label === 'LOW' ? C.green : risk.label === 'ELEVATED' ? C.amber : C.watch}`,
       padding: '24px 28px', marginBottom: 24,
     }}>
+      {/* Top row: Name + Status + Period + Countdown + Sparkline + Weather */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <h1 style={{
@@ -346,9 +390,32 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h }:
             {campus.short.toUpperCase()}
           </h1>
           <StatusBadge label={risk.label} />
+          <span style={{
+            fontSize: 9, fontWeight: 800, letterSpacing: '.1em',
+            padding: '3px 10px', borderRadius: 12,
+            background: period.bg, color: period.color,
+            fontFamily: sans,
+          }}>
+            {period.label}
+          </span>
         </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          {/* Dismissal countdown */}
+          {!isWeekend && schoolPeriod !== 'AFTER_HOURS' && schoolPeriod !== 'WEEKEND' && (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{
+                fontSize: 18, fontWeight: 900, fontFamily: serif,
+                color: minsToD <= 30 ? C.watch : C.deep, lineHeight: 1,
+              }}>
+                {minsToD > 0 ? (
+                  <>{Math.floor(minsToD / 60)}h {minsToD % 60}m</>
+                ) : 'NOW'}
+              </div>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.1em', color: C.light, fontFamily: sans, marginTop: 2 }}>
+                {minsToD <= 0 ? 'DISMISSAL ACTIVE' : 'TO DISMISSAL'}
+              </div>
+            </div>
+          )}
           <div style={{ textAlign: 'right' }}>
             <Sparkline data={sparkData} color={risk.label === 'LOW' ? C.green : C.watch} />
             <div style={{ fontSize: 10, color: C.light, fontFamily: sans, marginTop: 2 }}>
@@ -365,28 +432,30 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h }:
       </div>
 
       <div style={{ fontSize: 12, color: C.light, fontFamily: sans, marginTop: 6 }}>
-        {campus.address} · {campus.communityArea}
+        {campus.addr} · {campus.communityArea} · {campus.enroll?.toLocaleString() ?? '?'} students enrolled
       </div>
 
-      {/* KPI Strip — uses the shared violent crime stats passed as props */}
+      {/* 5-KPI Strip */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 16, marginTop: 20,
+        display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: 12, marginTop: 20,
       }}>
         {[
-          { value: violent7d, label: 'VIOLENT 7D', sublabel: 'within 1 mi', color: violent7d > 0 ? C.watch : C.deep },
-          { value: violent24h, label: 'VIOLENT 24H', sublabel: 'within 1 mi', color: violent24h > 0 ? C.watch : C.deep },
-          { value: zoneCount, label: `CONTAGION ZONE${zoneCount !== 1 ? 'S' : ''}`, sublabel: '', color: zoneCount > 0 ? C.amber : C.deep },
+          { value: String(violent7d), label: 'VIOLENT 7D', sublabel: 'within 1 mi', color: violent7d > 0 ? C.watch : C.deep },
+          { value: String(violent24h), label: 'VIOLENT 24H', sublabel: 'within 1 mi', color: violent24h > 0 ? C.watch : C.deep },
+          { value: String(zoneCount), label: 'CONTAGION', sublabel: zoneCount > 0 ? 'zones active' : '', color: zoneCount > 0 ? C.amber : C.deep },
+          { value: `#${rank}`, label: 'NETWORK RANK', sublabel: `of ${allRisks.length} · avg ${networkAvg}`, color: rank <= 3 ? C.watch : C.deep },
+          { value: String(iceAlerts.length), label: 'ICE ALERTS', sublabel: iceAlerts.length > 0 ? 'active nearby' : '', color: iceAlerts.length > 0 ? C.ice : C.deep },
         ].map(kpi => (
           <div key={kpi.label} style={{ textAlign: 'center' }}>
             <div style={{
-              fontFamily: serif, fontSize: 36, fontWeight: 900,
+              fontFamily: serif, fontSize: 30, fontWeight: 900,
               color: kpi.color, lineHeight: 1,
             }}>
               {kpi.value}
             </div>
             <div style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '.12em',
+              fontSize: 8, fontWeight: 700, letterSpacing: '.12em',
               color: C.light, fontFamily: sans, marginTop: 6,
             }}>
               {kpi.label}
@@ -405,7 +474,6 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h }:
     </div>
   );
 };
-
 // ─── SECTION: AI INTELLIGENCE BRIEFING ───────────────────────────────────────
 
 const AIBriefing = ({ briefing, campus, onNotifyDeans, onContactLegal }: {
@@ -700,8 +768,69 @@ const RiskProfile = ({ risk, campus, incidents, tempF, allRisks }: {
   );
 };
 
-// ─── SECTION: CAMPUS MAP WRAPPER ─────────────────────────────────────────────
 
+// ─── SECTION: QUICK ACTIONS ──────────────────────────────────────────────────
+const QuickActions = ({ campus, risk, schoolPeriod, onBeginProtocol }: {
+  campus: Campus; risk: CampusRisk; schoolPeriod: string;
+  onBeginProtocol: (code: string) => void;
+}) => {
+  const actions = [
+    { code: 'lockdown', label: 'Initiate Lockdown', icon: '⚠', color: C.watch, urgent: risk.label === 'HIGH' || risk.label === 'CRITICAL' },
+    { code: 'modified-dismissal', label: 'Modified Dismissal', icon: '▲', color: C.amber, urgent: schoolPeriod === 'DISMISSAL' && risk.label !== 'LOW' },
+    { code: 'parent-alert', label: 'Parent Alert', icon: '●', color: '#2563EB', urgent: false },
+    { code: 'staff-brief', label: 'Staff Brief', icon: '≡', color: C.deep, urgent: false },
+    { code: 'shelter-in-place', label: 'Shelter in Place', icon: '⌂', color: '#7C3AED', urgent: false },
+    { code: 'all-clear', label: 'All Clear', icon: '✓', color: C.green, urgent: false },
+  ];
+  return (
+    <div style={{
+      background: C.white, borderRadius: 12,
+      border: `1px solid ${C.chalk}`, padding: '16px 22px',
+      marginBottom: 24,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 800, letterSpacing: '.14em',
+        textTransform: 'uppercase', color: C.deep, fontFamily: sans,
+        marginBottom: 14,
+      }}>
+        Quick Actions
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        {actions.map(a => (
+          <button
+            key={a.code}
+            onClick={() => onBeginProtocol(a.code)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 14px', borderRadius: 8,
+              border: a.urgent ? `2px solid ${a.color}` : `1px solid ${C.chalk}`,
+              background: a.urgent ? `${a.color}08` : 'transparent',
+              cursor: 'pointer', fontFamily: sans, fontSize: 12,
+              fontWeight: a.urgent ? 700 : 500,
+              color: a.urgent ? a.color : C.deep,
+              transition: 'all .15s ease',
+            }}
+          >
+            <span style={{ fontSize: 14 }}>{a.icon}</span>
+            {a.label}
+            {a.urgent && (
+              <span style={{
+                marginLeft: 'auto', fontSize: 8, fontWeight: 800,
+                letterSpacing: '.1em', color: a.color,
+                background: `${a.color}15`, padding: '2px 6px',
+                borderRadius: 4,
+              }}>
+                REC
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── SECTION: CAMPUS MAP ────────────────────────────────────────────────────────
 const CampusMapSection = ({ campus, risk, incidents, shotSpotterEvents, corridors, scannerData }: {
   campus: Campus; risk: CampusRisk; incidents: Incident[];
   shotSpotterEvents: ShotSpotterEvent[]; corridors: SafeCorridor[];
@@ -720,7 +849,6 @@ const CampusMapSection = ({ campus, risk, incidents, shotSpotterEvents, corridor
       }}>
         Campus Map
       </div>
-
       <div style={{ flex: 1, borderRadius: 8, overflow: 'hidden', minHeight: 380 }}>
         <CampusMap
           campus={campus}
@@ -732,7 +860,6 @@ const CampusMapSection = ({ campus, risk, incidents, shotSpotterEvents, corridor
           scannerData={scannerData}
         />
       </div>
-
       <div style={{
         display: 'flex', gap: 14, marginTop: 12, fontSize: 10,
         color: C.light, fontFamily: sans, flexWrap: 'wrap',
@@ -756,54 +883,257 @@ const CampusMapSection = ({ campus, risk, incidents, shotSpotterEvents, corridor
   );
 };
 
-// ─── ASK SLATE ───────────────────────────────────────────────────────────────
-
-const AskSlate = ({ campus, risk }: { campus: Campus; risk: CampusRisk }) => {
-  const [query, setQuery] = useState('');
-  const suggestions = [
-    'What should I tell parents today?',
-    'Show me the contagion zone details',
-    `What happened near ${campus.short} overnight?`,
-  ];
-
+// ─── SECTION: 7-DAY FORECAST STRIP ──────────────────────────────────────────────────
+const ForecastStrip = ({ forecast, campus }: { forecast: ForecastDay[]; campus: Campus }) => {
+  if (!forecast || forecast.length === 0) return null;
+  const labelColors: Record<string, { bg: string; text: string; border: string }> = {
+    LOW:      { bg: '#F0FDF4', text: '#166534', border: '#BBF7D0' },
+    ELEVATED: { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' },
+    HIGH:     { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
+  };
   return (
     <div style={{
       background: C.white, borderRadius: 12,
       border: `1px solid ${C.chalk}`, padding: '16px 22px',
+      marginBottom: 24,
     }}>
+      <div style={{
+        fontSize: 10, fontWeight: 800, letterSpacing: '.14em',
+        textTransform: 'uppercase', color: C.deep, fontFamily: sans,
+        marginBottom: 14,
+      }}>
+        7-Day Safety Forecast
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(forecast.length, 7)}, 1fr)`, gap: 8 }}>
+        {forecast.slice(0, 7).map((day, i) => {
+          const lc = labelColors[day.label] ?? labelColors.LOW;
+          return (
+            <div key={i} style={{
+              textAlign: 'center', padding: '10px 6px',
+              borderRadius: 8,
+              background: lc.bg,
+              border: `1px solid ${lc.border}`,
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: i === 0 ? C.deep : C.mid, fontFamily: sans }}>
+                {i === 0 ? 'Today' : day.dayName}
+              </div>
+              <div style={{
+                fontSize: 16, fontWeight: 900, fontFamily: serif,
+                color: lc.text, margin: '6px 0 2px',
+              }}>
+                {day.label}
+              </div>
+              <div style={{
+                fontSize: 9, color: lc.text, fontFamily: sans,
+                fontWeight: 600, opacity: 0.8,
+              }}>
+                {Math.round(day.confidence * 100)}%
+              </div>
+              {day.weatherRisk && (
+                <div style={{
+                  fontSize: 8, fontWeight: 700, color: C.amber,
+                  marginTop: 4, fontFamily: sans,
+                }}>
+                  Weather risk
+                </div>
+              )}
+              {day.contagionPhase && (
+                <div style={{
+                  fontSize: 8, fontWeight: 700, color: C.watch,
+                  marginTop: 2, fontFamily: sans,
+                }}>
+                  {day.contagionPhase}
+                </div>
+              )}
+              {!day.isSchoolDay && (
+                <div style={{
+                  fontSize: 8, color: C.light, fontFamily: sans, marginTop: 2,
+                }}>
+                  No school
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {forecast.length > 0 && forecast[0].drivers.length > 0 && (
+        <div style={{ fontSize: 10, color: C.mid, fontFamily: sans, marginTop: 10 }}>
+          Today's drivers: {forecast[0].drivers.join(', ')}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── SECTION: DATA SOURCE HEALTH ─────────────────────────────────────────────
+const DataSourceHealth = ({ incidents, citizenIncidents, newsIncidents, dispatchIncidents, shotSpotterEvents, scannerData }: {
+  incidents: Incident[]; citizenIncidents: any[]; newsIncidents: Incident[];
+  dispatchIncidents: any[]; shotSpotterEvents: any[]; scannerData: any;
+}) => {
+  const now = Date.now();
+  const sources = [
+    {
+      name: 'CPD Crime Portal',
+      count: incidents.length,
+      latency: incidents.length > 0 ? '7-10 days' : 'No data',
+      status: incidents.length > 0 ? 'active' : 'stale',
+      color: incidents.length > 0 ? C.green : C.light,
+    },
+    {
+      name: 'Citizen App',
+      count: (citizenIncidents || []).length,
+      latency: 'Real-time',
+      status: (citizenIncidents || []).length > 0 ? 'active' : 'quiet',
+      color: (citizenIncidents || []).length > 0 ? C.green : C.light,
+    },
+    {
+      name: 'News RSS (9 feeds)',
+      count: newsIncidents.length,
+      latency: '< 15 min',
+      status: newsIncidents.length > 0 ? 'active' : 'quiet',
+      color: newsIncidents.length > 0 ? C.green : C.light,
+    },
+    {
+      name: 'CPD Radio / Scanner',
+      count: (dispatchIncidents || []).length,
+      latency: 'Real-time',
+      status: scannerData ? 'active' : 'offline',
+      color: scannerData ? C.green : C.amber,
+    },
+    {
+      name: 'ShotSpotter',
+      count: (shotSpotterEvents || []).length,
+      latency: '< 60s',
+      status: (shotSpotterEvents || []).length > 0 ? 'active' : 'quiet',
+      color: (shotSpotterEvents || []).length > 0 ? C.green : C.light,
+    },
+    {
+      name: 'Open-Meteo Weather',
+      count: 1,
+      latency: 'Hourly',
+      status: 'active',
+      color: C.green,
+    },
+  ];
+  return (
+    <div style={{
+      background: C.white, borderRadius: 12,
+      border: `1px solid ${C.chalk}`, padding: '16px 22px',
+      marginBottom: 24,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 800, letterSpacing: '.14em',
+        textTransform: 'uppercase', color: C.deep, fontFamily: sans,
+        marginBottom: 14,
+      }}>
+        Intelligence Sources
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        {sources.map(s => (
+          <div key={s.name} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '8px 12px', borderRadius: 8,
+            background: C.cream,
+          }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: s.color, flexShrink: 0,
+              boxShadow: s.status === 'active' ? `0 0 6px ${s.color}40` : 'none',
+            }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.deep, fontFamily: sans }}>
+                {s.name}
+              </div>
+              <div style={{ fontSize: 10, color: C.light, fontFamily: sans }}>
+                {s.count.toLocaleString()} records · {s.latency}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+const AskSlate = ({ campus, risk }: { campus: Campus; risk: CampusRisk }) => {
+  const [query, setQuery] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [loading, setLoading] = useState(false);
+  const suggestions = [
+    'What should I tell parents today?',
+    'Draft a parent communication about nearby incidents',
+    `What happened near ${campus.short} overnight?`,
+    'Should I modify dismissal today?',
+    'Summarize the contagion zone risk',
+  ];
+
+  const askSlate = async (q: string) => {
+    if (!q.trim()) return;
+    setLoading(true);
+    setAnswer('');
+    try {
+      const res = await fetch('/api/anthropic-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 500,
+          system: `You are Slate, an AI safety intelligence assistant for school principals. You are answering a question about ${campus.short} (${campus.communityArea}). The campus risk level is ${risk.label} with a score of ${risk.score}/100. There are ${risk.contagionZones?.length ?? 0} active contagion zones. Be concise, actionable, and safety-focused. No markdown formatting.`,
+          messages: [{ role: 'user', content: q }],
+        }),
+      });
+      const data = await res.json();
+      setAnswer(data?.content?.[0]?.text ?? 'Unable to generate response.');
+    } catch {
+      setAnswer('Connection error. Please try again.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{
+      background: C.white, borderRadius: 12,
+      border: `1px solid ${C.chalk}`, padding: '20px 22px',
+      marginBottom: 24,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 800, letterSpacing: '.14em',
+        textTransform: 'uppercase', color: C.deep, fontFamily: sans,
+        marginBottom: 12,
+      }}>
+        Ask Slate
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{
-          fontSize: 10, fontWeight: 800, letterSpacing: '.12em',
-          textTransform: 'uppercase', color: C.mid, fontFamily: sans,
-          flexShrink: 0,
-        }}>
-          Ask Slate
-        </span>
         <input
           type="text"
           placeholder="Ask anything about your campus…"
           value={query}
           onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && askSlate(query)}
           style={{
-            flex: 1, border: 'none', outline: 'none',
+            flex: 1, border: `1px solid ${C.chalk}`, outline: 'none',
             fontSize: 13, color: C.deep, fontFamily: sans,
-            background: 'transparent', padding: '6px 0',
+            background: C.cream, padding: '10px 14px',
+            borderRadius: 8,
           }}
         />
-        <button style={{
-          background: C.deep, color: C.white, border: 'none',
-          borderRadius: 6, padding: '6px 12px', fontSize: 11,
-          cursor: 'pointer', fontFamily: sans, fontWeight: 600,
-        }}>
-          Ask
+        <button
+          onClick={() => askSlate(query)}
+          disabled={loading}
+          style={{
+            background: C.deep, color: C.white, border: 'none',
+            borderRadius: 8, padding: '10px 18px', fontSize: 12,
+            cursor: loading ? 'wait' : 'pointer', fontFamily: sans, fontWeight: 600,
+            opacity: loading ? 0.6 : 1,
+          }}
+        >
+          {loading ? 'Thinking…' : 'Ask'}
         </button>
       </div>
-
       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         {suggestions.map(s => (
           <button
             key={s}
-            onClick={() => setQuery(s)}
+            onClick={() => { setQuery(s); askSlate(s); }}
             style={{
               fontSize: 11, color: C.mid, background: C.cream,
               border: `1px solid ${C.chalk}`, borderRadius: 20,
@@ -814,12 +1144,21 @@ const AskSlate = ({ campus, risk }: { campus: Campus; risk: CampusRisk }) => {
           </button>
         ))}
       </div>
+      {answer && (
+        <div style={{
+          marginTop: 16, padding: '16px 18px',
+          background: '#FFFDF8', borderRadius: 8,
+          border: `1px solid ${C.chalk}`,
+          fontFamily: serif, fontSize: 14, lineHeight: 1.8,
+          color: C.deep, whiteSpace: 'pre-wrap',
+        }}>
+          {answer}
+        </div>
+      )}
     </div>
   );
 };
-
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
-
 export default function CampusDashboard({
   campus, risk, allRisks, incidents, acuteIncidents,
   shotSpotterEvents, citizenIncidents, newsIncidents, dispatchIncidents,
@@ -847,7 +1186,7 @@ export default function CampusDashboard({
       lat: c.lat, lng: c.lng, date: c.date,
       type: c.type || c.category || 'CITIZEN REPORT',
       description: c.description || c.title || '',
-      block: c.block || c.address || '',
+      block: c.block || c.addr || '',
       source: 'citizen',
     } as Incident));
     addAll(citizenAsIncidents);
@@ -856,7 +1195,7 @@ export default function CampusDashboard({
       lat: d.lat, lng: d.lng, date: d.date,
       type: d.type || d.category || 'DISPATCH',
       description: d.description || d.title || '',
-      block: d.block || d.address || '',
+      block: d.block || d.addr || '',
       source: 'scanner',
     } as Incident));
     addAll(dispatchAsIncidents);
@@ -865,10 +1204,8 @@ export default function CampusDashboard({
 
   // ── Single source of truth for violent crime stats ──
   const stats = useViolentCrimeStats(campus, allIncidents);
-
   // ── Data readiness ──
   const dataReady = allIncidents.length > 0;
-
   // ── AI Briefing: watches violent crime counts, debounces 3s ──
   const briefing = useCampusBriefing(
     campus, risk, iceAlerts,
@@ -879,13 +1216,12 @@ export default function CampusDashboard({
   return (
     <div style={{ background: C.cream, fontFamily: sans, color: C.deep }}>
       <style>{STYLES}</style>
-
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 0 48px' }}>
-
-        {/* ── Campus Header with KPIs (uses shared stats) ── */}
+        {/* ── Campus Header with 5 KPIs, dismissal countdown, school period ── */}
         <CampusHeader
           campus={campus} risk={risk} incidents={allIncidents} tempF={tempF}
           violent7d={stats.violent7d} violent24h={stats.violent24h}
+          allRisks={allRisks} schoolPeriod={schoolPeriod} iceAlerts={iceAlerts}
         />
 
         {/* ── AI Intelligence Briefing ── */}
@@ -903,7 +1239,7 @@ export default function CampusDashboard({
             border: '1px solid #C4B5FD', padding: '16px 22px',
             marginBottom: 24, display: 'flex', alignItems: 'center', gap: 14,
           }}>
-            <span style={{ fontSize: 18 }}>🔒</span>
+            <span style={{ fontSize: 18 }}>⛔</span>
             <div>
               <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: '#4C1D95' }}>
                 {iceAlerts.length} ICE enforcement report{iceAlerts.length !== 1 ? 's' : ''} near campus
@@ -915,6 +1251,12 @@ export default function CampusDashboard({
           </div>
         )}
 
+        {/* ── Quick Actions ── */}
+        <QuickActions
+          campus={campus} risk={risk} schoolPeriod={schoolPeriod}
+          onBeginProtocol={onBeginProtocol}
+        />
+
         {/* ── Two-Column Grid: Map (60%) | Timeline (40%) ── */}
         <div style={{
           display: 'grid',
@@ -923,7 +1265,7 @@ export default function CampusDashboard({
           minHeight: 440,
         }}>
           <CampusMapSection
-            campus={campus} risk={risk} incidents={incidents}
+            campus={campus} risk={risk} incidents={allIncidents}
             shotSpotterEvents={shotSpotterEvents} corridors={corridors}
             scannerData={scannerData}
           />
@@ -935,6 +1277,9 @@ export default function CampusDashboard({
           risk={risk} campus={campus} incidents={incidents}
           tempF={tempF} allRisks={allRisks}
         />
+
+        {/* ── 7-Day Forecast ── */}
+        <ForecastStrip forecast={forecast} campus={campus} />
 
         {/* ── Contagion Zones (if any) ── */}
         {(risk.contagionZones?.length ?? 0) > 0 && (
@@ -986,6 +1331,16 @@ export default function CampusDashboard({
             </div>
           </div>
         )}
+
+        {/* ── Intelligence Sources ── */}
+        <DataSourceHealth
+          incidents={incidents}
+          citizenIncidents={citizenIncidents}
+          newsIncidents={newsIncidents}
+          dispatchIncidents={dispatchIncidents}
+          shotSpotterEvents={shotSpotterEvents}
+          scannerData={scannerData}
+        />
 
         {/* ── Ask Slate ── */}
         <AskSlate campus={campus} risk={risk} />

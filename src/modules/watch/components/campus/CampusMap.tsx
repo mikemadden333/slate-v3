@@ -212,9 +212,9 @@ interface ToastItem { id: string; text: string; isHomicide: boolean }
 
 export default function CampusMap({ campus, risk, incidents, shotSpotterEvents, contagionZones, corridors, scannerData }: Props) {
   /* ---- Slider state ---- */
-  const [timeSnapIdx, setTimeSnapIdx] = useState(2); // 24h default
+  const [timeSnapIdx, setTimeSnapIdx] = useState(4); // 14d default — CPD data is typically 7-10 days old
   const timeWindowH = SNAP_HOURS[timeSnapIdx];
-  const [distanceRadius, setDistanceRadius] = useState(1.0); // D3 FIX: was 3.0, now 1.0 for focused view
+  const [distanceRadius, setDistanceRadius] = useState(1.5); // 1.5mi default for good initial coverage
   const [zoneOpacity, setZoneOpacity] = useState(60);
 
   /* ---- Type filters ---- */
