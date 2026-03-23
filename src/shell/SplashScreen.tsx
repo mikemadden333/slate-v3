@@ -72,19 +72,22 @@ const LETTERS = [
 const UPEM = 1000;
 const TOTAL_WIDTH = 2325;
 
-// ─── Gold Dust ──────────────────────────────────────────────────────────
-function GoldDust({ active }: { active: boolean }) {
-  const motes = useMemo(() =>
-    Array.from({ length: 8 }, (_, i) => ({
+// ─── Gold Flecks ────────────────────────────────────────────────────────
+// Visible, warm gold motes that drift down from the text area.
+// Two waves: one during drawing, one when the fill materializes.
+function GoldFlecks({ active }: { active: boolean }) {
+  const flecks = useMemo(() =>
+    Array.from({ length: 14 }, (_, i) => ({
       id: i,
-      x: 30 + Math.random() * 40,
-      startY: 36 + Math.random() * 8,
-      delay: 0.2 + Math.random() * 1.8,
-      size: 2 + Math.random() * 2.5,
-      drift: -12 + Math.random() * 24,
-      fallDistance: 20 + Math.random() * 50,
-      opacity: 0.3 + Math.random() * 0.35,
-      duration: 2.5 + Math.random() * 2.0,
+      // Spread across the text area
+      x: 28 + Math.random() * 44,
+      startY: 33 + Math.random() * 12,
+      delay: i < 7 ? (0.1 + Math.random() * 1.2) : (1.8 + Math.random() * 1.5),
+      size: 3 + Math.random() * 3,
+      drift: -20 + Math.random() * 40,
+      fallDistance: 40 + Math.random() * 80,
+      opacity: 0.5 + Math.random() * 0.35,
+      duration: 2.0 + Math.random() * 2.5,
     })), []);
 
   return (
@@ -93,29 +96,29 @@ function GoldDust({ active }: { active: boolean }) {
       pointerEvents: 'none', overflow: 'hidden',
     }}>
       <style>{`
-        @keyframes dustDrift {
-          0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
-          15% { opacity: var(--d-opacity); transform: translate(0, 2px) scale(1); }
-          60% { opacity: var(--d-opacity); }
-          100% { opacity: 0; transform: translate(var(--d-drift), var(--d-fall)) scale(0.3); }
+        @keyframes goldFleckDrift {
+          0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+          12% { opacity: var(--f-opacity); transform: translate(2px, 4px) scale(1); }
+          50% { opacity: var(--f-opacity); }
+          100% { opacity: 0; transform: translate(var(--f-drift), var(--f-fall)) scale(0.2); }
         }
       `}</style>
-      {active && motes.map(m => (
+      {active && flecks.map(f => (
         <div
-          key={m.id}
+          key={f.id}
           style={{
             position: 'absolute',
-            left: `${m.x}%`,
-            top: `${m.startY}%`,
-            width: m.size,
-            height: m.size,
+            left: `${f.x}%`,
+            top: `${f.startY}%`,
+            width: f.size,
+            height: f.size,
             borderRadius: '50%',
-            background: `radial-gradient(circle, ${brand.gold} 0%, ${brand.brass} 100%)`,
-            boxShadow: `0 0 ${m.size * 3}px ${brand.gold}60`,
-            animation: `dustDrift ${m.duration}s ease-out ${m.delay}s both`,
-            ['--d-drift' as string]: `${m.drift}px`,
-            ['--d-fall' as string]: `${m.fallDistance}px`,
-            ['--d-opacity' as string]: m.opacity,
+            background: `radial-gradient(circle, ${brand.gold} 0%, ${brand.brass} 80%)`,
+            boxShadow: `0 0 ${f.size * 2}px ${brand.gold}80, 0 0 ${f.size * 5}px ${brand.gold}30`,
+            animation: `goldFleckDrift ${f.duration}s ease-out ${f.delay}s both`,
+            ['--f-drift' as string]: `${f.drift}px`,
+            ['--f-fall' as string]: `${f.fallDistance}px`,
+            ['--f-opacity' as string]: f.opacity,
           } as React.CSSProperties}
         />
       ))}
@@ -148,14 +151,20 @@ function DrawnText({ drawPhase, fillVisible, showPeriod }: {
         style={{ overflow: 'visible', display: 'block' }}
       >
         <defs>
-          {/* Subtle chalk grain */}
-          <filter id="chalkGrain" x="-2%" y="-2%" width="104%" height="104%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" seed="7" result="noise" />
+          {/* Chalk grain — rougher, more visible texture like real chalk */}
+          <filter id="chalkGrain" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="5" seed="42" result="noise" />
             <feColorMatrix in="noise" type="saturate" values="0" result="grayNoise" />
             <feComponentTransfer in="grayNoise" result="thresh">
-              <feFuncA type="discrete" tableValues="0 0.1 0.4 0.7 0.85 0.95 1 1" />
+              <feFuncA type="discrete" tableValues="0 0 0.2 0.5 0.7 0.85 0.95 1" />
             </feComponentTransfer>
             <feComposite in="SourceGraphic" in2="thresh" operator="in" />
+          </filter>
+
+          {/* Rough edge filter for strokes — makes them look chalky, not digital */}
+          <filter id="roughEdge" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="4" seed="3" result="warp" />
+            <feDisplacementMap in="SourceGraphic" in2="warp" scale="3" xChannelSelector="R" yChannelSelector="G" />
           </filter>
 
           {/* Warm stroke gradient */}
@@ -169,22 +178,23 @@ function DrawnText({ drawPhase, fillVisible, showPeriod }: {
         {/* Fill layer — fades in after all strokes complete */}
         {LETTERS.map((letter, i) => (
           <g key={`fill-${i}`} transform={`translate(${letter.xOffset}, 0) scale(1,-1) translate(0,-${UPEM})`}>
-            {/* Base white fill */}
+            {/* Base white fill — slightly rough */}
             <path
               d={letter.path}
               fill="#FFFFFF"
+              filter="url(#roughEdge)"
               style={{
-                opacity: fillVisible ? 0.9 : 0,
+                opacity: fillVisible ? 0.85 : 0,
                 transition: `opacity 0.8s ease ${i * 0.08}s`,
               }}
             />
-            {/* Chalk grain overlay */}
+            {/* Chalk grain overlay — more visible */}
             <path
               d={letter.path}
-              fill="#F0ECE4"
+              fill="#E8DCC0"
               filter="url(#chalkGrain)"
               style={{
-                opacity: fillVisible ? 0.3 : 0,
+                opacity: fillVisible ? 0.5 : 0,
                 transition: `opacity 0.8s ease ${i * 0.08}s`,
               }}
             />
@@ -203,9 +213,10 @@ function DrawnText({ drawPhase, fillVisible, showPeriod }: {
                 d={letter.path}
                 fill="none"
                 stroke="url(#strokeGrad)"
-                strokeWidth="4"
+                strokeWidth="6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                filter="url(#roughEdge)"
                 style={{
                   strokeDasharray: letter.pathLength,
                   strokeDashoffset: (isDrawing || isDrawn) ? 0 : letter.pathLength,
@@ -423,8 +434,8 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         pointerEvents: 'none',
       }} />
 
-      {/* Gold dust */}
-      <GoldDust active={dustActive} />
+      {/* Gold flecks */}
+      <GoldFlecks active={dustActive} />
 
       {/* Confidential badge */}
       <div style={{
