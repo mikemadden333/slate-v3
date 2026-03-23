@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { useFacilities, useRole, useNetwork } from '../../data/DataStore';
+import { useFacilities, useRole, useNetwork, useEmergencies } from '../../data/DataStore';
 import { Card, KPICard, ModuleHeader, Section, AIInsight, StatusBadge, EmptyState } from '../../components/Card';
 import { fmt, fmtPct, fmtCompact, fmtNum, fmtFull } from '../../core/formatters';
 import {
@@ -793,8 +793,45 @@ function VendorsTab() {
 
 function EmergencyTab() {
   const net = useNetwork();
+  const { events, activeEvents, addEmergency } = useEmergencies();
   const [form, setForm] = useState({ campus: '', type: '', description: '', severity: 'high' as string, affectsOccupancy: false, estimatedCost: '', contactName: '', contactPhone: '' });
   const [submitted, setSubmitted] = useState(false);
+
+  const EMERGENCY_TYPE_MAP: Record<string, import('../../core/types').EmergencyType> = {
+    'Roof Collapse / Structural Failure': 'roof-collapse',
+    'Flooding / Water Damage': 'flooding',
+    'Fire Damage': 'fire',
+    'HVAC System Failure (No Heat/AC)': 'hvac-failure',
+    'Electrical System Failure': 'other',
+    'Gas Leak': 'gas-leak',
+    'Security System Failure': 'security',
+    'Elevator Entrapment': 'structural',
+    'Hazardous Material Exposure': 'other',
+    'Other Emergency': 'other',
+  };
+
+  function handleSubmit() {
+    if (!form.campus || !form.type || !form.description) return;
+    const campusObj = net.campuses.find(c => c.short === form.campus);
+    const costNum = parseInt(form.estimatedCost.replace(/[^0-9]/g, '')) || 50000;
+    const event: import('../../core/types').EmergencyEvent = {
+      id: `EMG-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      campus: form.campus,
+      campusId: campusObj?.id || 1,
+      type: EMERGENCY_TYPE_MAP[form.type] || 'other',
+      severity: form.severity as import('../../core/types').EmergencySeverity,
+      title: `${form.type} at ${form.campus}`,
+      description: form.description,
+      estimatedCost: costNum,
+      occupancyImpact: form.affectsOccupancy,
+      reportedBy: form.contactName || 'Facilities Team',
+      contactPhone: form.contactPhone || '',
+      status: 'active',
+    };
+    addEmergency(event);
+    setSubmitted(true);
+  }
 
   const emergencyTypes = [
     'Roof Collapse / Structural Failure', 'Flooding / Water Damage', 'Fire Damage',
@@ -893,7 +930,7 @@ function EmergencyTab() {
           </div>
         </div>
         <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={() => setSubmitted(true)} disabled={!form.campus || !form.type || !form.description}
+          <button onClick={handleSubmit} disabled={!form.campus || !form.type || !form.description}
             style={{ padding: '12px 32px', borderRadius: radius.lg, border: 'none',
               background: form.campus && form.type && form.description ? status.red : border.light,
               color: form.campus && form.type && form.description ? '#fff' : text.light,

@@ -6,34 +6,19 @@
  * pen traces the path of each letter in sequence: S... l... a... t... e...
  * Then the fill materializes behind the strokes. Then the gold period settles.
  *
- * The SVG paths are extracted from Playfair Display Black (900 weight)
- * using fonttools. Each path is animated with stroke-dasharray/dashoffset.
+ * v3.1 — Glass-like awe-inspiring design. No module dots.
+ * Subtle glass refraction, ambient light particles, and depth.
  *
  * Design: restraint, motion, story. Sharp, classy, modern.
  */
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { brand, font, modules as modColors } from '../core/theme';
-
-// ─── Module dots ──────────────────────────────────────────────────────────
-const MODULE_DOTS: { label: string; color: string }[] = [
-  { label: 'SIGNAL',  color: modColors.signal },
-  { label: 'WATCH',   color: modColors.watch },
-  { label: 'LEDGER',  color: modColors.ledger },
-  { label: 'SCHOLAR', color: modColors.scholar },
-  { label: 'SHIELD',  color: modColors.shield },
-  { label: 'DRAFT',   color: modColors.draft },
-  { label: 'GROUNDS', color: modColors.grounds },
-  { label: 'CIVIC',   color: modColors.civic },
-  { label: 'FUND',    color: modColors.fund },
-  { label: 'BRIEFING',color: modColors.briefing },
-  { label: 'REPORTS', color: modColors.reports },
-];
+import { brand, font } from '../core/theme';
 
 // ─── Background palette (matches app sidebar — rich deep slate gray) ────
-const BG_CENTER = '#1E2735';  // Lighter center for glass-like depth
-const BG_MID    = '#171F2C';  // Mid tone
-const BG_BASE   = '#131A25';  // Deep base — matches sidebar
+const BG_CENTER = '#1E2735';
+const BG_MID    = '#171F2C';
+const BG_BASE   = '#131A25';
 
 // ─── Letter path data (Playfair Display Black, extracted via fonttools) ──
 const LETTERS = [
@@ -72,9 +57,51 @@ const LETTERS = [
 const UPEM = 1000;
 const TOTAL_WIDTH = 2325;
 
+// ─── Ambient Light Particles ─────────────────────────────────────────────
+// Subtle floating particles that create depth and atmosphere
+function AmbientParticles({ active }: { active: boolean }) {
+  const particles = useMemo(() =>
+    Array.from({ length: 24 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: 1 + Math.random() * 2.5,
+      duration: 15 + Math.random() * 25,
+      delay: Math.random() * 10,
+      opacity: 0.03 + Math.random() * 0.08,
+      drift: 10 + Math.random() * 30,
+    })), []);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes ambientFloat {
+          0% { transform: translateY(0) translateX(0); opacity: 0; }
+          15% { opacity: var(--p-opacity); }
+          85% { opacity: var(--p-opacity); }
+          100% { transform: translateY(calc(var(--p-drift) * -1px)) translateX(var(--p-drift-x)); opacity: 0; }
+        }
+      `}</style>
+      {active && particles.map(p => (
+        <div key={p.id} style={{
+          position: 'absolute',
+          left: `${p.x}%`,
+          top: `${p.y}%`,
+          width: p.size,
+          height: p.size,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(255,255,255,${p.opacity * 3}) 0%, rgba(240,180,41,${p.opacity}) 100%)`,
+          animation: `ambientFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
+          ['--p-opacity' as string]: p.opacity,
+          ['--p-drift' as string]: p.drift,
+          ['--p-drift-x' as string]: `${(Math.random() - 0.5) * 20}px`,
+        } as React.CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
 // ─── Gold Flecks ────────────────────────────────────────────────────────
-// Subtle gold motes that gently fall away from the gold period dot.
-// Uses the actual rendered position of the period circle via ref.
 function GoldFlecks({ active, periodRef, containerRef }: {
   active: boolean;
   periodRef: React.RefObject<SVGCircleElement | null>;
@@ -93,7 +120,7 @@ function GoldFlecks({ active, periodRef, containerRef }: {
   }, [active, periodRef, containerRef]);
 
   const flecks = useMemo(() =>
-    Array.from({ length: 8 }, (_, i) => ({
+    Array.from({ length: 10 }, (_, i) => ({
       id: i,
       offsetX: (Math.random() - 0.5) * 8,
       offsetY: (Math.random() - 0.5) * 8,
@@ -108,10 +135,7 @@ function GoldFlecks({ active, periodRef, containerRef }: {
   if (!pos) return null;
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      pointerEvents: 'none', overflow: 'visible',
-    }}>
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>
       <style>{`
         @keyframes goldFleckDrift {
           0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
@@ -121,43 +145,36 @@ function GoldFlecks({ active, periodRef, containerRef }: {
         }
       `}</style>
       {active && flecks.map(f => (
-        <div
-          key={f.id}
-          style={{
-            position: 'absolute',
-            left: pos.x + f.offsetX,
-            top: pos.y + f.offsetY,
-            width: f.size,
-            height: f.size,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${brand.gold} 0%, ${brand.brass} 80%)`,
-            boxShadow: `0 0 ${f.size * 1.5}px ${brand.gold}60`,
-            animation: `goldFleckDrift ${f.duration}s ease-out ${f.delay}s both`,
-            ['--f-drift' as string]: `${f.drift}px`,
-            ['--f-fall' as string]: `${f.fallDistance}px`,
-            ['--f-opacity' as string]: f.opacity,
-          } as React.CSSProperties}
-        />
+        <div key={f.id} style={{
+          position: 'absolute',
+          left: pos.x + f.offsetX,
+          top: pos.y + f.offsetY,
+          width: f.size,
+          height: f.size,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${brand.gold} 0%, ${brand.brass} 80%)`,
+          boxShadow: `0 0 ${f.size * 1.5}px ${brand.gold}60`,
+          animation: `goldFleckDrift ${f.duration}s ease-out ${f.delay}s both`,
+          ['--f-drift' as string]: `${f.drift}px`,
+          ['--f-fall' as string]: `${f.fallDistance}px`,
+          ['--f-opacity' as string]: f.opacity,
+        } as React.CSSProperties} />
       ))}
     </div>
   );
 }
 
 // ─── Drawn Text ─────────────────────────────────────────────────────────
-// Each letter's outline traces itself via stroke-dashoffset animation,
-// then the fill fades in. Letters are sequenced with staggered delays.
 function DrawnText({ drawPhase, fillVisible, showPeriod, periodRef }: {
-  drawPhase: number; // 0=nothing, 1=drawing S, 2=drawing l, 3=a, 4=t, 5=e, 6=done
+  drawPhase: number;
   fillVisible: boolean;
   showPeriod: boolean;
   periodRef: React.RefObject<SVGCircleElement | null>;
 }) {
-  // Timing: each letter takes ~0.5s to draw, with slight overlaps
-  // drawPhase maps to which letters have started drawing
   const getLetterState = (index: number) => {
-    if (drawPhase > index + 1) return 'drawn';  // fully traced
-    if (drawPhase > index) return 'drawing';      // currently tracing
-    return 'hidden';                               // not started
+    if (drawPhase > index + 1) return 'drawn';
+    if (drawPhase > index) return 'drawing';
+    return 'hidden';
   };
 
   return (
@@ -169,7 +186,6 @@ function DrawnText({ drawPhase, fillVisible, showPeriod, periodRef }: {
         style={{ overflow: 'visible', display: 'block' }}
       >
         <defs>
-          {/* Chalk grain — rougher, more visible texture like real chalk */}
           <filter id="chalkGrain" x="-5%" y="-5%" width="110%" height="110%">
             <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="5" seed="42" result="noise" />
             <feColorMatrix in="noise" type="saturate" values="0" result="grayNoise" />
@@ -178,14 +194,10 @@ function DrawnText({ drawPhase, fillVisible, showPeriod, periodRef }: {
             </feComponentTransfer>
             <feComposite in="SourceGraphic" in2="thresh" operator="in" />
           </filter>
-
-          {/* Rough edge filter for strokes — makes them look chalky, not digital */}
           <filter id="roughEdge" x="-5%" y="-5%" width="110%" height="110%">
             <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="4" seed="3" result="warp" />
             <feDisplacementMap in="SourceGraphic" in2="warp" scale="3" xChannelSelector="R" yChannelSelector="G" />
           </filter>
-
-          {/* Warm stroke gradient */}
           <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#E8DCC0" />
             <stop offset="50%" stopColor="#FFFFFF" />
@@ -193,82 +205,88 @@ function DrawnText({ drawPhase, fillVisible, showPeriod, periodRef }: {
           </linearGradient>
         </defs>
 
-        {/* Fill layer — fades in after all strokes complete */}
+        {/* Fill layer */}
         {LETTERS.map((letter, i) => (
           <g key={`fill-${i}`} transform={`translate(${letter.xOffset}, 0) scale(1,-1) translate(0,-${UPEM})`}>
-            {/* Base white fill — slightly rough */}
-            <path
-              d={letter.path}
-              fill="#FFFFFF"
-              filter="url(#roughEdge)"
-              style={{
-                opacity: fillVisible ? 0.85 : 0,
-                transition: `opacity 0.8s ease ${i * 0.08}s`,
-              }}
-            />
-            {/* Chalk grain overlay — more visible */}
-            <path
-              d={letter.path}
-              fill="#E8DCC0"
-              filter="url(#chalkGrain)"
-              style={{
-                opacity: fillVisible ? 0.5 : 0,
-                transition: `opacity 0.8s ease ${i * 0.08}s`,
-              }}
-            />
+            <path d={letter.path} fill="#FFFFFF" filter="url(#roughEdge)"
+              style={{ opacity: fillVisible ? 0.85 : 0, transition: `opacity 0.8s ease ${i * 0.08}s` }} />
+            <path d={letter.path} fill="#E8DCC0" filter="url(#chalkGrain)"
+              style={{ opacity: fillVisible ? 0.5 : 0, transition: `opacity 0.8s ease ${i * 0.08}s` }} />
           </g>
         ))}
 
-        {/* Stroke layer — each letter traces itself */}
+        {/* Stroke layer */}
         {LETTERS.map((letter, i) => {
           const state = getLetterState(i);
           const isDrawing = state === 'drawing';
           const isDrawn = state === 'drawn';
-
           return (
             <g key={`stroke-${i}`} transform={`translate(${letter.xOffset}, 0) scale(1,-1) translate(0,-${UPEM})`}>
-              <path
-                d={letter.path}
-                fill="none"
-                stroke="url(#strokeGrad)"
-                strokeWidth="6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter="url(#roughEdge)"
+              <path d={letter.path} fill="none" stroke="url(#strokeGrad)" strokeWidth="6"
+                strokeLinecap="round" strokeLinejoin="round" filter="url(#roughEdge)"
                 style={{
                   strokeDasharray: letter.pathLength,
                   strokeDashoffset: (isDrawing || isDrawn) ? 0 : letter.pathLength,
-                  transition: isDrawing
-                    ? `stroke-dashoffset 0.55s cubic-bezier(0.25, 0.1, 0.25, 1)`
-                    : 'none',
+                  transition: isDrawing ? `stroke-dashoffset 0.55s cubic-bezier(0.25, 0.1, 0.25, 1)` : 'none',
                   opacity: (isDrawing || isDrawn) ? (fillVisible ? 0 : 1) : 0,
-                }}
-              />
+                }} />
             </g>
           );
         })}
 
         {/* Gold period */}
         <g transform={`translate(2325, 0) scale(1,-1) translate(0,-${UPEM})`}>
-          <circle
-            ref={periodRef}
-            cx="60"
-            cy="60"
-            r="50"
-            fill={brand.gold}
+          <circle ref={periodRef} cx="60" cy="60" r="50" fill={brand.gold}
             style={{
               opacity: showPeriod ? 1 : 0,
               transition: 'opacity 0.5s ease',
-              filter: `drop-shadow(0 0 8px ${brand.gold}40)`,
-            } as React.CSSProperties}
-          />
+              filter: `drop-shadow(0 0 12px ${brand.gold}50)`,
+            } as React.CSSProperties} />
         </g>
       </svg>
     </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────
+// ─── Glass Orb ──────────────────────────────────────────────────────────
+// A subtle glass-like orb behind the text for depth
+function GlassOrb({ visible }: { visible: boolean }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      width: 600,
+      height: 600,
+      borderRadius: '50%',
+      background: `radial-gradient(ellipse at 35% 30%, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 40%, transparent 70%)`,
+      border: '1px solid rgba(255,255,255,0.02)',
+      opacity: visible ? 1 : 0,
+      transition: 'opacity 2s ease',
+      pointerEvents: 'none',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -55%)',
+    }} />
+  );
+}
+
+// ─── Horizontal Rule ────────────────────────────────────────────────────
+function GlassRule({ visible }: { visible: boolean }) {
+  return (
+    <div style={{
+      width: 120,
+      height: 1,
+      background: `linear-gradient(90deg, transparent 0%, rgba(240,180,41,0.3) 50%, transparent 100%)`,
+      opacity: visible ? 1 : 0,
+      transition: 'all 1.2s ease',
+      margin: '0 auto',
+    }} />
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
 interface SplashScreenProps {
   onEnter: () => void;
 }
@@ -281,44 +299,47 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
   const [dustActive, setDustActive] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(false);
   const [taglineVisible, setTaglineVisible] = useState(false);
-  const [dotsVisible, setDotsVisible] = useState(false);
   const [subtitleVisible, setSubtitleVisible] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
+  const [orbVisible, setOrbVisible] = useState(false);
+  const [particlesActive, setParticlesActive] = useState(false);
+  const [ruleVisible, setRuleVisible] = useState(false);
   const periodRef = useRef<SVGCircleElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const debug = window.location.search.includes('debug');
 
-    // Letter drawing sequence — each letter starts 0.45s after the previous
-    // S starts at 0.8s, then l at 1.25s, a at 1.7s, t at 2.15s, e at 2.6s
     const DRAW_START = 800;
     const LETTER_GAP = 450;
 
     const timers = [
+      // Glass orb and particles start early for atmosphere
+      setTimeout(() => setOrbVisible(true), 200),
+      setTimeout(() => setParticlesActive(true), 400),
       setTimeout(() => setBadgeVisible(true), 300),
 
       // Draw each letter in sequence
-      setTimeout(() => setDrawPhase(1), DRAW_START),           // S
-      setTimeout(() => setDrawPhase(2), DRAW_START + LETTER_GAP),     // l
-      setTimeout(() => setDrawPhase(3), DRAW_START + LETTER_GAP * 2), // a
-      setTimeout(() => setDrawPhase(4), DRAW_START + LETTER_GAP * 3), // t
-      setTimeout(() => setDrawPhase(5), DRAW_START + LETTER_GAP * 4), // e
-      setTimeout(() => setDrawPhase(6), DRAW_START + LETTER_GAP * 5), // done
+      setTimeout(() => setDrawPhase(1), DRAW_START),
+      setTimeout(() => setDrawPhase(2), DRAW_START + LETTER_GAP),
+      setTimeout(() => setDrawPhase(3), DRAW_START + LETTER_GAP * 2),
+      setTimeout(() => setDrawPhase(4), DRAW_START + LETTER_GAP * 3),
+      setTimeout(() => setDrawPhase(5), DRAW_START + LETTER_GAP * 4),
+      setTimeout(() => setDrawPhase(6), DRAW_START + LETTER_GAP * 5),
 
-      // Gold flecks start when the period appears
+      // Gold flecks
       setTimeout(() => setDustActive(true), DRAW_START + LETTER_GAP * 5 + 600),
 
-      // Fill materializes after all strokes complete
+      // Fill materializes
       setTimeout(() => setFillVisible(true), DRAW_START + LETTER_GAP * 5 + 200),
 
-      // Period settles in
+      // Period settles
       setTimeout(() => setShowPeriod(true), DRAW_START + LETTER_GAP * 5 + 600),
 
-      // Rest cascades
-      setTimeout(() => setTaglineVisible(true), DRAW_START + LETTER_GAP * 5 + 1000),
-      setTimeout(() => setDotsVisible(true), DRAW_START + LETTER_GAP * 5 + 1400),
-      setTimeout(() => setSubtitleVisible(true), DRAW_START + LETTER_GAP * 5 + 1800),
+      // Cascade
+      setTimeout(() => setRuleVisible(true), DRAW_START + LETTER_GAP * 5 + 900),
+      setTimeout(() => setTaglineVisible(true), DRAW_START + LETTER_GAP * 5 + 1100),
+      setTimeout(() => setSubtitleVisible(true), DRAW_START + LETTER_GAP * 5 + 1600),
       setTimeout(() => setFooterVisible(true), DRAW_START + LETTER_GAP * 5 + 2000),
 
       // Auto-advance
@@ -339,52 +360,40 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'fadeInDisclaimer 0.6s ease forwards',
       }}>
+        <AmbientParticles active={true} />
         <style>{`
-          @keyframes fadeInDisclaimer {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes slideUpModal {
-            from { opacity: 0; transform: translateY(24px) scale(0.96); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-          }
+          @keyframes fadeInDisclaimer { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes slideUpModal { from { opacity: 0; transform: translateY(24px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
         `}</style>
         <div style={{
-          background: '#FFFFFF',
-          borderRadius: 14,
+          background: 'rgba(255,255,255,0.97)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 16,
           padding: '52px 44px',
           maxWidth: 500,
           width: '90%',
           textAlign: 'center',
-          boxShadow: '0 32px 100px rgba(0,0,0,0.6)',
+          boxShadow: '0 32px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1)',
           animation: 'slideUpModal 0.5s ease 0.1s both',
+          position: 'relative',
+          zIndex: 1,
         }}>
           <div style={{
-            fontSize: 11,
-            fontFamily: font.mono,
-            letterSpacing: 2.5,
-            color: brand.gold,
-            fontWeight: 700,
-            marginBottom: 18,
+            fontSize: 11, fontFamily: font.mono, letterSpacing: 2.5,
+            color: brand.gold, fontWeight: 700, marginBottom: 18,
             textTransform: 'uppercase' as const,
           }}>
             Important Notice
           </div>
           <h2 style={{
-            fontFamily: font.serif,
-            fontSize: 24,
-            fontWeight: 700,
-            color: '#0A0E14',
-            margin: '0 0 18px',
+            fontFamily: font.serif, fontSize: 24, fontWeight: 700,
+            color: '#0A0E14', margin: '0 0 18px',
           }}>
             Illustrative Platform Demo
           </h2>
           <p style={{
-            fontFamily: font.sans,
-            fontSize: 14,
-            lineHeight: 1.75,
-            color: '#4A5568',
-            margin: '0 0 10px',
+            fontFamily: font.sans, fontSize: 14, lineHeight: 1.75,
+            color: '#4A5568', margin: '0 0 10px',
           }}>
             All data, organizations, names, figures, and scenarios in Slate
             are <strong style={{ color: '#0A0E14' }}>fictional and for demonstration purposes only</strong>.
@@ -392,36 +401,29 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
             represent any real institution, school network, or organization.
           </p>
           <p style={{
-            fontFamily: font.sans,
-            fontSize: 14,
-            lineHeight: 1.75,
-            color: '#4A5568',
-            margin: '0 0 32px',
+            fontFamily: font.sans, fontSize: 14, lineHeight: 1.75,
+            color: '#4A5568', margin: '0 0 32px',
           }}>
             Slate is a product design concept by <strong style={{ color: '#0A0E14' }}>Madden Education Advisory</strong>.
           </p>
           <button
             onClick={() => onEnter()}
             style={{
-              fontFamily: font.sans,
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: 0.5,
-              color: '#FFFFFF',
-              background: BG_BASE,
-              border: 'none',
-              borderRadius: 8,
-              padding: '15px 36px',
-              cursor: 'pointer',
+              fontFamily: font.sans, fontSize: 14, fontWeight: 600,
+              letterSpacing: 0.5, color: '#FFFFFF',
+              background: BG_BASE, border: 'none', borderRadius: 8,
+              padding: '15px 36px', cursor: 'pointer',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={e => {
               (e.target as HTMLButtonElement).style.background = '#22262E';
               (e.target as HTMLButtonElement).style.transform = 'translateY(-1px)';
+              (e.target as HTMLButtonElement).style.boxShadow = '0 8px 30px rgba(0,0,0,0.3)';
             }}
             onMouseLeave={e => {
               (e.target as HTMLButtonElement).style.background = BG_BASE;
               (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
+              (e.target as HTMLButtonElement).style.boxShadow = 'none';
             }}
           >
             I Understand — Enter Slate
@@ -445,7 +447,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       transition: 'opacity 0.6s ease',
       paddingBottom: 80,
     }}>
-      {/* Subtle warm light */}
+      {/* Subtle warm light gradients */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `
@@ -455,7 +457,20 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         pointerEvents: 'none',
       }} />
 
+      {/* Glass-like refraction lines */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: `
+          linear-gradient(135deg, transparent 0%, transparent 48%, rgba(255,255,255,0.008) 49%, rgba(255,255,255,0.008) 51%, transparent 52%, transparent 100%),
+          linear-gradient(225deg, transparent 0%, transparent 48%, rgba(255,255,255,0.005) 49%, rgba(255,255,255,0.005) 51%, transparent 52%, transparent 100%)
+        `,
+      }} />
 
+      {/* Glass Orb */}
+      <GlassOrb visible={orbVisible} />
+
+      {/* Ambient Particles */}
+      <AmbientParticles active={particlesActive} />
 
       {/* Confidential badge */}
       <div style={{
@@ -463,25 +478,31 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         transform: badgeVisible ? 'translateY(0)' : 'translateY(-12px)',
         transition: 'all 0.8s ease',
         marginBottom: 48,
+        position: 'relative',
+        zIndex: 1,
       }}>
         <div style={{
-          fontFamily: font.mono,
-          fontSize: 11,
-          letterSpacing: 3.5,
+          fontFamily: font.mono, fontSize: 11, letterSpacing: 3.5,
           color: 'rgba(255,255,255,0.35)',
           textTransform: 'uppercase' as const,
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 24,
-          padding: '10px 28px',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 24, padding: '10px 28px',
+          backdropFilter: 'blur(4px)',
+          background: 'rgba(255,255,255,0.02)',
         }}>
           Platform Design System — Version 3.0 — Confidential
         </div>
       </div>
 
       {/* The Drawing — "Slate." traced letter by letter + Gold flecks */}
-      <div ref={containerRef} style={{ position: 'relative', marginBottom: 14 }}>
+      <div ref={containerRef} style={{ position: 'relative', marginBottom: 14, zIndex: 1 }}>
         <DrawnText drawPhase={drawPhase} fillVisible={fillVisible} showPeriod={showPeriod} periodRef={periodRef} />
         <GoldFlecks active={dustActive} periodRef={periodRef} containerRef={containerRef} />
+      </div>
+
+      {/* Gold rule */}
+      <div style={{ marginBottom: 20, position: 'relative', zIndex: 1 }}>
+        <GlassRule visible={ruleVisible} />
       </div>
 
       {/* Tagline */}
@@ -489,113 +510,53 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         opacity: taglineVisible ? 1 : 0,
         transform: taglineVisible ? 'translateY(0)' : 'translateY(6px)',
         transition: 'all 0.8s ease',
-        fontFamily: font.mono,
-        fontSize: 13,
-        letterSpacing: 5,
+        fontFamily: font.mono, fontSize: 13, letterSpacing: 5,
         color: 'rgba(255,255,255,0.45)',
         textTransform: 'uppercase' as const,
         marginBottom: 44,
+        position: 'relative', zIndex: 1,
       }}>
         Start with the Facts
-      </div>
-
-      {/* Module dots */}
-      <div style={{
-        display: 'flex',
-        gap: 28,
-        alignItems: 'center',
-        marginBottom: 20,
-        opacity: dotsVisible ? 1 : 0,
-        transition: 'all 0.8s ease',
-      }}>
-        {MODULE_DOTS.map((mod, i) => (
-          <div key={mod.label} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 10,
-            opacity: dotsVisible ? 1 : 0,
-            transform: dotsVisible ? 'translateY(0)' : 'translateY(8px)',
-            transition: `all 0.4s ease ${i * 0.06}s`,
-          }}>
-            <div style={{
-              width: 11,
-              height: 11,
-              borderRadius: '50%',
-              background: mod.color,
-              boxShadow: `0 0 10px ${mod.color}50`,
-            }} />
-            <div style={{
-              fontFamily: font.mono,
-              fontSize: 8,
-              letterSpacing: 1.8,
-              color: 'rgba(255,255,255,0.3)',
-              textTransform: 'uppercase' as const,
-            }}>
-              {mod.label}
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Subtitle */}
       <div style={{
         opacity: subtitleVisible ? 1 : 0,
         transition: 'all 1s ease',
-        fontFamily: font.sans,
-        fontSize: 15,
+        fontFamily: font.sans, fontSize: 15,
         color: 'rgba(255,255,255,0.3)',
         letterSpacing: 1.2,
-        marginTop: 28,
+        position: 'relative', zIndex: 1,
       }}>
         Intelligence for School Systems
       </div>
 
       {/* Footer */}
       <div style={{
-        position: 'absolute',
-        bottom: 40,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
+        position: 'absolute', bottom: 40,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', gap: 8,
         opacity: footerVisible ? 1 : 0,
         transition: 'all 1s ease',
+        zIndex: 1,
       }}>
         <div style={{
-          fontFamily: font.mono,
-          fontSize: 10,
-          letterSpacing: 3,
+          fontFamily: font.mono, fontSize: 10, letterSpacing: 3,
           color: 'rgba(255,255,255,0.25)',
-          textTransform: 'uppercase' as const,
-          fontWeight: 600,
+          textTransform: 'uppercase' as const, fontWeight: 600,
         }}>
           Madden Education Advisory
         </div>
         <div style={{
-          fontFamily: font.mono,
-          fontSize: 9,
-          letterSpacing: 2.5,
-          color: 'rgba(255,255,255,0.15)',
-          textTransform: 'uppercase' as const,
-        }}>
-          Intelligence for School Systems
-        </div>
-        <div style={{
-          fontFamily: font.mono,
-          fontSize: 8,
-          letterSpacing: 2,
+          fontFamily: font.mono, fontSize: 8, letterSpacing: 2,
           color: 'rgba(255,255,255,0.1)',
           textTransform: 'uppercase' as const,
         }}>
           Proprietary & Confidential · All Rights Reserved · 2026
         </div>
         <div style={{
-          display: 'flex',
-          gap: 14,
-          marginTop: 10,
-          fontSize: 15,
-          opacity: 0.12,
+          display: 'flex', gap: 14, marginTop: 10,
+          fontSize: 15, opacity: 0.12,
         }}>
           <span title="Mike">🐇</span>
           <span title="Wife">🦋</span>

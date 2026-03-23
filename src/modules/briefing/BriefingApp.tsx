@@ -12,7 +12,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   useNetwork, useEnrollment, useFinancials, useStaff, useRisks,
-  useFundraising, useCompliance, useFacilities, useCivic, useRole,
+  useFundraising, useCompliance, useFacilities, useCivic, useRole, useEmergencies,
 } from '../../data/DataStore';
 import { Card, ModuleHeader, StatusBadge } from '../../components/Card';
 import { fmt, fmtNum, fmtPct, fmtFull } from '../../core/formatters';
@@ -449,6 +449,67 @@ function ComplianceBrief() {
   );
 }
 
+// ─── GOLDEN THREAD: Emergency Intelligence ─────────────────────────────
+
+function EmergencyBrief() {
+  const { activeEvents } = useEmergencies();
+  if (activeEvents.length === 0) return null;
+
+  return (
+    <BriefSection icon="⚠" title="Active Emergency" accent={statusColor.red} priority="critical">
+      {activeEvents.map(event => {
+        const elapsed = Math.round((Date.now() - new Date(event.timestamp).getTime()) / 60000);
+        const elapsedStr = elapsed < 60 ? `${elapsed} minutes ago` : elapsed < 1440 ? `${Math.round(elapsed / 60)} hours ago` : `${Math.round(elapsed / 1440)} days ago`;
+        return (
+          <div key={event.id} style={{ marginBottom: 16 }}>
+            <p style={{ margin: '0 0 12px' }}>
+              <strong style={{ color: statusColor.red }}>EMERGENCY ALERT:</strong>{' '}
+              <M v={event.title} c={statusColor.red} /> — reported {elapsedStr}.
+              Severity: <M v={event.severity.toUpperCase()} c={event.severity === 'critical' ? statusColor.red : statusColor.amber} />.
+            </p>
+            <p style={{ margin: '0 0 12px' }}>
+              {event.description}
+            </p>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12,
+              margin: '12px 0', padding: 12, background: `${statusColor.red}08`,
+              borderRadius: radius.md, border: `1px solid ${statusColor.red}20`,
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: fontSize.xs, color: textColor.muted }}>Est. Cost</div>
+                <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, fontFamily: font.mono, color: statusColor.red }}>
+                  ${event.estimatedCost.toLocaleString()}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: fontSize.xs, color: textColor.muted }}>Occupancy</div>
+                <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: event.occupancyImpact ? statusColor.red : statusColor.green }}>
+                  {event.occupancyImpact ? 'AFFECTED' : 'OK'}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: fontSize.xs, color: textColor.muted }}>Campus</div>
+                <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: textColor.primary }}>{event.campus}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: fontSize.xs, color: textColor.muted }}>Contact</div>
+                <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: textColor.primary }}>{event.reportedBy}</div>
+              </div>
+            </div>
+            <p style={{ margin: 0 }}>
+              <strong>Cross-Module Response:</strong>{' '}
+              {event.watchAlertSent && <><M v="Watch" c={statusColor.green} /> alerted. </>}
+              {event.briefingFlagged && <><M v="Briefing" c={statusColor.green} /> flagged. </>}
+              {event.ledgerImpactModeled && <><M v="Ledger" c={statusColor.green} /> impact modeled. </>}
+              Risk entry created in Shield.
+            </p>
+          </div>
+        );
+      })}
+    </BriefSection>
+  );
+}
+
 // ─── Facilities Intelligence ─────────────────────────────────────────────
 
 function FacilitiesBrief() {
@@ -705,6 +766,7 @@ export default function BriefingApp() {
       />
 
       <BriefTimestamp />
+      <EmergencyBrief />
       <ExecutiveSummary />
       <FinancialBrief />
       <EnrollmentBrief />

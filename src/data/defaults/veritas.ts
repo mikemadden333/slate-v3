@@ -531,4 +531,5 @@ export const VERITAS_DEFAULTS: SlateStore = {
 
   role: 'ceo',
   selectedCampusId: 1,
+  emergencyEvents: [],
 };

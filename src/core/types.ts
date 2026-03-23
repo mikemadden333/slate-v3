@@ -448,6 +448,33 @@ export interface CivicData {
   source: string;
 }
 
+// ─── Emergency Event Bus (Golden Thread) ────────────────────────────────
+
+export type EmergencySeverity = 'critical' | 'high' | 'medium';
+export type EmergencyType = 'roof-collapse' | 'flooding' | 'fire' | 'hvac-failure' | 'gas-leak' | 'structural' | 'security' | 'other';
+
+export interface EmergencyEvent {
+  id: string;
+  timestamp: string;
+  campus: string;
+  campusId: number;
+  type: EmergencyType;
+  severity: EmergencySeverity;
+  title: string;
+  description: string;
+  estimatedCost: number;
+  occupancyImpact: boolean;
+  reportedBy: string;
+  contactPhone: string;
+  status: 'active' | 'contained' | 'resolved';
+  // Cross-module threading
+  workOrderId?: string;
+  riskId?: string;
+  watchAlertSent?: boolean;
+  briefingFlagged?: boolean;
+  ledgerImpactModeled?: boolean;
+}
+
 // ─── The Complete Data Store ─────────────────────────────────────────────
 
 export type UserRole = 'ceo' | 'principal';
@@ -464,6 +491,8 @@ export interface SlateStore {
   civic: CivicData;
   role: UserRole;
   selectedCampusId: number;
+  // Golden Thread — Emergency Event Bus
+  emergencyEvents: EmergencyEvent[];
 }
 
 // ─── Data Freshness ──────────────────────────────────────────────────────

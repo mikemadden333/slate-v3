@@ -9,7 +9,7 @@
  * CEO sees the full financial picture. Principal sees their campus allocation.
  *
  * KEY CHANGES from v2:
- * - "NST" → "Support Team" throughout
+ * - Support Team department tracking
  * - Scenario tab now has INTERACTIVE sliders for what-if modeling
  * - Deep drill-down on every financial metric
  * - Covenant stress testing with scenario integration
@@ -795,7 +795,7 @@ function ScenariosTab() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SUPPORT TEAM SPEND TAB (renamed from NST)
+// SUPPORT TEAM SPEND TAB
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SupportTeamTab() {
@@ -955,6 +955,128 @@ function SupportTeamTab() {
   );
 }
 
+// ─── Principal Financial View ─────────────────────────────────────────────
+
+function PrincipalLedger() {
+  const { selectedCampusId } = useRole();
+  const fin = useFinancials();
+  const enr = useEnrollment();
+  const net = useNetwork();
+  const ytd = fin.ytdSummary;
+
+  const campus = enr.byCampus.find(c => c.campusId === selectedCampusId);
+  const campusInfo = net.campuses.find(c => c.id === selectedCampusId);
+  const campusName = campusInfo?.short ?? 'Campus';
+  const enrolled = campus?.enrolled ?? 0;
+  const pctOfNetwork = enr.networkTotal > 0 ? enrolled / enr.networkTotal : 0;
+
+  // Derive campus-level financials from network proportions
+  const campusRev = ytd.revActual * 1_000_000 * pctOfNetwork;
+  const campusExp = ytd.expActual * 1_000_000 * pctOfNetwork;
+  const campusSurplus = campusRev - campusExp;
+  const campusBudgetRev = ytd.revBudget * 1_000_000 * pctOfNetwork;
+  const campusBudgetExp = ytd.expBudget * 1_000_000 * pctOfNetwork;
+  const revVar = campusRev - campusBudgetRev;
+  const expVar = campusExp - campusBudgetExp;
+  const perPupilRev = enrolled > 0 ? campusRev / enrolled : 0;
+  const perPupilExp = enrolled > 0 ? campusExp / enrolled : 0;
+
+  return (
+    <div>
+      {/* Principal Campus Banner */}
+      <div style={{
+        background: `linear-gradient(135deg, ${modColors.ledger}12 0%, ${brand.gold}08 100%)`,
+        border: `1px solid ${modColors.ledger}30`,
+        borderRadius: radius.lg, padding: '16px 20px', marginBottom: 20,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div>
+          <div style={{ fontSize: fontSize.xs, color: modColors.ledger, fontWeight: fontWeight.bold, textTransform: 'uppercase', letterSpacing: 1 }}>Principal View</div>
+          <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: text.primary }}>{campusName} — Financial Summary</div>
+          <div style={{ fontSize: fontSize.xs, color: text.muted }}>{enrolled} students · {fmtPct(pctOfNetwork * 100)} of network · FY{fin.fiscalYear.slice(-2)}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: fontSize.xs, color: text.muted }}>Per-Pupil Revenue</div>
+          <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, fontFamily: font.mono, color: modColors.ledger }}>{fmt(perPupilRev)}</div>
+        </div>
+      </div>
+
+      {/* Campus KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+        <KPICard label="Campus Revenue" value={fmtCompact(campusRev)} accent={status.green}
+          subValue={`Budget: ${fmtCompact(campusBudgetRev)}`} />
+        <KPICard label="Campus Expenses" value={fmtCompact(campusExp)} accent={status.amber}
+          subValue={`Budget: ${fmtCompact(campusBudgetExp)}`} />
+        <KPICard label="Campus Surplus" value={fmtCompact(campusSurplus)}
+          accent={campusSurplus >= 0 ? status.green : status.red}
+          subValue={campusSurplus >= 0 ? 'Positive' : 'Deficit'} />
+        <KPICard label="Per-Pupil Expense" value={fmt(perPupilExp)} accent={modColors.ledger}
+          subValue={`${enrolled} students`} />
+      </div>
+
+      {/* Variance Analysis */}
+      <Section title="Budget Variance">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <Card>
+            <div style={{ padding: 16 }}>
+              <div style={{ fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Revenue Variance</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: revVar >= 0 ? status.green : status.red }}>
+                  {revVar >= 0 ? '+' : ''}{fmtCompact(revVar)}
+                </span>
+                <span style={{ fontSize: fontSize.xs, color: text.muted }}>vs budget</span>
+              </div>
+              <div style={{ height: 8, background: bg.subtle, borderRadius: 4, marginTop: 12, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min((campusRev / campusBudgetRev) * 100, 100)}%`, background: revVar >= 0 ? status.green : status.red, borderRadius: 4 }} />
+              </div>
+              <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>{fmtPct((campusRev / campusBudgetRev) * 100)} of budget</div>
+            </div>
+          </Card>
+          <Card>
+            <div style={{ padding: 16 }}>
+              <div style={{ fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Expense Variance</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: expVar <= 0 ? status.green : status.red }}>
+                  {expVar >= 0 ? '+' : ''}{fmtCompact(expVar)}
+                </span>
+                <span style={{ fontSize: fontSize.xs, color: text.muted }}>vs budget</span>
+              </div>
+              <div style={{ height: 8, background: bg.subtle, borderRadius: 4, marginTop: 12, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min((campusExp / campusBudgetExp) * 100, 100)}%`, background: expVar <= 0 ? status.green : status.amber, borderRadius: 4 }} />
+              </div>
+              <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>{fmtPct((campusExp / campusBudgetExp) * 100)} of budget</div>
+            </div>
+          </Card>
+        </div>
+      </Section>
+
+      {/* Network Context */}
+      <Section title="Network Financial Context">
+        <Card>
+          <div style={{ padding: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { label: 'Network DSCR', value: fmtDscr(ytd.dscr), ok: ytd.dscr >= fin.covenants.dscrMinimum },
+                { label: 'Days Cash', value: String(ytd.daysCash), ok: ytd.daysCash >= fin.covenants.daysCashMinimum },
+                { label: 'Current Ratio', value: ytd.currentRatio.toFixed(2), ok: ytd.currentRatio >= fin.covenants.currentRatioMinimum },
+                { label: 'Network Surplus', value: fmt(ytd.surplus * 1_000_000), ok: ytd.surplus >= 0 },
+              ].map(m => (
+                <div key={m.label} style={{ textAlign: 'center', padding: 12, background: m.ok ? `${status.green}08` : `${status.red}08`, borderRadius: radius.md, border: `1px solid ${m.ok ? `${status.green}20` : `${status.red}20`}` }}>
+                  <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, fontFamily: font.mono, color: m.ok ? status.green : status.red }}>{m.value}</div>
+                  <div style={{ fontSize: '10px', color: text.muted, marginTop: 2 }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </Section>
+
+      <AIInsight label="Campus Financial Intelligence"
+        content={`${campusName} represents ${fmtPct(pctOfNetwork * 100)} of network enrollment (${enrolled} students) and proportional revenue of ${fmtCompact(campusRev)}. Revenue is ${revVar >= 0 ? 'tracking above' : 'below'} budget by ${fmtCompact(Math.abs(revVar))}. Per-pupil revenue of ${fmt(perPupilRev)} is ${perPupilRev >= net.revenuePerPupil ? 'above' : 'below'} the network average of ${fmt(net.revenuePerPupil)}. Key action: ${campusSurplus < 0 ? 'Campus is in deficit — review discretionary spending and staffing levels.' : 'Campus is in surplus — maintain current trajectory and consider strategic investments.'}`} />
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN LEDGER APP
 // ═══════════════════════════════════════════════════════════════════════════
@@ -962,6 +1084,17 @@ function SupportTeamTab() {
 export default function LedgerApp() {
   const [activeTab, setActiveTab] = useState<LedgerTab>('overview');
   const fin = useFinancials();
+  const { role } = useRole();
+
+  if (role === 'principal') {
+    return (
+      <div>
+        <ModuleHeader title="Ledger" subtitle="Campus Financial Intelligence" accent={modColors.ledger}
+          freshness={{ lastUpdated: fin.lastUpdated, source: fin.source }} />
+        <PrincipalLedger />
+      </div>
+    );
+  }
 
   return (
     <div>
