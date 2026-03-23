@@ -4,6 +4,7 @@
  */
 
 import React, { useState, lazy, Suspense } from 'react';
+import SplashScreen from './shell/SplashScreen';
 import { DataStoreProvider } from './data/DataStore';
 import SlateShell from './shell/SlateShell';
 import Dashboard from './modules/dashboard/Dashboard';
@@ -110,6 +111,12 @@ function AppContent() {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onEnter={() => setShowSplash(false)} />;
+  }
+
   return (
     <DataStoreProvider>
       <AppContent />
