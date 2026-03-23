@@ -1,16 +1,16 @@
 /**
  * Slate v3 — Splash Screen: "The Mark"
  *
- * A cinematic brand reveal inspired by the chalk-on-slate metaphor.
- * The word "Slate" is drawn with an SVG stroke animation — as if written
- * by an invisible hand with luminous chalk on polished dark stone.
- * Gold shimmer trails the stroke. Chalk dust particles drift upward.
- * The gold period pulses at the end. Then the platform opens.
+ * Chalk-on-slate metaphor elevated to luxury brand level.
+ * - Text has visible chalk grain texture via SVG turbulence filter
+ * - Gold particle cascade — vibrant, visible embers that drift and fall
+ * - Stroke-draw animation reveals the word, then chalk texture fills in
+ * - Gold period sits tight against the text baseline
  *
- * Elevated. Not literal. Luxury brand energy.
+ * $25,000/hour execution. Every pixel intentional.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { brand, font, modules as modColors } from '../core/theme';
 
 // ─── Module dots ──────────────────────────────────────────────────────────
@@ -28,159 +28,266 @@ const MODULE_DOTS: { label: string; color: string }[] = [
   { label: 'REPORTS', color: modColors.reports },
 ];
 
-// ─── Background palette — dark slate gray ─────────────────────────────────
+// ─── Background palette ──────────────────────────────────────────────────
 const BG_CENTER = '#1A1D23';
 const BG_MID    = '#131619';
 const BG_BASE   = '#0D1117';
 
-// ─── Chalk dust particle system ───────────────────────────────────────────
-function ChalkDust({ active }: { active: boolean }) {
-  const particles = useRef(
-    Array.from({ length: 8 }, (_, i) => ({
-      id: i,
-      x: 42 + Math.random() * 16,       // cluster around the end of "Slate"
+// ─── Gold Particle Cascade ───────────────────────────────────────────────
+// Vibrant gold sparks that cascade from the text area — like chalk dust
+// catching golden light. Visible, warm, alive.
+function GoldParticles({ active, phase }: { active: boolean; phase: number }) {
+  // Wave 1: Main cascade — big, visible, dramatic
+  const wave1 = useMemo(() =>
+    Array.from({ length: 20 }, (_, i) => {
+      const isHero = i < 10;
+      return {
+        id: i,
+        x: 28 + Math.random() * 44,
+        startY: 34 + Math.random() * 12,
+        delay: Math.random() * 1.5,
+        size: isHero ? (6 + Math.random() * 6) : (3 + Math.random() * 4),
+        drift: -50 + Math.random() * 100,
+        fallDistance: 80 + Math.random() * 160,
+        opacity: isHero ? (0.8 + Math.random() * 0.2) : (0.5 + Math.random() * 0.4),
+        duration: 2.5 + Math.random() * 2.5,
+        isGold: true,
+        blur: 0,
+      };
+    }), []);
+
+  // Wave 2: Period burst — concentrated near the period
+  const wave2 = useMemo(() =>
+    Array.from({ length: 18 }, (_, i) => ({
+      id: i + 100,
+      x: 50 + Math.random() * 14,
+      startY: 36 + Math.random() * 10,
       delay: Math.random() * 0.8,
+      size: 4 + Math.random() * 6,
+      drift: -30 + Math.random() * 60,
+      fallDistance: 60 + Math.random() * 120,
+      opacity: 0.7 + Math.random() * 0.3,
+      duration: 2.0 + Math.random() * 2.5,
+      isGold: true,
+      blur: 0,
+    })), []);
+
+  // Wave 3: Lingering ambient sparkles — smaller, slower, last longer
+  const wave3 = useMemo(() =>
+    Array.from({ length: 24 }, (_, i) => ({
+      id: i + 200,
+      x: 20 + Math.random() * 60,
+      startY: 34 + Math.random() * 14,
+      delay: 1.0 + Math.random() * 3.0,
       size: 1.5 + Math.random() * 2.5,
-      drift: -8 + Math.random() * 16,    // horizontal drift
-      opacity: 0.15 + Math.random() * 0.35,
-      duration: 1.8 + Math.random() * 1.2,
-    }))
-  ).current;
+      drift: -20 + Math.random() * 40,
+      fallDistance: 30 + Math.random() * 80,
+      opacity: 0.3 + Math.random() * 0.5,
+      duration: 3.0 + Math.random() * 3.0,
+      isGold: Math.random() > 0.2,
+      blur: Math.random() > 0.6 ? 1 : 0,
+    })), []);
+
+  const allParticles = phase >= 2
+    ? [...wave1, ...wave2, ...wave3]
+    : [...wave1, ...wave3];
 
   return (
     <div style={{
-      position: 'absolute',
-      inset: 0,
-      pointerEvents: 'none',
-      overflow: 'hidden',
+      position: 'absolute', inset: 0,
+      pointerEvents: 'none', overflow: 'hidden',
     }}>
-      {active && particles.map(p => (
+      <style>{`
+        @keyframes goldFall {
+          0% {
+            opacity: 0;
+            transform: translate(0, 0) scale(1) rotate(0deg);
+          }
+          10% {
+            opacity: var(--p-opacity);
+          }
+          40% {
+            opacity: var(--p-opacity);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(var(--p-drift), var(--p-fall)) scale(0.2) rotate(180deg);
+          }
+        }
+        @keyframes goldTwinkle {
+          0%, 100% { opacity: var(--p-opacity); }
+          50% { opacity: calc(var(--p-opacity) * 0.4); }
+        }
+      `}</style>
+      {active && allParticles.map(p => (
         <div
           key={p.id}
           style={{
             position: 'absolute',
             left: `${p.x}%`,
-            top: '48%',
+            top: `${p.startY}%`,
             width: p.size,
             height: p.size,
             borderRadius: '50%',
-            background: `rgba(255, 255, 255, ${p.opacity})`,
-            boxShadow: `0 0 ${p.size * 2}px rgba(240, 180, 41, 0.15)`,
-            animation: `chalkDust ${p.duration}s ease-out ${p.delay}s both`,
-            ['--drift' as string]: `${p.drift}px`,
-          }}
+            background: p.isGold
+              ? `radial-gradient(circle, ${brand.gold} 0%, #D4941C 100%)`
+              : 'radial-gradient(circle, #FFFFFF 0%, #E8DCC8 100%)',
+            boxShadow: p.isGold
+              ? `0 0 ${p.size * 4}px ${brand.gold}CC, 0 0 ${p.size * 8}px ${brand.gold}60, 0 0 ${p.size * 14}px ${brand.gold}25`
+              : `0 0 ${p.size * 3}px rgba(255,255,255,0.7), 0 0 ${p.size * 6}px rgba(255,255,255,0.3)`,
+            filter: p.blur ? `blur(${p.blur}px)` : 'none',
+            animation: `goldFall ${p.duration}s ease-out ${p.delay}s both`,
+            ['--p-drift' as string]: `${p.drift}px`,
+            ['--p-fall' as string]: `${p.fallDistance}px`,
+            ['--p-opacity' as string]: p.opacity,
+          } as React.CSSProperties}
         />
       ))}
-      <style>{`
-        @keyframes chalkDust {
-          0% {
-            opacity: 0;
-            transform: translate(0, 0) scale(1);
-          }
-          15% {
-            opacity: 1;
-          }
-          100% {
-            opacity: 0;
-            transform: translate(var(--drift), -60px) scale(0.3);
-          }
-        }
-      `}</style>
     </div>
   );
 }
 
-// ─── SVG "Slate" stroke path ──────────────────────────────────────────────
-// Hand-tuned SVG paths that approximate elegant serif letterforms.
-// Each letter is a single stroke path for the draw-on animation.
-function SlateStrokeSVG({ drawing }: { drawing: boolean }) {
-  // We use text with stroke-dasharray/dashoffset animation for the draw effect.
-  // This is more reliable than hand-drawn paths and uses the actual font.
+// ─── SVG Chalk Text ──────────────────────────────────────────────────────
+// The key innovation: SVG turbulence filter creates chalk grain texture.
+// The text is drawn with a stroke animation, then fills with a textured,
+// slightly rough appearance — like real chalk on slate.
+function ChalkText({ drawing, filled }: { drawing: boolean; filled: boolean }) {
   return (
     <svg
-      viewBox="0 0 480 120"
-      width="480"
-      height="120"
-      style={{ overflow: 'visible', display: 'block', margin: '0 auto' }}
+      viewBox="0 0 520 130"
+      width="520"
+      height="130"
+      style={{ overflow: 'visible', display: 'block' }}
     >
       <defs>
-        {/* Glow filter for the chalk luminosity */}
-        <filter id="chalkGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+        {/* Chalk grain texture — the secret sauce */}
+        <filter id="chalkTexture" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.65"
+            numOctaves="3"
+            seed="2"
+            result="noise"
+          />
+          <feColorMatrix
+            in="noise"
+            type="saturate"
+            values="0"
+            result="grayNoise"
+          />
+          <feComponentTransfer in="grayNoise" result="threshNoise">
+            <feFuncA type="discrete" tableValues="0 0 0.3 0.6 0.8 1 1 1" />
+          </feComponentTransfer>
+          <feComposite in="SourceGraphic" in2="threshNoise" operator="in" />
+        </filter>
+
+        {/* Soft glow for the stroke phase */}
+        <filter id="strokeGlow" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
           <feColorMatrix in="blur" type="matrix"
-            values="1 0 0 0 0.06
-                    0 1 0 0 0.04
-                    0 0 1 0 0.02
-                    0 0 0 0.6 0"
-            result="glow" />
+            values="1 0.8 0.3 0 0
+                    0.8 0.7 0.2 0 0
+                    0.3 0.2 0.1 0 0
+                    0 0 0 0.4 0"
+            result="goldBlur" />
           <feMerge>
-            <feMergeNode in="glow" />
+            <feMergeNode in="goldBlur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-        {/* Gold shimmer gradient that moves along the stroke */}
-        <linearGradient id="chalkShimmer" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
-          <stop offset="40%" stopColor="#FFFFFF" stopOpacity="1" />
-          <stop offset="60%" stopColor="#F5E6C8" stopOpacity="1" />
-          <stop offset="80%" stopColor="#FFFFFF" stopOpacity="0.95" />
-          <stop offset="100%" stopColor="#F0E0C0" stopOpacity="0.9" />
+
+        {/* Gold shimmer gradient for the stroke */}
+        <linearGradient id="chalkStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#E8D5B0" />
+          <stop offset="30%" stopColor="#FFFFFF" />
+          <stop offset="50%" stopColor="#F5E6C8" />
+          <stop offset="70%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#E8D5B0" />
+        </linearGradient>
+
+        {/* Chalk fill — slightly warm white, not pure */}
+        <linearGradient id="chalkFill" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#F0ECE4" />
+          <stop offset="25%" stopColor="#FFFFFF" />
+          <stop offset="50%" stopColor="#F5F0E8" />
+          <stop offset="75%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#EDE8DF" />
         </linearGradient>
       </defs>
 
-      {/* "Slate" text — drawn with stroke animation */}
+      {/* Layer 1: Stroke outline — drawn with animation, gold glow */}
       <text
         x="50%"
-        y="95"
+        y="100"
         textAnchor="middle"
         fontFamily="'Playfair Display', Georgia, serif"
-        fontSize="110"
+        fontSize="115"
         fontWeight="900"
         fill="none"
-        stroke="url(#chalkShimmer)"
-        strokeWidth="1.8"
-        filter="url(#chalkGlow)"
+        stroke="url(#chalkStroke)"
+        strokeWidth="1.5"
+        filter="url(#strokeGlow)"
         style={{
-          strokeDasharray: 1600,
-          strokeDashoffset: drawing ? 0 : 1600,
-          transition: 'stroke-dashoffset 2.8s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          strokeDasharray: 1800,
+          strokeDashoffset: drawing ? 0 : 1800,
+          transition: 'stroke-dashoffset 2.6s cubic-bezier(0.22, 0.61, 0.36, 1)',
         }}
       >
         Slate
       </text>
 
-      {/* Fill that fades in after the stroke completes */}
+      {/* Layer 2: Chalk-textured fill — the grain makes it look like real chalk */}
       <text
         x="50%"
-        y="95"
+        y="100"
         textAnchor="middle"
         fontFamily="'Playfair Display', Georgia, serif"
-        fontSize="110"
+        fontSize="115"
+        fontWeight="900"
+        fill="url(#chalkFill)"
+        filter="url(#chalkTexture)"
+        style={{
+          opacity: filled ? 0.92 : 0,
+          transition: 'opacity 1.0s ease',
+        }}
+      >
+        Slate
+      </text>
+
+      {/* Layer 3: Clean fill underneath at lower opacity for readability */}
+      <text
+        x="50%"
+        y="100"
+        textAnchor="middle"
+        fontFamily="'Playfair Display', Georgia, serif"
+        fontSize="115"
         fontWeight="900"
         fill="#FFFFFF"
         style={{
-          opacity: drawing ? 1 : 0,
-          transition: 'opacity 1.2s ease 2.2s',
+          opacity: filled ? 0.7 : 0,
+          transition: 'opacity 0.8s ease',
         }}
       >
         Slate
       </text>
 
-      {/* Subtle chalk texture overlay on the filled text */}
+      {/* Layer 4: Gold period — rendered in SVG for perfect alignment */}
       <text
-        x="50%"
-        y="95"
-        textAnchor="middle"
+        x="74%"
+        y="100"
         fontFamily="'Playfair Display', Georgia, serif"
-        fontSize="110"
+        fontSize="115"
         fontWeight="900"
-        fill="url(#chalkShimmer)"
+        fill={brand.gold}
         style={{
-          opacity: drawing ? 0.15 : 0,
-          transition: 'opacity 1s ease 2.6s',
-        }}
+          opacity: filled ? 1 : 0,
+          transform: filled ? 'scale(1)' : 'scale(0)',
+          transformOrigin: '74% 80%',
+          transition: 'opacity 0.4s ease 0.3s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s',
+          filter: `drop-shadow(0 0 8px ${brand.gold}80) drop-shadow(0 0 20px ${brand.gold}30)`,
+        } as React.CSSProperties}
       >
-        Slate
+        .
       </text>
     </svg>
   );
@@ -194,25 +301,26 @@ interface SplashScreenProps {
 export default function SplashScreen({ onEnter }: SplashScreenProps) {
   const [phase, setPhase] = useState<'splash' | 'fadeout' | 'disclaimer'>('splash');
   const [drawing, setDrawing] = useState(false);
-  const [periodVisible, setPeriodVisible] = useState(false);
-  const [dustActive, setDustActive] = useState(false);
+  const [filled, setFilled] = useState(false);
+  const [particlePhase, setParticlePhase] = useState(0);
+  const [particlesActive, setParticlesActive] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(false);
   const [dotsVisible, setDotsVisible] = useState(false);
   const [subtitleVisible, setSubtitleVisible] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
 
   useEffect(() => {
-    // Cinematic sequence — every beat is intentional
     const timers = [
-      setTimeout(() => setBadgeVisible(true), 300),       // badge fades in
-      setTimeout(() => setDrawing(true), 800),             // stroke begins
-      setTimeout(() => setDustActive(true), 2600),         // dust as stroke nears end
-      setTimeout(() => setPeriodVisible(true), 3200),      // gold period drops
-      setTimeout(() => setDotsVisible(true), 3800),        // module dots cascade
-      setTimeout(() => setSubtitleVisible(true), 4200),    // subtitle
-      setTimeout(() => setFooterVisible(true), 4400),      // footer
-      setTimeout(() => setPhase('fadeout'), 6000),         // begin fade
-      setTimeout(() => setPhase('disclaimer'), 6600),      // show disclaimer
+      setTimeout(() => setBadgeVisible(true), 300),
+      setTimeout(() => setDrawing(true), 700),
+      setTimeout(() => { setParticlesActive(true); setParticlePhase(1); }, 2200),
+      setTimeout(() => setFilled(true), 2800),
+      setTimeout(() => setParticlePhase(2), 3200),  // period particles
+      setTimeout(() => setDotsVisible(true), 3800),
+      setTimeout(() => setSubtitleVisible(true), 4200),
+      setTimeout(() => setFooterVisible(true), 4400),
+      setTimeout(() => setPhase('fadeout'), 6200),
+      setTimeout(() => setPhase('disclaimer'), 6800),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -332,37 +440,36 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       transition: 'opacity 0.6s ease',
       paddingBottom: 80,
     }}>
-      {/* Slate stone texture — very subtle noise */}
+      {/* Subtle slate stone texture */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `
-          radial-gradient(circle at 35% 25%, rgba(183,145,69,0.03) 0%, transparent 50%),
-          radial-gradient(circle at 65% 75%, rgba(183,145,69,0.02) 0%, transparent 50%)
+          radial-gradient(circle at 30% 20%, rgba(183,145,69,0.04) 0%, transparent 50%),
+          radial-gradient(circle at 70% 80%, rgba(183,145,69,0.02) 0%, transparent 50%)
         `,
         pointerEvents: 'none',
       }} />
 
-      {/* Faint horizontal line — like the surface of a polished slate */}
+      {/* Faint surface line */}
       <div style={{
         position: 'absolute',
-        top: '50%',
-        left: '20%',
-        right: '20%',
+        top: '52%',
+        left: '15%',
+        right: '15%',
         height: 1,
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.03) 70%, transparent)',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.025) 30%, rgba(255,255,255,0.035) 50%, rgba(255,255,255,0.025) 70%, transparent)',
         pointerEvents: 'none',
-        transform: 'translateY(30px)',
       }} />
 
-      {/* Chalk dust particles */}
-      <ChalkDust active={dustActive} />
+      {/* Gold particle cascade */}
+      <GoldParticles active={particlesActive} phase={particlePhase} />
 
       {/* Confidential badge */}
       <div style={{
         opacity: badgeVisible ? 1 : 0,
         transform: badgeVisible ? 'translateY(0)' : 'translateY(-12px)',
         transition: 'all 0.8s ease',
-        marginBottom: 56,
+        marginBottom: 48,
       }}>
         <div style={{
           fontFamily: font.mono,
@@ -378,39 +485,19 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         </div>
       </div>
 
-      {/* The Mark — SVG stroke-drawn "Slate" + gold period */}
+      {/* The Mark — chalk-textured "Slate." */}
       <div style={{
-        position: 'relative',
-        marginBottom: 18,
+        marginBottom: 14,
         width: 520,
-        height: 120,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
       }}>
-        <SlateStrokeSVG drawing={drawing} />
-        {/* Gold period — positioned at the end of "Slate" */}
-        <span style={{
-          position: 'absolute',
-          right: 12,
-          bottom: -2,
-          fontFamily: font.serif,
-          fontSize: 88,
-          fontWeight: 900,
-          color: brand.gold,
-          opacity: periodVisible ? 1 : 0,
-          transform: periodVisible ? 'scale(1)' : 'scale(0)',
-          transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          textShadow: periodVisible ? `0 0 20px ${brand.gold}60, 0 0 40px ${brand.gold}20` : 'none',
-          lineHeight: 1,
-        }}>.</span>
+        <ChalkText drawing={drawing} filled={filled} />
       </div>
 
-      {/* Tagline — appears after the stroke */}
+      {/* Tagline */}
       <div style={{
-        opacity: periodVisible ? 1 : 0,
-        transform: periodVisible ? 'translateY(0)' : 'translateY(6px)',
-        transition: 'all 0.8s ease 0.3s',
+        opacity: filled ? 1 : 0,
+        transform: filled ? 'translateY(0)' : 'translateY(6px)',
+        transition: 'all 0.8s ease 0.4s',
         fontFamily: font.mono,
         fontSize: 13,
         letterSpacing: 5,
@@ -512,7 +599,6 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         }}>
           Proprietary & Confidential · All Rights Reserved · 2026
         </div>
-        {/* Easter egg icons — the family */}
         <div style={{
           display: 'flex',
           gap: 14,
