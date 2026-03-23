@@ -12,7 +12,7 @@
  * Design: restraint, motion, story. Sharp, classy, modern.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { brand, font, modules as modColors } from '../core/theme';
 
 // ─── Module dots ──────────────────────────────────────────────────────────
@@ -74,28 +74,38 @@ const TOTAL_WIDTH = 2325;
 
 // ─── Gold Flecks ────────────────────────────────────────────────────────
 // Subtle gold motes that gently fall away from the gold period dot.
-// All flecks originate from the period's position — like tiny sparks
-// drifting off the dot as it appears.
-function GoldFlecks({ active }: { active: boolean }) {
-  // The DrawnText container is 520x140px.
-  // The period dot overflows the container: it's at 533px from left, 132px from top.
-  // Use pixel positioning, not percentages.
-  const PERIOD_PX_X = 533;  // pixels from left of container
-  const PERIOD_PX_Y = 132;  // pixels from top of container
+// Uses the actual rendered position of the period circle via ref.
+function GoldFlecks({ active, periodRef, containerRef }: {
+  active: boolean;
+  periodRef: React.RefObject<SVGCircleElement | null>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!active || !periodRef.current || !containerRef.current) return;
+    const circle = periodRef.current.getBoundingClientRect();
+    const container = containerRef.current.getBoundingClientRect();
+    setPos({
+      x: circle.left + circle.width / 2 - container.left,
+      y: circle.top + circle.height / 2 - container.top,
+    });
+  }, [active, periodRef, containerRef]);
 
   const flecks = useMemo(() =>
     Array.from({ length: 8 }, (_, i) => ({
       id: i,
-      // Tight cluster right at the gold period dot (pixel values)
-      x: PERIOD_PX_X + (Math.random() - 0.5) * 10,
-      startY: PERIOD_PX_Y + (Math.random() - 0.5) * 10,
+      offsetX: (Math.random() - 0.5) * 8,
+      offsetY: (Math.random() - 0.5) * 8,
       delay: 0.1 + Math.random() * 1.8,
       size: 1.5 + Math.random() * 2,
-      drift: -8 + Math.random() * 16,    // gentle horizontal wander
-      fallDistance: 20 + Math.random() * 60, // gentle fall downward
+      drift: -8 + Math.random() * 16,
+      fallDistance: 20 + Math.random() * 60,
       opacity: 0.35 + Math.random() * 0.3,
       duration: 2.5 + Math.random() * 2.5,
     })), []);
+
+  if (!pos) return null;
 
   return (
     <div style={{
@@ -115,8 +125,8 @@ function GoldFlecks({ active }: { active: boolean }) {
           key={f.id}
           style={{
             position: 'absolute',
-            left: f.x,
-            top: f.startY,
+            left: pos.x + f.offsetX,
+            top: pos.y + f.offsetY,
             width: f.size,
             height: f.size,
             borderRadius: '50%',
@@ -136,10 +146,11 @@ function GoldFlecks({ active }: { active: boolean }) {
 // ─── Drawn Text ─────────────────────────────────────────────────────────
 // Each letter's outline traces itself via stroke-dashoffset animation,
 // then the fill fades in. Letters are sequenced with staggered delays.
-function DrawnText({ drawPhase, fillVisible, showPeriod }: {
+function DrawnText({ drawPhase, fillVisible, showPeriod, periodRef }: {
   drawPhase: number; // 0=nothing, 1=drawing S, 2=drawing l, 3=a, 4=t, 5=e, 6=done
   fillVisible: boolean;
   showPeriod: boolean;
+  periodRef: React.RefObject<SVGCircleElement | null>;
 }) {
   // Timing: each letter takes ~0.5s to draw, with slight overlaps
   // drawPhase maps to which letters have started drawing
@@ -240,6 +251,7 @@ function DrawnText({ drawPhase, fillVisible, showPeriod }: {
         {/* Gold period */}
         <g transform={`translate(2325, 0) scale(1,-1) translate(0,-${UPEM})`}>
           <circle
+            ref={periodRef}
             cx="60"
             cy="60"
             r="50"
@@ -272,6 +284,8 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
   const [dotsVisible, setDotsVisible] = useState(false);
   const [subtitleVisible, setSubtitleVisible] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
+  const periodRef = useRef<SVGCircleElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const debug = window.location.search.includes('debug');
@@ -465,9 +479,9 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       </div>
 
       {/* The Drawing — "Slate." traced letter by letter + Gold flecks */}
-      <div style={{ position: 'relative', marginBottom: 14 }}>
-        <DrawnText drawPhase={drawPhase} fillVisible={fillVisible} showPeriod={showPeriod} />
-        <GoldFlecks active={dustActive} />
+      <div ref={containerRef} style={{ position: 'relative', marginBottom: 14 }}>
+        <DrawnText drawPhase={drawPhase} fillVisible={fillVisible} showPeriod={showPeriod} periodRef={periodRef} />
+        <GoldFlecks active={dustActive} periodRef={periodRef} containerRef={containerRef} />
       </div>
 
       {/* Tagline */}
