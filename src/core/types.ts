@@ -176,7 +176,7 @@ export interface ScenarioSet {
   pessimistic: ScenarioYear[];
 }
 
-export interface NSTDepartment {
+export interface SupportTeamDepartment {
   name: string;
   actual: number;
   budget: number;
@@ -213,7 +213,7 @@ export interface FinancialData {
   covenants: CovenantConfig;
   historical: HistoricalFinancial[];
   scenarios: ScenarioSet;
-  nstDepartments: NSTDepartment[];
+  supportTeamDepartments: SupportTeamDepartment[];
   compensation: CompensationData;
   ytdSummary: {
     revActual: number;
@@ -341,6 +341,7 @@ export interface ComplianceData {
 
 export type WorkOrderPriority = 'urgent' | 'high' | 'medium' | 'low';
 export type WorkOrderStatus = 'open' | 'in-progress' | 'completed';
+export type WorkOrderCategory = 'hvac' | 'plumbing' | 'electrical' | 'structural' | 'security' | 'grounds' | 'elevator' | 'fire-safety' | 'general';
 
 export interface WorkOrder {
   id: string;
@@ -350,6 +351,16 @@ export interface WorkOrder {
   status: WorkOrderStatus;
   dateSubmitted: string;
   assignedTo: string;
+  category?: WorkOrderCategory;
+  estimatedCost?: number;
+  daysOpen?: number;
+  notes?: string;
+}
+
+export interface ProjectMilestone {
+  label: string;
+  date: string;
+  completed: boolean;
 }
 
 export interface CapitalProject {
@@ -360,6 +371,46 @@ export interface CapitalProject {
   spent: number;
   status: 'on-track' | 'at-risk' | 'over-budget';
   completion: number;
+  // Enhanced fields for moonshot
+  description?: string;
+  category?: string;
+  startDate?: string;
+  targetDate?: string;
+  projectManager?: string;
+  contractor?: string;
+  milestones?: ProjectMilestone[];
+  riskNotes?: string;
+  isEmergency?: boolean;
+}
+
+export interface CampusCondition {
+  campusId: number;
+  campusName: string;
+  fciScore: number;  // Facility Condition Index 0-100
+  buildingAge: number;
+  sqft: number;
+  deferredMaintenance: number;
+  lastInspection: string;
+  criticalSystems: {
+    hvac: 'good' | 'fair' | 'poor' | 'critical';
+    roof: 'good' | 'fair' | 'poor' | 'critical';
+    plumbing: 'good' | 'fair' | 'poor' | 'critical';
+    electrical: 'good' | 'fair' | 'poor' | 'critical';
+    fireSafety: 'good' | 'fair' | 'poor' | 'critical';
+    elevator: 'good' | 'fair' | 'poor' | 'critical' | 'n/a';
+  };
+}
+
+export interface VendorContract {
+  id: string;
+  vendor: string;
+  service: string;
+  annualValue: number;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'expiring' | 'expired';
+  rating: number; // 1-5
+  campuses: string[];
 }
 
 export interface FacilitiesData {
@@ -368,6 +419,13 @@ export interface FacilitiesData {
   vendorContractsExpiring: number;
   lastUpdated: string;
   source: string;
+  // Enhanced fields
+  campusConditions?: CampusCondition[];
+  vendorContracts?: VendorContract[];
+  networkFCI?: number;
+  totalDeferredMaintenance?: number;
+  annualCapitalBudget?: number;
+  annualMaintenanceBudget?: number;
 }
 
 // ─── Civic (Public Affairs) ──────────────────────────────────────────────

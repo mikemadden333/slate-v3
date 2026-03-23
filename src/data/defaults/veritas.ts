@@ -9,9 +9,10 @@
 import type {
   SlateStore, Campus, CampusEnrollment, HistoricalEnrollment,
   EnrollmentForecast, AnnualBudget, MonthlyActual, CovenantConfig,
-  HistoricalFinancial, ScenarioSet, NSTDepartment, CompensationData,
+  HistoricalFinancial, ScenarioSet, SupportTeamDepartment, CompensationData,
   CampusStaff, VacancyByDept, Risk, FundOpportunity, Deadline,
   WorkOrder, CapitalProject, PendingBill, RevenueRow, ExpenseRow,
+  CampusCondition, VendorContract, ProjectMilestone,
 } from '../../core/types';
 
 // ─── CAMPUSES ─────────────────────────────────────────────────────────────
@@ -134,7 +135,7 @@ const SCENARIOS: ScenarioSet = {
   ],
 };
 
-const NST_DEPARTMENTS: NSTDepartment[] = [
+const SUPPORT_TEAM_DEPARTMENTS: SupportTeamDepartment[] = [
   { name: 'Academic',                    actual: 893, budget: 636, variance: 257 },
   { name: 'Health, Fitness, Athletics',  actual: 445, budget: 313, variance: 133 },
   { name: 'Facilities',                  actual: 392, budget: 317, variance: 76 },
@@ -285,21 +286,125 @@ const DEADLINES: Deadline[] = [
 // ─── FACILITIES ───────────────────────────────────────────────────────────
 
 const WORK_ORDERS: WorkOrder[] = [
-  { id: 'WO-001', campus: 'Austin', description: 'HVAC failure — 3rd floor classrooms', priority: 'urgent', status: 'in-progress', dateSubmitted: '2026-03-20', assignedTo: 'Midwest Mechanical' },
-  { id: 'WO-002', campus: 'Loop', description: 'Water main leak — basement level', priority: 'urgent', status: 'open', dateSubmitted: '2026-03-22', assignedTo: 'City Plumbing' },
-  { id: 'WO-003', campus: 'Englewood', description: 'Broken exterior door lock — main entrance', priority: 'high', status: 'in-progress', dateSubmitted: '2026-03-18', assignedTo: 'SecureTech' },
-  { id: 'WO-004', campus: 'Chatham', description: 'Gymnasium floor refinishing', priority: 'medium', status: 'open', dateSubmitted: '2026-03-15', assignedTo: 'TBD' },
-  { id: 'WO-005', campus: 'Woodlawn', description: 'Parking lot pothole repair', priority: 'low', status: 'open', dateSubmitted: '2026-03-10', assignedTo: 'TBD' },
-  { id: 'WO-006', campus: 'Garfield Park', description: 'Classroom lighting replacement — 2nd floor', priority: 'medium', status: 'in-progress', dateSubmitted: '2026-03-12', assignedTo: 'Facilities Team' },
-  { id: 'WO-007', campus: 'North Lawndale', description: 'Roof leak — science lab', priority: 'high', status: 'open', dateSubmitted: '2026-03-21', assignedTo: 'TBD' },
-  { id: 'WO-008', campus: 'Humboldt Park', description: 'Elevator inspection overdue', priority: 'high', status: 'open', dateSubmitted: '2026-03-19', assignedTo: 'Otis Elevator' },
-  { id: 'WO-009', campus: 'Roseland', description: 'Cafeteria dishwasher replacement', priority: 'medium', status: 'open', dateSubmitted: '2026-03-14', assignedTo: 'TBD' },
+  { id: 'WO-001', campus: 'Austin', description: 'HVAC failure — 3rd floor classrooms', priority: 'urgent', status: 'in-progress', dateSubmitted: '2026-03-20', assignedTo: 'Midwest Mechanical', category: 'hvac', estimatedCost: 18500, daysOpen: 3, notes: 'Compressor failure on RTU-3. Temporary portable units deployed. Parts on order — ETA 3/25.' },
+  { id: 'WO-002', campus: 'Loop', description: 'Water main leak — basement level', priority: 'urgent', status: 'open', dateSubmitted: '2026-03-22', assignedTo: 'City Plumbing', category: 'plumbing', estimatedCost: 12000, daysOpen: 1, notes: 'Active leak near boiler room. Water shut off to affected section. Awaiting emergency plumber.' },
+  { id: 'WO-003', campus: 'Englewood', description: 'Broken exterior door lock — main entrance', priority: 'high', status: 'in-progress', dateSubmitted: '2026-03-18', assignedTo: 'SecureTech', category: 'security', estimatedCost: 2200, daysOpen: 5, notes: 'Access control panel malfunction. Temporary manual lock installed. Security posted at entrance.' },
+  { id: 'WO-004', campus: 'Chatham', description: 'Gymnasium floor refinishing', priority: 'medium', status: 'open', dateSubmitted: '2026-03-15', assignedTo: 'TBD', category: 'general', estimatedCost: 35000, daysOpen: 8 },
+  { id: 'WO-005', campus: 'Woodlawn', description: 'Parking lot pothole repair', priority: 'low', status: 'open', dateSubmitted: '2026-03-10', assignedTo: 'TBD', category: 'grounds', estimatedCost: 4500, daysOpen: 13 },
+  { id: 'WO-006', campus: 'Garfield Park', description: 'Classroom lighting replacement — 2nd floor', priority: 'medium', status: 'in-progress', dateSubmitted: '2026-03-12', assignedTo: 'Facilities Team', category: 'electrical', estimatedCost: 8200, daysOpen: 11 },
+  { id: 'WO-007', campus: 'North Lawndale', description: 'Roof leak — science lab', priority: 'high', status: 'open', dateSubmitted: '2026-03-21', assignedTo: 'TBD', category: 'structural', estimatedCost: 15000, daysOpen: 2, notes: 'Active drip during rain. Buckets placed. Need emergency roof assessment.' },
+  { id: 'WO-008', campus: 'Humboldt Park', description: 'Elevator inspection overdue', priority: 'high', status: 'open', dateSubmitted: '2026-03-19', assignedTo: 'Otis Elevator', category: 'elevator', estimatedCost: 3500, daysOpen: 4, notes: 'State inspection due by 3/31. Elevator locked out until inspection completed.' },
+  { id: 'WO-009', campus: 'Roseland', description: 'Cafeteria dishwasher replacement', priority: 'medium', status: 'open', dateSubmitted: '2026-03-14', assignedTo: 'TBD', category: 'general', estimatedCost: 9800, daysOpen: 9 },
+  { id: 'WO-010', campus: 'Auburn Gresham', description: 'Fire alarm panel zone 3 fault', priority: 'urgent', status: 'in-progress', dateSubmitted: '2026-03-23', assignedTo: 'Siemens Fire Safety', category: 'fire-safety', estimatedCost: 6500, daysOpen: 0, notes: 'Zone 3 showing intermittent faults. CFD notified. Technician en route.' },
+  { id: 'WO-011', campus: 'Loop', description: 'ADA ramp concrete deterioration', priority: 'high', status: 'open', dateSubmitted: '2026-03-17', assignedTo: 'TBD', category: 'structural', estimatedCost: 22000, daysOpen: 6 },
+  { id: 'WO-012', campus: 'Chatham', description: 'Boiler pressure fluctuation', priority: 'medium', status: 'in-progress', dateSubmitted: '2026-03-11', assignedTo: 'Midwest Mechanical', category: 'hvac', estimatedCost: 5400, daysOpen: 12 },
 ];
 
 const CAPITAL_PROJECTS: CapitalProject[] = [
-  { id: 'CP-001', name: 'Englewood Science Lab Renovation', campus: 'Englewood', budget: 1200000, spent: 840000, status: 'on-track', completion: 70 },
-  { id: 'CP-002', name: 'Austin HVAC System Replacement', campus: 'Austin', budget: 2100000, spent: 1890000, status: 'at-risk', completion: 85 },
-  { id: 'CP-003', name: 'Network-Wide Security Camera Upgrade', campus: 'All', budget: 800000, spent: 320000, status: 'on-track', completion: 40 },
+  {
+    id: 'CP-001', name: 'Englewood Science Lab Renovation', campus: 'Englewood',
+    budget: 1200000, spent: 840000, status: 'on-track', completion: 70,
+    description: 'Complete renovation of 4 science labs including new lab benches, fume hoods, gas lines, and technology infrastructure. Supports AP Chemistry and Biology programs.',
+    category: 'Academic Facilities', startDate: '2025-09-15', targetDate: '2026-06-30',
+    projectManager: 'Maria Santos', contractor: 'Turner Construction',
+    milestones: [
+      { label: 'Design Complete', date: '2025-10-15', completed: true },
+      { label: 'Demolition', date: '2025-11-30', completed: true },
+      { label: 'Rough-In (MEP)', date: '2026-01-31', completed: true },
+      { label: 'Casework Install', date: '2026-03-15', completed: true },
+      { label: 'Technology Install', date: '2026-04-30', completed: false },
+      { label: 'Final Inspection', date: '2026-05-31', completed: false },
+      { label: 'Punch List & Handover', date: '2026-06-30', completed: false },
+    ],
+    riskNotes: 'Fume hood lead time extended by 2 weeks. Adjusted schedule accommodates delay.',
+  },
+  {
+    id: 'CP-002', name: 'Austin HVAC System Replacement', campus: 'Austin',
+    budget: 2100000, spent: 1890000, status: 'at-risk', completion: 85,
+    description: 'Full replacement of 20-year-old rooftop units (RTU-1 through RTU-8) with high-efficiency VRF system. Includes new ductwork and BMS controls.',
+    category: 'Building Systems', startDate: '2025-06-01', targetDate: '2026-04-15',
+    projectManager: 'James Washington', contractor: 'Midwest Mechanical',
+    milestones: [
+      { label: 'Engineering Design', date: '2025-07-15', completed: true },
+      { label: 'Equipment Procurement', date: '2025-09-30', completed: true },
+      { label: 'RTU Removal (Phase 1)', date: '2025-11-30', completed: true },
+      { label: 'New VRF Install', date: '2026-02-28', completed: true },
+      { label: 'Ductwork & Controls', date: '2026-03-31', completed: false },
+      { label: 'Commissioning & Balancing', date: '2026-04-15', completed: false },
+    ],
+    riskNotes: 'BUDGET ALERT: $1.89M spent of $2.1M budget with 15% work remaining. Change order #3 ($142K) for unforeseen asbestos abatement. Requesting $250K contingency release.',
+  },
+  {
+    id: 'CP-003', name: 'Network-Wide Security Camera Upgrade', campus: 'All',
+    budget: 800000, spent: 320000, status: 'on-track', completion: 40,
+    description: 'Upgrade all 10 campuses from analog to IP-based camera systems with AI-powered analytics, license plate recognition, and centralized monitoring.',
+    category: 'Safety & Security', startDate: '2025-11-01', targetDate: '2026-08-31',
+    projectManager: 'David Chen', contractor: 'SecureTech Solutions',
+    milestones: [
+      { label: 'Network Assessment', date: '2025-12-15', completed: true },
+      { label: 'Phase 1: Loop & Englewood', date: '2026-02-28', completed: true },
+      { label: 'Phase 2: Woodlawn, Auburn Gresham, Chatham', date: '2026-04-30', completed: false },
+      { label: 'Phase 3: Austin, North Lawndale, Garfield Park', date: '2026-06-30', completed: false },
+      { label: 'Phase 4: Roseland, Humboldt Park', date: '2026-08-15', completed: false },
+      { label: 'Central Monitoring Go-Live', date: '2026-08-31', completed: false },
+    ],
+  },
+  {
+    id: 'CP-004', name: 'Chatham Roof Replacement', campus: 'Chatham',
+    budget: 950000, spent: 0, status: 'on-track', completion: 5,
+    description: 'Full roof replacement including insulation upgrade to R-30. Current roof is 18 years old with multiple patch repairs. Scheduled for summer 2026.',
+    category: 'Building Envelope', startDate: '2026-06-01', targetDate: '2026-08-15',
+    projectManager: 'Maria Santos', contractor: 'Wiss Janney Elstner',
+    milestones: [
+      { label: 'Bid Package Released', date: '2026-03-01', completed: true },
+      { label: 'Contractor Selection', date: '2026-04-15', completed: false },
+      { label: 'Material Procurement', date: '2026-05-15', completed: false },
+      { label: 'Tear-Off & Install', date: '2026-07-31', completed: false },
+      { label: 'Final Inspection', date: '2026-08-15', completed: false },
+    ],
+  },
+  {
+    id: 'CP-005', name: 'Woodlawn Athletic Field Renovation', campus: 'Woodlawn',
+    budget: 650000, spent: 195000, status: 'on-track', completion: 30,
+    description: 'New synthetic turf field, track resurfacing, LED field lighting, and bleacher replacement. Community partnership with Chicago Park District.',
+    category: 'Athletics', startDate: '2026-01-15', targetDate: '2026-07-31',
+    projectManager: 'James Washington', contractor: 'FieldTurf Chicago',
+    milestones: [
+      { label: 'Grading & Drainage', date: '2026-02-28', completed: true },
+      { label: 'Turf Base Install', date: '2026-04-15', completed: false },
+      { label: 'Track Resurfacing', date: '2026-05-31', completed: false },
+      { label: 'Lighting & Bleachers', date: '2026-07-15', completed: false },
+      { label: 'Final Walkthrough', date: '2026-07-31', completed: false },
+    ],
+  },
+];
+
+// ─── CAMPUS CONDITIONS ───────────────────────────────────────────────────
+
+const CAMPUS_CONDITIONS: CampusCondition[] = [
+  { campusId: 1, campusName: 'Loop', fciScore: 82, buildingAge: 12, sqft: 95000, deferredMaintenance: 420000, lastInspection: '2026-01-15', criticalSystems: { hvac: 'good', roof: 'good', plumbing: 'fair', electrical: 'good', fireSafety: 'good', elevator: 'good' } },
+  { campusId: 2, campusName: 'Englewood', fciScore: 71, buildingAge: 22, sqft: 78000, deferredMaintenance: 890000, lastInspection: '2025-11-20', criticalSystems: { hvac: 'fair', roof: 'fair', plumbing: 'fair', electrical: 'good', fireSafety: 'good', elevator: 'n/a' } },
+  { campusId: 3, campusName: 'Woodlawn', fciScore: 76, buildingAge: 18, sqft: 82000, deferredMaintenance: 650000, lastInspection: '2025-12-10', criticalSystems: { hvac: 'fair', roof: 'good', plumbing: 'good', electrical: 'fair', fireSafety: 'good', elevator: 'n/a' } },
+  { campusId: 4, campusName: 'Auburn Gresham', fciScore: 68, buildingAge: 28, sqft: 71000, deferredMaintenance: 1120000, lastInspection: '2025-10-05', criticalSystems: { hvac: 'poor', roof: 'fair', plumbing: 'poor', electrical: 'fair', fireSafety: 'fair', elevator: 'n/a' } },
+  { campusId: 5, campusName: 'Roseland', fciScore: 63, buildingAge: 35, sqft: 62000, deferredMaintenance: 1450000, lastInspection: '2025-09-18', criticalSystems: { hvac: 'poor', roof: 'poor', plumbing: 'fair', electrical: 'poor', fireSafety: 'fair', elevator: 'n/a' } },
+  { campusId: 6, campusName: 'Chatham', fciScore: 72, buildingAge: 20, sqft: 88000, deferredMaintenance: 780000, lastInspection: '2025-12-01', criticalSystems: { hvac: 'fair', roof: 'poor', plumbing: 'good', electrical: 'good', fireSafety: 'good', elevator: 'fair' } },
+  { campusId: 7, campusName: 'Austin', fciScore: 58, buildingAge: 32, sqft: 74000, deferredMaintenance: 1680000, lastInspection: '2025-11-01', criticalSystems: { hvac: 'critical', roof: 'fair', plumbing: 'fair', electrical: 'poor', fireSafety: 'good', elevator: 'poor' } },
+  { campusId: 8, campusName: 'North Lawndale', fciScore: 65, buildingAge: 25, sqft: 48000, deferredMaintenance: 920000, lastInspection: '2025-10-22', criticalSystems: { hvac: 'fair', roof: 'poor', plumbing: 'fair', electrical: 'fair', fireSafety: 'good', elevator: 'n/a' } },
+  { campusId: 9, campusName: 'Garfield Park', fciScore: 74, buildingAge: 15, sqft: 68000, deferredMaintenance: 540000, lastInspection: '2026-01-08', criticalSystems: { hvac: 'good', roof: 'good', plumbing: 'fair', electrical: 'good', fireSafety: 'good', elevator: 'n/a' } },
+  { campusId: 10, campusName: 'Humboldt Park', fciScore: 69, buildingAge: 24, sqft: 56000, deferredMaintenance: 980000, lastInspection: '2025-11-15', criticalSystems: { hvac: 'fair', roof: 'fair', plumbing: 'poor', electrical: 'fair', fireSafety: 'good', elevator: 'poor' } },
+];
+
+// ─── VENDOR CONTRACTS ────────────────────────────────────────────────────
+
+const VENDOR_CONTRACTS: VendorContract[] = [
+  { id: 'VC-001', vendor: 'Midwest Mechanical', service: 'HVAC Maintenance & Repair', annualValue: 285000, startDate: '2024-07-01', endDate: '2026-06-30', status: 'expiring', rating: 4, campuses: ['All'] },
+  { id: 'VC-002', vendor: 'SecureTech Solutions', service: 'Security Systems & Monitoring', annualValue: 192000, startDate: '2025-01-01', endDate: '2027-12-31', status: 'active', rating: 5, campuses: ['All'] },
+  { id: 'VC-003', vendor: 'CleanCorp Chicago', service: 'Janitorial Services', annualValue: 420000, startDate: '2024-09-01', endDate: '2026-08-31', status: 'active', rating: 3, campuses: ['All'] },
+  { id: 'VC-004', vendor: 'Otis Elevator', service: 'Elevator Maintenance', annualValue: 48000, startDate: '2025-03-01', endDate: '2027-02-28', status: 'active', rating: 4, campuses: ['Loop', 'Chatham', 'Humboldt Park'] },
+  { id: 'VC-005', vendor: 'Siemens Fire Safety', service: 'Fire Alarm Monitoring & Inspection', annualValue: 96000, startDate: '2024-01-01', endDate: '2026-12-31', status: 'active', rating: 5, campuses: ['All'] },
+  { id: 'VC-006', vendor: 'City Plumbing Partners', service: 'Emergency Plumbing', annualValue: 75000, startDate: '2025-07-01', endDate: '2026-06-30', status: 'expiring', rating: 3, campuses: ['All'] },
+  { id: 'VC-007', vendor: 'Wiss Janney Elstner', service: 'Building Envelope Consulting', annualValue: 45000, startDate: '2025-01-01', endDate: '2026-12-31', status: 'active', rating: 5, campuses: ['Chatham', 'Roseland', 'North Lawndale'] },
+  { id: 'VC-008', vendor: 'ComEd Energy Solutions', service: 'Energy Management & LED Retrofit', annualValue: 62000, startDate: '2025-06-01', endDate: '2027-05-31', status: 'active', rating: 4, campuses: ['All'] },
 ];
 
 // ─── CIVIC ────────────────────────────────────────────────────────────────
@@ -347,7 +452,7 @@ export const VERITAS_DEFAULTS: SlateStore = {
     covenants: COVENANTS,
     historical: HISTORICAL_FINANCIALS,
     scenarios: SCENARIOS,
-    nstDepartments: NST_DEPARTMENTS,
+    supportTeamDepartments: SUPPORT_TEAM_DEPARTMENTS,
     compensation: COMPENSATION,
     ytdSummary: {
       revActual: 80.8,
@@ -402,9 +507,15 @@ export const VERITAS_DEFAULTS: SlateStore = {
   facilities: {
     workOrders: WORK_ORDERS,
     capitalProjects: CAPITAL_PROJECTS,
-    vendorContractsExpiring: 1,
+    vendorContractsExpiring: 2,
     lastUpdated: now,
     source: 'Demo Data',
+    campusConditions: CAMPUS_CONDITIONS,
+    vendorContracts: VENDOR_CONTRACTS,
+    networkFCI: 70,
+    totalDeferredMaintenance: 9430000,
+    annualCapitalBudget: 5700000,
+    annualMaintenanceBudget: 1850000,
   },
 
   civic: {
