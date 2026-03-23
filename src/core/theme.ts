@@ -7,7 +7,7 @@
 // ─── Brand Colors ─────────────────────────────────────────────────────────
 
 export const brand = {
-  navy:     '#0D1117',
+  navy:     '#1E2A3A',   // Deep slate gray (was flat black #0D1117)
   gold:     '#F0B429',
   brass:    '#B79145',
   white:    '#FFFFFF',
@@ -19,8 +19,9 @@ export const brand = {
 export const bg = {
   app:      '#F7F5F1',
   card:     '#FFFFFF',
-  sidebar:  '#0D1117',
-  header:   '#1C2333',
+  sidebar:  '#1E2A3A',   // Rich deep slate gray with depth
+  sidebarGlass: 'linear-gradient(180deg, #253545 0%, #1E2A3A 40%, #172231 100%)', // Glass-like gradient
+  header:   '#253545',   // Slightly lighter slate for top bar
   hover:    '#F0EDE6',
   selected: '#FEF9E7',
   subtle:   '#F5F3EF',
@@ -196,7 +197,7 @@ export const C = {
 
   // Text
   deep: text.primary,
-  rock: '#1C2333',
+  rock: '#253545',
   mid: text.secondary,
   light: text.muted,
   muted: text.light,

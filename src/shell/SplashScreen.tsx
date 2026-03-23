@@ -30,10 +30,10 @@ const MODULE_DOTS: { label: string; color: string }[] = [
   { label: 'REPORTS', color: modColors.reports },
 ];
 
-// ─── Background palette (matches app sidebar) ───────────────────────────
-const BG_CENTER = '#1A1D23';
-const BG_MID    = '#131619';
-const BG_BASE   = '#0D1117';
+// ─── Background palette (matches app sidebar — rich deep slate gray) ────
+const BG_CENTER = '#2A3A4A';  // Lighter center for glass-like depth
+const BG_MID    = '#223040';  // Mid tone
+const BG_BASE   = '#1E2A3A';  // Matches sidebar base
 
 // ─── Letter path data (Playfair Display Black, extracted via fonttools) ──
 const LETTERS = [

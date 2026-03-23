@@ -27,13 +27,14 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
       width: collapsed ? 64 : 240,
       minWidth: collapsed ? 64 : 240,
       height: '100vh',
-      background: bg.sidebar,
+      background: bg.sidebarGlass,
       display: 'flex',
       flexDirection: 'column',
       transition: transition.smooth,
       overflow: 'hidden',
       position: 'relative',
       zIndex: 100,
+      boxShadow: '1px 0 8px rgba(0,0,0,0.15)',
     }}>
       {/* ── Brand ── */}
       <div style={{
@@ -275,7 +276,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
             }}
           >
             {network.campuses.map((c) => (
-              <option key={c.id} value={c.id} style={{ background: bg.sidebar, color: text.inverse }}>
+              <option key={c.id} value={c.id} style={{ background: '#1E2A3A', color: text.inverse }}>
                 {c.short}
               </option>
             ))}
