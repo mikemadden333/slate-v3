@@ -77,20 +77,25 @@ const TOTAL_WIDTH = 2325;
 // All flecks originate from the period's position — like tiny sparks
 // drifting off the dot as it appears.
 function GoldFlecks({ active }: { active: boolean }) {
+  // The DrawnText container is 520x140px.
+  // The SVG viewBox is 0..2325 wide (TOTAL_WIDTH). The period is at x=2325+60 = 2385.
+  // So the period center in % of the 520px container: (2385 / (2325+120)) * 100 ≈ 97.5%
+  // Vertically the period is near the baseline: roughly 75% down the 140px container.
+  const PERIOD_X = 97;   // % of container width
+  const PERIOD_Y = 75;   // % of container height
+
   const flecks = useMemo(() =>
     Array.from({ length: 8 }, (_, i) => ({
       id: i,
-      // All originate from the gold period dot area
-      // The period is at ~76% horizontal in the SVG (x=2385 of 2500 viewBox width)
-      // and vertically centered around ~42% of the page
-      x: 73 + (Math.random() - 0.5) * 4,  // tight cluster around the dot
-      startY: 40 + (Math.random() - 0.5) * 3,
-      delay: 0.1 + Math.random() * 1.8,  // staggered gently
-      size: 1.5 + Math.random() * 2,     // small and delicate
-      drift: -12 + Math.random() * 24,   // gentle horizontal wander
-      fallDistance: 25 + Math.random() * 50, // gentle fall
-      opacity: 0.35 + Math.random() * 0.3,  // subtle
-      duration: 2.5 + Math.random() * 2.5,  // slow, graceful
+      // Tight cluster right at the gold period dot
+      x: PERIOD_X + (Math.random() - 0.5) * 3,
+      startY: PERIOD_Y + (Math.random() - 0.5) * 4,
+      delay: 0.1 + Math.random() * 1.8,
+      size: 1.5 + Math.random() * 2,
+      drift: -8 + Math.random() * 16,    // gentle horizontal wander
+      fallDistance: 20 + Math.random() * 60, // gentle fall downward
+      opacity: 0.35 + Math.random() * 0.3,
+      duration: 2.5 + Math.random() * 2.5,
     })), []);
 
   return (
@@ -437,8 +442,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         pointerEvents: 'none',
       }} />
 
-      {/* Gold flecks */}
-      <GoldFlecks active={dustActive} />
+
 
       {/* Confidential badge */}
       <div style={{
@@ -461,9 +465,10 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         </div>
       </div>
 
-      {/* The Drawing — "Slate." traced letter by letter */}
-      <div style={{ marginBottom: 14 }}>
+      {/* The Drawing — "Slate." traced letter by letter + Gold flecks */}
+      <div style={{ position: 'relative', marginBottom: 14 }}>
         <DrawnText drawPhase={drawPhase} fillVisible={fillVisible} showPeriod={showPeriod} />
+        <GoldFlecks active={dustActive} />
       </div>
 
       {/* Tagline */}
