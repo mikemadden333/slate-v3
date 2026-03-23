@@ -276,7 +276,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
             }}
           >
             {network.campuses.map((c) => (
-              <option key={c.id} value={c.id} style={{ background: '#1E2A3A', color: text.inverse }}>
+              <option key={c.id} value={c.id} style={{ background: '#151C28', color: text.inverse }}>
                 {c.short}
               </option>
             ))}

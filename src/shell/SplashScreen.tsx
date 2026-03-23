@@ -31,9 +31,9 @@ const MODULE_DOTS: { label: string; color: string }[] = [
 ];
 
 // ─── Background palette (matches app sidebar — rich deep slate gray) ────
-const BG_CENTER = '#2A3A4A';  // Lighter center for glass-like depth
-const BG_MID    = '#223040';  // Mid tone
-const BG_BASE   = '#1E2A3A';  // Matches sidebar base
+const BG_CENTER = '#1E2735';  // Lighter center for glass-like depth
+const BG_MID    = '#171F2C';  // Mid tone
+const BG_BASE   = '#131A25';  // Deep base — matches sidebar
 
 // ─── Letter path data (Playfair Display Black, extracted via fonttools) ──
 const LETTERS = [
