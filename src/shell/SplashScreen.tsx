@@ -78,18 +78,17 @@ const TOTAL_WIDTH = 2325;
 // drifting off the dot as it appears.
 function GoldFlecks({ active }: { active: boolean }) {
   // The DrawnText container is 520x140px.
-  // The SVG viewBox is 0..2325 wide (TOTAL_WIDTH). The period is at x=2325+60 = 2385.
-  // So the period center in % of the 520px container: (2385 / (2325+120)) * 100 ≈ 97.5%
-  // Vertically the period is near the baseline: roughly 75% down the 140px container.
-  const PERIOD_X = 97;   // % of container width
-  const PERIOD_Y = 75;   // % of container height
+  // The period dot overflows the container: it's at 533px from left, 132px from top.
+  // Use pixel positioning, not percentages.
+  const PERIOD_PX_X = 533;  // pixels from left of container
+  const PERIOD_PX_Y = 132;  // pixels from top of container
 
   const flecks = useMemo(() =>
     Array.from({ length: 8 }, (_, i) => ({
       id: i,
-      // Tight cluster right at the gold period dot
-      x: PERIOD_X + (Math.random() - 0.5) * 3,
-      startY: PERIOD_Y + (Math.random() - 0.5) * 4,
+      // Tight cluster right at the gold period dot (pixel values)
+      x: PERIOD_PX_X + (Math.random() - 0.5) * 10,
+      startY: PERIOD_PX_Y + (Math.random() - 0.5) * 10,
       delay: 0.1 + Math.random() * 1.8,
       size: 1.5 + Math.random() * 2,
       drift: -8 + Math.random() * 16,    // gentle horizontal wander
@@ -101,7 +100,7 @@ function GoldFlecks({ active }: { active: boolean }) {
   return (
     <div style={{
       position: 'absolute', inset: 0,
-      pointerEvents: 'none', overflow: 'hidden',
+      pointerEvents: 'none', overflow: 'visible',
     }}>
       <style>{`
         @keyframes goldFleckDrift {
@@ -116,8 +115,8 @@ function GoldFlecks({ active }: { active: boolean }) {
           key={f.id}
           style={{
             position: 'absolute',
-            left: `${f.x}%`,
-            top: `${f.startY}%`,
+            left: f.x,
+            top: f.startY,
             width: f.size,
             height: f.size,
             borderRadius: '50%',
