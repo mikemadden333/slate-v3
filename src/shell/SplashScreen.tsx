@@ -23,10 +23,10 @@ const MODULE_DOTS: { label: string; color: string }[] = [
   { label: 'REPORTS', color: modColors.reports },
 ];
 
-// v2-matched background: dark slate blue, not pure black
-const SPLASH_BG = '#1C2333';
-const SPLASH_BG_DARK = '#141B27';
-const SPLASH_BG_EDGE = '#0F1520';
+// Dark slate gray — matches the app's sidebar/shell, not navy blue
+const SPLASH_BG = '#1A1D23';       // warm dark gray (center glow)
+const SPLASH_BG_MID = '#131619';   // mid tone
+const SPLASH_BG_BASE = '#0D1117';  // matches brand.navy / bg.sidebar exactly
 
 interface SplashScreenProps {
   onEnter: () => void;
@@ -54,7 +54,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
     return (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: `radial-gradient(ellipse at 50% 40%, ${SPLASH_BG} 0%, ${SPLASH_BG_DARK} 60%, ${SPLASH_BG_EDGE} 100%)`,
+        background: `radial-gradient(ellipse at 50% 40%, ${SPLASH_BG} 0%, ${SPLASH_BG_MID} 55%, ${SPLASH_BG_BASE} 100%)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'fadeInDisclaimer 0.6s ease forwards',
       }}>
@@ -127,7 +127,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
               fontWeight: 600,
               letterSpacing: 0.5,
               color: '#FFFFFF',
-              background: SPLASH_BG,
+              background: SPLASH_BG_BASE,
               border: 'none',
               borderRadius: 8,
               padding: '15px 36px',
@@ -135,11 +135,11 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={e => {
-              (e.target as HTMLButtonElement).style.background = '#253044';
+              (e.target as HTMLButtonElement).style.background = '#22262E';
               (e.target as HTMLButtonElement).style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={e => {
-              (e.target as HTMLButtonElement).style.background = SPLASH_BG;
+              (e.target as HTMLButtonElement).style.background = SPLASH_BG_BASE;
               (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
             }}
           >
@@ -157,7 +157,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: `radial-gradient(ellipse at 50% 38%, ${SPLASH_BG} 0%, ${SPLASH_BG_DARK} 55%, ${SPLASH_BG_EDGE} 100%)`,
+        background: `radial-gradient(ellipse at 50% 38%, ${SPLASH_BG} 0%, ${SPLASH_BG_MID} 50%, ${SPLASH_BG_BASE} 100%)`,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
