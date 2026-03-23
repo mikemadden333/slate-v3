@@ -120,7 +120,7 @@ export const MODULES: ModuleMeta[] = [
 export const NAV_GROUPS = [
   {
     label: 'Intelligence',
-    modules: ['dashboard', 'watch', 'briefing', 'signal'],
+    modules: ['dashboard', 'briefing', 'watch', 'signal'],
   },
   {
     label: 'Operations',
