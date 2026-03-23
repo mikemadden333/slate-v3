@@ -59,14 +59,15 @@ import SourceHealth from './components/shared/SourceHealth';
 import NetworkDashboard from './components/network/NetworkDashboard';
 import NetworkMap from './components/network/NetworkMap';
 import CampusDashboard from './components/campus/CampusDashboard';
+import ContagionTab from './components/shared/ContagionTab';
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
 import { C, bg, text, brand, border, font, fontSize, fontWeight, shadow, radius, transition, risk, modules as moduleColors, status } from '../../core/theme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type WatchView = 'network' | 'campus';
-type NetworkTab = 'dashboard' | 'map' | 'news' | 'intelligence' | 'feed';
-type CampusTab = 'watch' | 'feed';
+type NetworkTab = 'dashboard' | 'map' | 'news' | 'intelligence' | 'feed' | 'contagion';
+type CampusTab = 'watch' | 'feed' | 'contagion';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const NETWORK_TABS: { id: NetworkTab; label: string; icon: string }[] = [
@@ -75,11 +76,13 @@ const NETWORK_TABS: { id: NetworkTab; label: string; icon: string }[] = [
   { id: 'news',      label: 'Wire',     icon: '◈' },
   { id: 'intelligence', label: 'Intel', icon: '◇' },
   { id: 'feed',      label: 'Feed',     icon: '◆' },
+  { id: 'contagion',  label: 'Contagion', icon: '◎' },
 ];
 
 const CAMPUS_TABS: { id: CampusTab; label: string }[] = [
   { id: 'watch', label: 'Watch' },
   { id: 'feed',  label: 'Feed' },
+  { id: 'contagion', label: 'Contagion' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -553,6 +556,14 @@ export default function WatchApp() {
               {networkTab === 'feed' && (
                 <WatchFeed incidents={allIncidents} iceAlerts={iceAlerts} />
               )}
+              {networkTab === 'contagion' && (
+                <ContagionTab
+                  zones={zones}
+                  allRisks={allRisks}
+                  incidents={allIncidents}
+                  selectedCampus={null}
+                />
+              )}
             </>
           )}
 
@@ -585,6 +596,14 @@ export default function WatchApp() {
                   incidents={allIncidents}
                   iceAlerts={iceAlerts}
                   campus={selectedCampus}
+                />
+              )}
+              {campusTab === 'contagion' && (
+                <ContagionTab
+                  zones={zones}
+                  allRisks={allRisks}
+                  incidents={allIncidents}
+                  selectedCampus={selectedCampus}
                 />
               )}
             </>

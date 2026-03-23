@@ -30,6 +30,7 @@ import { haversine, ageInHours } from '../../engine/geo';
 // Existing campus sub-components — we reuse them inside the new layout
 import CampusMap from './CampusMap';
 import IntelQuery from '../shared/IntelQuery';
+import ScoreExplainer from '../shared/ScoreExplainer';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -322,10 +323,10 @@ const StatusBadge = ({ label }: { label: string }) => {
 };
 
 // ─── SECTION: CAMPUS HEADER ──────────────────────────────────────────────────
-const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h, allRisks, schoolPeriod, iceAlerts }: {
+const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h, allRisks, schoolPeriod, iceAlerts, onScoreClick }: {
   campus: Campus; risk: CampusRisk; incidents: Incident[]; tempF: number;
   violent7d: number; violent24h: number; allRisks: CampusRisk[];
-  schoolPeriod: string; iceAlerts: IceAlert[];
+  schoolPeriod: string; iceAlerts: IceAlert[]; onScoreClick?: () => void;
 }) => {
   const now = Date.now();
   const zoneCount = risk.contagionZones?.length ?? 0;
@@ -389,7 +390,11 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h, a
           }}>
             {campus.short.toUpperCase()}
           </h1>
-          <StatusBadge label={risk.label} />
+          <span onClick={onScoreClick} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }} title="Click to see how this score was calculated">
+            <StatusBadge label={risk.label} />
+            <span style={{ fontFamily: mono, fontSize: 14, fontWeight: 700, color: C.deep }}>{risk.score}</span>
+            <span style={{ fontSize: 9, color: C.light, fontWeight: 500 }}>HOW?</span>
+          </span>
           <span style={{
             fontSize: 9, fontWeight: 800, letterSpacing: '.1em',
             padding: '3px 10px', borderRadius: 12,
@@ -1206,6 +1211,8 @@ export default function CampusDashboard({
   const stats = useViolentCrimeStats(campus, allIncidents);
   // ── Data readiness ──
   const dataReady = allIncidents.length > 0;
+  // ── Score Explainer drawer state ──
+  const [scoreDrawerOpen, setScoreDrawerOpen] = useState(false);
   // ── AI Briefing: watches violent crime counts, debounces 3s ──
   const briefing = useCampusBriefing(
     campus, risk, iceAlerts,
@@ -1222,6 +1229,7 @@ export default function CampusDashboard({
           campus={campus} risk={risk} incidents={allIncidents} tempF={tempF}
           violent7d={stats.violent7d} violent24h={stats.violent24h}
           allRisks={allRisks} schoolPeriod={schoolPeriod} iceAlerts={iceAlerts}
+          onScoreClick={() => setScoreDrawerOpen(true)}
         />
 
         {/* ── AI Intelligence Briefing ── */}
@@ -1342,9 +1350,19 @@ export default function CampusDashboard({
           scannerData={scannerData}
         />
 
-        {/* ── Ask Slate ── */}
+         {/* ── Ask Slate ── */}
         <AskSlate campus={campus} risk={risk} />
-
+        {/* ── Score Explainer Drawer ── */}
+        <ScoreExplainer
+          open={scoreDrawerOpen}
+          onClose={() => setScoreDrawerOpen(false)}
+          campus={campus}
+          risk={risk}
+          incidents={allIncidents}
+          acuteIncidents={acuteIncidents}
+          shotSpotterEvents={shotSpotterEvents}
+          tempF={tempF}
+        />
         {/* ── Footer attribution ── */}
         <div style={{
           fontSize: 10, color: C.light, lineHeight: 1.6,
