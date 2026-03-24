@@ -1,6 +1,7 @@
 /**
  * Slate v3 — Unified Design System
- * MEA Brand Guide v1.0 — "Deep navy. Warm gold. Glass-like depth. Quiet authority."
+ * MEA Brand Guide v1.0 — "Deep navy frame. Light content workspace. Warm gold accents."
+ * Split approach: dark sidebar/topbar chrome + light content area for maximum readability.
  * Every color, spacing, and typography token lives here.
  * No module defines its own colors. Ever.
  */
@@ -8,109 +9,115 @@
 // ─── Brand Colors ─────────────────────────────────────────────────────────
 
 export const brand = {
-  navy:     '#0A1628',   // Deep Navy — all primary backgrounds
+  navy:     '#0A1628',   // Deep Navy — sidebar, topbar, splash
   gold:     '#C9A54E',   // Warm Gold — headlines, accent lines, buttons
   mutedGold:'#D4B978',   // Muted Gold — secondary buttons, hover
   ivory:    '#E8DCC8',   // Soft Ivory — pull quotes, warm emphasis
-  white:    '#F0F2F5',   // Signal White — headlines, critical text
-  iceBlue:  '#B8C9DB',   // Ice Blue — body text, labels
-  slateBlue:'#2A3F5F',   // Slate Blue — cards, elevated surfaces
+  white:    '#F0F2F5',   // Signal White — headlines on dark surfaces
+  iceBlue:  '#B8C9DB',   // Ice Blue — labels on dark surfaces
+  slateBlue:'#2A3F5F',   // Slate Blue — reserved for dark chrome accents
 } as const;
 
 // ─── Backgrounds ──────────────────────────────────────────────────────────
 
 export const bg = {
-  app:      '#0A1628',   // Deep Navy — unified background
-  card:     '#111E35',   // Very subtle lift off deep navy — readable
-  cardGlass:'rgba(18, 32, 56, 0.75)', // Subtle glass — barely lifts off navy, readable
-  sidebar:  '#0A1628',   // Deep Navy
+  // Dark chrome (sidebar, topbar, splash)
+  app:      '#F5F3EF',   // Warm off-white — main content area
+  sidebar:  '#0A1628',   // Deep Navy — sidebar frame
   sidebarGlass: 'linear-gradient(180deg, #122040 0%, #0E1A32 30%, #0A1628 70%, #081220 100%)',
-  header:   '#0F1D35',   // Slightly lighter navy for top bar
-  hover:    'rgba(18, 32, 56, 0.5)',
-  selected: 'rgba(201, 165, 78, 0.12)',
-  subtle:   '#0E1A32',   // Slightly lighter than deep navy
-  gradient: 'linear-gradient(180deg, #0A1628 0%, #0E1A32 100%)',
-  surface:  'rgba(18, 32, 56, 0.6)', // Subtle glass surface fallback
+  header:   '#0A1628',   // Deep Navy — topbar
+  // Light content area
+  card:     '#FFFFFF',   // White cards on warm off-white
+  cardGlass:'#FFFFFF',   // White cards (no glass needed on light bg)
+  hover:    'rgba(0, 0, 0, 0.04)',   // Subtle hover on light bg
+  selected: 'rgba(201, 165, 78, 0.10)',
+  subtle:   '#EDE9E3',   // Slightly darker than off-white for sections
+  gradient: 'linear-gradient(180deg, #F5F3EF 0%, #EDE9E3 100%)',
+  surface:  '#F5F3EF',   // Light surface fallback
 } as const;
 
 // ─── Text Colors ──────────────────────────────────────────────────────────
 
 export const text = {
-  primary:   '#F0F2F5',  // Signal White — headlines, critical text
-  secondary: '#B8C9DB',  // Ice Blue — body text, labels
-  muted:     '#7A8FA8',  // Muted ice blue
-  light:     '#5A6F88',  // Subdued
-  inverse:   '#F0F2F5',  // Signal White
+  primary:   '#1A1A2E',  // Dark charcoal — headlines, critical text on light bg
+  secondary: '#4A5568',  // Medium gray — body text, labels on light bg
+  muted:     '#718096',  // Muted gray — secondary info on light bg
+  light:     '#A0AEC0',  // Subdued — tertiary info on light bg
+  inverse:   '#F0F2F5',  // Signal White — text on dark chrome
   accent:    '#C9A54E',  // Warm Gold
-  ivory:     '#E8DCC8',  // Soft Ivory — pull quotes
-  link:      '#5B8DB8',  // Steel Blue
+  ivory:     '#E8DCC8',  // Soft Ivory — pull quotes on dark bg
+  link:      '#2B6CB0',  // Deeper blue for links on light bg
 } as const;
 
 // ─── Semantic / Functional Colors (Slate Product Only) ────────────────────
 
 export const status = {
-  // Positive — Sage Green
-  green:     '#4A9B6E',
-  greenBg:   'rgba(74, 155, 110, 0.12)',
-  greenBorder: 'rgba(74, 155, 110, 0.25)',
+  // Positive — Sage Green (slightly deeper for light bg readability)
+  green:     '#2F855A',
+  greenBg:   'rgba(47, 133, 90, 0.08)',
+  greenBorder: 'rgba(47, 133, 90, 0.20)',
 
   // Negative — Ember Red
-  red:       '#D94F4F',
-  redBg:     'rgba(217, 79, 79, 0.12)',
-  redBorder: 'rgba(217, 79, 79, 0.25)',
+  red:       '#C53030',
+  redBg:     'rgba(197, 48, 48, 0.08)',
+  redBorder: 'rgba(197, 48, 48, 0.20)',
 
-  // Warning — Amber
-  amber:     '#E8A838',
-  amberBg:   'rgba(232, 168, 56, 0.12)',
-  amberBorder: 'rgba(232, 168, 56, 0.25)',
+  // Warning — Amber (slightly deeper for light bg)
+  amber:     '#C07C1E',
+  amberBg:   'rgba(192, 124, 30, 0.08)',
+  amberBorder: 'rgba(192, 124, 30, 0.20)',
 
   // Info — Steel Blue
-  blue:      '#5B8DB8',
-  blueBg:    'rgba(91, 141, 184, 0.12)',
-  blueBorder: 'rgba(91, 141, 184, 0.25)',
+  blue:      '#2B6CB0',
+  blueBg:    'rgba(43, 108, 176, 0.08)',
+  blueBorder: 'rgba(43, 108, 176, 0.20)',
 
   // Neutral
-  gray:      '#7A8FA8',
-  grayBg:    'rgba(122, 143, 168, 0.12)',
-  grayBorder: 'rgba(122, 143, 168, 0.25)',
+  gray:      '#718096',
+  grayBg:    'rgba(113, 128, 150, 0.08)',
+  grayBorder: 'rgba(113, 128, 150, 0.20)',
 } as const;
 
 // ─── Module Accent Colors ─────────────────────────────────────────────────
+// Slightly deeper for readability on light backgrounds
 
 export const modules = {
-  watch:    '#4A9B6E',  // Sage Green — safety, vigilance
-  ledger:   '#5B8DB8',  // Steel Blue — financial clarity
-  scholar:  '#8B7EC8',  // Soft violet — academic, enrollment
-  shield:   '#E8A838',  // Amber — risk, protection
-  fund:     '#5B8DB8',  // Steel Blue — fundraising, growth
-  grounds:  '#7A8FA8',  // Muted — facilities, physical
-  civic:    '#C97A8E',  // Muted rose — public affairs
-  signal:   '#D4B978',  // Muted Gold — network health
-  draft:    '#6B7EC8',  // Soft indigo — communications
-  reports:  '#5B9B8E',  // Teal — reporting
+  watch:    '#2F855A',  // Sage Green — safety, vigilance
+  ledger:   '#2B6CB0',  // Steel Blue — financial clarity
+  scholar:  '#6B46C1',  // Violet — academic, enrollment
+  shield:   '#C07C1E',  // Amber — risk, protection
+  fund:     '#2B6CB0',  // Steel Blue — fundraising, growth
+  grounds:  '#5A6F88',  // Muted — facilities, physical
+  civic:    '#B83280',  // Rose — public affairs
+  signal:   '#B7931E',  // Deep Gold — network health
+  draft:    '#4C51BF',  // Indigo — communications
+  reports:  '#2C7A7B',  // Teal — reporting
   briefing: '#C9A54E',  // Warm Gold — executive intelligence
-  datahub:  '#4A9B6E',  // Sage Green — data management
+  datahub:  '#2F855A',  // Sage Green — data management
 } as const;
 
 // ─── Borders & Dividers ──────────────────────────────────────────────────
 
 export const border = {
-  light:    'rgba(255, 255, 255, 0.08)',  // Glass edge
-  medium:   'rgba(255, 255, 255, 0.12)',
-  dark:     'rgba(255, 255, 255, 0.18)',
+  light:    'rgba(0, 0, 0, 0.06)',    // Subtle border on light bg
+  medium:   'rgba(0, 0, 0, 0.10)',
+  dark:     'rgba(0, 0, 0, 0.15)',
   focus:    '#C9A54E',  // Gold focus ring
-  glass:    'rgba(255, 255, 255, 0.08)',  // Glass Card edge catch
+  glass:    'rgba(0, 0, 0, 0.06)',    // Card edge on light bg
+  // Dark chrome borders (sidebar, topbar)
+  chromLight: 'rgba(255, 255, 255, 0.08)',
+  chromMedium: 'rgba(255, 255, 255, 0.12)',
 } as const;
 
 // ─── Shadows ──────────────────────────────────────────────────────────────
 
 export const shadow = {
-  sm:   '0 1px 3px rgba(0, 0, 0, 0.3)',
-  md:   '0 4px 8px rgba(0, 0, 0, 0.35)',
-  lg:   '0 10px 20px rgba(0, 0, 0, 0.4)',
-  xl:   '0 20px 40px rgba(0, 0, 0, 0.45)',
-  glow: (color: string) => `0 0 12px ${color}30`,
-  glassInset: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+  sm:   '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
+  md:   '0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04)',
+  lg:   '0 10px 15px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.04)',
+  xl:   '0 20px 25px rgba(0, 0, 0, 0.08), 0 10px 10px rgba(0, 0, 0, 0.04)',
+  glow: (color: string) => `0 0 12px ${color}20`,
+  glassInset: 'none',  // No inset glow needed on light bg
 } as const;
 
 // ─── Typography ───────────────────────────────────────────────────────────
@@ -181,24 +188,24 @@ export const transition = {
 // ─── Risk Level Colors (Watch) ────────────────────────────────────────────
 
 export const risk = {
-  critical: { color: '#D94F4F', bg: 'rgba(217, 79, 79, 0.12)', label: 'CRITICAL' },
-  high:     { color: '#E87040', bg: 'rgba(232, 112, 64, 0.12)', label: 'HIGH' },
-  elevated: { color: '#E8A838', bg: 'rgba(232, 168, 56, 0.12)', label: 'ELEVATED' },
-  low:      { color: '#4A9B6E', bg: 'rgba(74, 155, 110, 0.12)', label: 'LOW' },
-  clear:    { color: '#7A8FA8', bg: 'rgba(122, 143, 168, 0.12)', label: 'CLEAR' },
+  critical: { color: '#C53030', bg: 'rgba(197, 48, 48, 0.08)', label: 'CRITICAL' },
+  high:     { color: '#C05621', bg: 'rgba(192, 86, 33, 0.08)', label: 'HIGH' },
+  elevated: { color: '#C07C1E', bg: 'rgba(192, 124, 30, 0.08)', label: 'ELEVATED' },
+  low:      { color: '#2F855A', bg: 'rgba(47, 133, 90, 0.08)', label: 'LOW' },
+  clear:    { color: '#718096', bg: 'rgba(113, 128, 150, 0.08)', label: 'CLEAR' },
 } as const;
 
 // ─── Chart Colors ─────────────────────────────────────────────────────────
 
 export const chart = {
   primary:   '#C9A54E',  // Warm Gold
-  secondary: '#5B8DB8',  // Steel Blue
-  tertiary:  '#8B7EC8',  // Soft violet
-  quaternary:'#4A9B6E',  // Sage Green
-  danger:    '#D94F4F',  // Ember Red
-  muted:     '#5A6F88',
-  grid:      'rgba(255, 255, 255, 0.06)',
-  bars: ['#C9A54E', '#5B8DB8', '#8B7EC8', '#4A9B6E', '#D4B978', '#D94F4F', '#5B9B8E', '#C97A8E'],
+  secondary: '#2B6CB0',  // Steel Blue
+  tertiary:  '#6B46C1',  // Violet
+  quaternary:'#2F855A',  // Sage Green
+  danger:    '#C53030',  // Ember Red
+  muted:     '#A0AEC0',
+  grid:      'rgba(0, 0, 0, 0.06)',  // Light grid lines
+  bars: ['#C9A54E', '#2B6CB0', '#6B46C1', '#2F855A', '#B7931E', '#C53030', '#2C7A7B', '#B83280'],
 } as const;
 
 // ─── Convenience: Flat "C" object for quick access (backward compat) ─────
@@ -211,7 +218,7 @@ export const C = {
 
   // Text
   deep: text.primary,
-  rock: '#0F1D35',
+  rock: '#1A1A2E',
   mid: text.secondary,
   light: text.muted,
   muted: text.light,

@@ -1,6 +1,7 @@
 /**
  * Slate v3 — TopBar
- * MEA Brand Guide v1.0 — Glass surface header with breathing pulse.
+ * Dark chrome header: deep navy background, light text.
+ * Part of the dark frame that wraps the light content area.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -48,13 +49,13 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
     <div style={{
       height: 56,
       minHeight: 56,
-      background: bg.header,
-      borderBottom: `1px solid ${border.light}`,
+      background: brand.navy,
+      borderBottom: `1px solid ${border.chromLight}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '0 24px',
-      boxShadow: shadow.sm,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
     }}>
       <style>{pulseKeyframes}</style>
 
@@ -68,17 +69,17 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             <div>
               <div style={{
                 fontSize: fontSize.lg, fontWeight: fontWeight.medium,
-                color: text.primary, fontFamily: font.body,
+                color: '#F0F2F5', fontFamily: font.body,
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>
                 {mod.label}
                 {campus && (
-                  <span style={{ fontSize: fontSize.sm, fontWeight: fontWeight.normal, color: text.muted }}>
+                  <span style={{ fontSize: fontSize.sm, fontWeight: fontWeight.normal, color: '#B8C9DB' }}>
                     / {campus.short}
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: -1 }}>
+              <div style={{ fontSize: fontSize.xs, color: '#7A8FA8', marginTop: -1 }}>
                 {mod.description}
               </div>
             </div>
@@ -94,13 +95,13 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             background: hasEmergency ? '#D94F4F' : '#4A9B6E',
             animation: hasEmergency ? 'emergencyPulse 1.5s ease-in-out infinite' : 'slatePulse 3s ease-in-out infinite',
           }} />
-          <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.normal, color: text.secondary }}>
+          <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.normal, color: '#B8C9DB' }}>
             {dateStr}
           </div>
           {hasEmergency && (
             <div style={{
               padding: '1px 7px', borderRadius: radius.full,
-              background: 'rgba(217, 79, 79, 0.12)', border: '1px solid rgba(217, 79, 79, 0.25)',
+              background: 'rgba(217, 79, 79, 0.15)', border: '1px solid rgba(217, 79, 79, 0.30)',
               fontSize: 10, fontWeight: 500, color: '#D94F4F',
               letterSpacing: 0.5,
             }}>
@@ -109,11 +110,11 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
           )}
         </div>
         <div style={{
-          fontSize: 10, color: text.light, fontFamily: font.mono,
+          fontSize: 10, color: '#7A8FA8', fontFamily: font.mono,
           letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6,
         }}>
           <span>{timeStr} CDT</span>
-          <span style={{ color: border.medium }}>·</span>
+          <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
           <span style={{ color: hasEmergency ? '#D94F4F' : '#4A9B6E' }}>
             {hasEmergency ? 'EMERGENCY ACTIVE' : 'AI MONITORING'}
           </span>
@@ -135,25 +136,24 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
         <button onClick={onAskSlate} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 16px', borderRadius: radius.lg,
-          border: `1px solid ${border.light}`, background: bg.surface,
+          border: `1px solid rgba(255,255,255,0.12)`, background: 'rgba(255,255,255,0.05)',
           cursor: 'pointer', transition: transition.fast,
-          fontFamily: font.body, fontSize: fontSize.sm, color: text.muted,
-          backdropFilter: 'blur(8px)',
+          fontFamily: font.body, fontSize: fontSize.sm, color: '#B8C9DB',
         }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = brand.gold;
             e.currentTarget.style.boxShadow = `0 0 0 2px ${brand.gold}20`;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = border.light;
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
             e.currentTarget.style.boxShadow = 'none';
           }}
         >
           <span style={{ fontSize: fontSize.md }}>✦</span>
           Ask Slate
           <span style={{
-            fontSize: fontSize.xs, color: text.light,
-            padding: '1px 6px', borderRadius: radius.sm, background: 'rgba(255,255,255,0.05)',
+            fontSize: fontSize.xs, color: '#7A8FA8',
+            padding: '1px 6px', borderRadius: radius.sm, background: 'rgba(255,255,255,0.06)',
           }}>
             ⌘K
           </span>

@@ -145,6 +145,7 @@ function RadarScope({
 
       // Background
       const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR + 30);
+      // Radar scope stays dark — it's a specialized visualization
       bgGrad.addColorStop(0, '#0A1628');
       bgGrad.addColorStop(0.7, '#060E1A');
       bgGrad.addColorStop(1, '#030810');
@@ -808,7 +809,7 @@ Generate 6-8 warnings distributed across all 5 layers (at least 1 from each laye
                 {['CRITICAL', 'HIGH', 'WATCH'].map(sev => (
                   <div key={sev} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: sevColor(sev) }} />
-                    <span style={{ fontSize: fontSize.xs, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.05em' }}>
+                    <span style={{ fontSize: fontSize.xs, color: textColor.muted, letterSpacing: '0.05em' }}>
                       {sev}
                     </span>
                   </div>

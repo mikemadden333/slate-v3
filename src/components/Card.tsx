@@ -1,6 +1,7 @@
 /**
  * Slate v3 — Shared UI Components
- * MEA Brand Guide v1.0 — Glass cards on deep navy, ice blue text, gold accents.
+ * Split theme: dark chrome frame + light content workspace.
+ * Cards are white with subtle shadows on warm off-white background.
  */
 
 import React, { type ReactNode, type CSSProperties } from 'react';
@@ -28,11 +29,10 @@ export function Card({ children, style, accent, onClick, hover }: CardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        background: bg.cardGlass,
-        backdropFilter: 'blur(12px)',
+        background: '#FFFFFF',
         borderRadius: radius.lg,
-        border: `1px solid ${border.glass}`,
-        boxShadow: isHovered && hover ? shadow.md : `${shadow.sm}, ${shadow.glassInset}`,
+        border: `1px solid ${border.light}`,
+        boxShadow: isHovered && hover ? shadow.md : shadow.sm,
         padding: 20,
         transition: transition.fast,
         cursor: onClick ? 'pointer' : 'default',
@@ -114,7 +114,7 @@ export function KPICard({ label, value, subValue, trend, icon, accent = brand.go
           <span style={{
             fontSize: '24px',
             color: accent,
-            opacity: 0.6,
+            opacity: 0.5,
           }}>
             {icon}
           </span>
@@ -201,6 +201,7 @@ export function StatusBadge({ label, variant, size = 'sm' }: StatusBadgeProps) {
 }
 
 // ─── AI Insight Block ─────────────────────────────────────────────────────
+// AI insights keep a subtle warm tint to stand out from regular white cards
 
 interface AIInsightProps {
   content: string;
@@ -231,13 +232,12 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
 
   return (
     <div style={{
-      background: `linear-gradient(135deg, rgba(18,32,56,0.5) 0%, rgba(18,32,56,0.7) 100%)`,
-      border: `1px solid ${isLive ? brand.gold + '40' : brand.gold + '20'}`,
+      background: `linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%)`,
+      border: `1px solid ${isLive ? brand.gold + '50' : brand.gold + '30'}`,
       borderRadius: radius.lg,
       padding: 16,
       position: 'relative',
       transition: transition.fast,
-      backdropFilter: 'blur(8px)',
     }}>
       <div style={{
         display: 'flex',
@@ -250,7 +250,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
           <span style={{
             fontSize: fontSize.xs,
             fontWeight: fontWeight.medium,
-            color: brand.gold,
+            color: '#8B6914',
             textTransform: 'uppercase',
             letterSpacing: '1px',
             fontFamily: font.body,
@@ -261,8 +261,8 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
             <span style={{
               fontSize: 9,
               fontWeight: fontWeight.medium,
-              color: '#4A9B6E',
-              background: 'rgba(74,155,110,0.12)',
+              color: status.green,
+              background: status.greenBg,
               padding: '2px 6px',
               borderRadius: radius.full,
               letterSpacing: '0.5px',
@@ -279,7 +279,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
             disabled={isLoading}
             style={{
               fontSize: fontSize.xs,
-              color: text.light,
+              color: text.muted,
               background: 'none',
               border: `1px solid ${border.light}`,
               borderRadius: radius.sm,
@@ -297,7 +297,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
       {isLoading ? (
         <div style={{
           fontSize: fontSize.sm,
-          color: text.light,
+          color: text.muted,
           fontStyle: 'italic',
           display: 'flex',
           alignItems: 'center',
@@ -316,11 +316,11 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
       ) : (
         <div style={{
           fontSize: fontSize.sm,
-          color: text.secondary,
+          color: '#4A3D1E',
           lineHeight: 1.7,
           whiteSpace: 'pre-wrap',
           fontFamily: font.body,
-          fontWeight: fontWeight.light,
+          fontWeight: fontWeight.normal,
         }}>
           {formatText(displayText)}
         </div>
@@ -328,7 +328,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
       {lastGenerated && !isLoading && (
         <div style={{
           fontSize: 10,
-          color: text.light,
+          color: text.muted,
           marginTop: 8,
           opacity: 0.6,
           fontFamily: font.body,
@@ -438,13 +438,13 @@ export function EmptyState({ icon = '◇', title, description, action }: EmptySt
     <div style={{
       textAlign: 'center',
       padding: '48px 24px',
-      color: text.light,
+      color: text.muted,
     }}>
-      <div style={{ fontSize: '32px', marginBottom: 12, opacity: 0.5 }}>{icon}</div>
+      <div style={{ fontSize: '32px', marginBottom: 12, opacity: 0.4 }}>{icon}</div>
       <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.medium, color: text.secondary, marginBottom: 4, fontFamily: font.body }}>
         {title}
       </div>
-      <div style={{ fontSize: fontSize.sm, marginBottom: 16, fontFamily: font.body }}>{description}</div>
+      <div style={{ fontSize: fontSize.sm, color: text.muted, marginBottom: 16, fontFamily: font.body }}>{description}</div>
       {action && (
         <button
           onClick={action.onClick}
