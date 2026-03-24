@@ -7,6 +7,8 @@
  */
 
 import React, { useMemo } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { WatchDataState } from './useWatchData';
 import type { WatchIncident, CampusThreat, ThreatLevel } from './types';
 import { THREAT_CONFIG, VIOLENT_CRIME_LABELS } from './types';
@@ -244,121 +246,116 @@ function CampusMap({ campus, incidents }: {
   incidents: WatchIncident[];
 }) {
   const mapRef = React.useRef<HTMLDivElement>(null);
-  const mapInstanceRef = React.useRef<google.maps.Map | null>(null);
+  const mapInstanceRef = React.useRef<L.Map | null>(null);
+  const layerGroupRef = React.useRef<L.LayerGroup | null>(null);
 
+  // Initialize map
   React.useEffect(() => {
     if (!mapRef.current) return;
 
-    const createMap = () => {
-      if (!mapRef.current || !window.google?.maps) return;
-
-      const map = new google.maps.Map(mapRef.current, {
-        center: { lat: campus.lat, lng: campus.lng },
+    // If map already exists, just update the view
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([campus.lat, campus.lng], 14);
+    } else {
+      const map = L.map(mapRef.current, {
+        center: [campus.lat, campus.lng],
         zoom: 14,
-        mapTypeId: 'roadmap',
-        styles: [
-          { featureType: 'all', elementType: 'labels.text.fill', stylers: [{ color: '#4A5568' }] },
-          { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ color: '#F5F3EF' }, { weight: 3 }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#C5D5E4' }] },
-          { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#E8E4DD' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#D5D0C8' }] },
-          { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#C8C3BB' }] },
-          { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#DDD8D0' }] },
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-          { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-        ],
-        disableDefaultUI: true,
-        zoomControl: true,
+        zoomControl: false,
       });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '',
+        maxZoom: 19,
+      }).addTo(map);
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       mapInstanceRef.current = map;
+      layerGroupRef.current = L.layerGroup().addTo(map);
 
-      // Draw radius rings
-      // 0.25 mile ring
-      new google.maps.Circle({
-        center: { lat: campus.lat, lng: campus.lng },
-        radius: 402.336, // 0.25 miles in meters
-        fillColor: '#C53030',
-        fillOpacity: 0.04,
-        strokeColor: '#C53030',
-        strokeOpacity: 0.25,
-        strokeWeight: 1,
-        map,
-      });
+      setTimeout(() => map.invalidateSize(), 100);
+    }
 
-      // 0.5 mile ring
-      new google.maps.Circle({
-        center: { lat: campus.lat, lng: campus.lng },
-        radius: 804.672,
-        fillColor: '#C07C1E',
-        fillOpacity: 0.03,
-        strokeColor: '#C07C1E',
-        strokeOpacity: 0.2,
-        strokeWeight: 1,
-        map,
-      });
+    const lg = layerGroupRef.current!;
+    lg.clearLayers();
 
-      // 1 mile ring
-      new google.maps.Circle({
-        center: { lat: campus.lat, lng: campus.lng },
-        radius: 1609.34,
-        fillColor: '#718096',
-        fillOpacity: 0.02,
-        strokeColor: '#718096',
-        strokeOpacity: 0.15,
-        strokeWeight: 1,
-        map,
-      });
+    // Draw radius rings
+    // 0.25 mile ring (RED zone)
+    L.circle([campus.lat, campus.lng], {
+      radius: 402.336,
+      fillColor: '#C53030',
+      fillOpacity: 0.04,
+      color: '#C53030',
+      opacity: 0.25,
+      weight: 1,
+    }).addTo(lg);
 
-      // Campus marker (gold star)
-      new google.maps.Marker({
-        position: { lat: campus.lat, lng: campus.lng },
-        map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 14,
-          fillColor: brand.gold,
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 3,
-        },
-        title: campus.campusShort,
-        zIndex: 20,
-      });
+    // 0.5 mile ring (AMBER zone)
+    L.circle([campus.lat, campus.lng], {
+      radius: 804.672,
+      fillColor: '#C07C1E',
+      fillOpacity: 0.03,
+      color: '#C07C1E',
+      opacity: 0.2,
+      weight: 1,
+    }).addTo(lg);
 
-      // Incident markers
-      for (const inc of incidents) {
-        const dist = haversine(campus.lat, campus.lng, inc.lat, inc.lng);
-        if (dist > 1.5) continue; // Only show within 1.5 miles
+    // 1 mile ring (monitoring zone)
+    L.circle([campus.lat, campus.lng], {
+      radius: 1609.34,
+      fillColor: '#718096',
+      fillOpacity: 0.02,
+      color: '#718096',
+      opacity: 0.15,
+      weight: 1,
+    }).addTo(lg);
 
-        const isClose = dist <= 0.25;
-        new google.maps.Marker({
-          position: { lat: inc.lat, lng: inc.lng },
-          map,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: isClose ? 7 : 5,
-            fillColor: status.red,
-            fillOpacity: isClose ? 0.9 : 0.6,
-            strokeColor: '#FFFFFF',
-            strokeWeight: 1,
-          },
-          title: `${inc.title} (${dist.toFixed(2)} mi)`,
-          zIndex: 10,
-        });
+    // Campus marker (gold circle)
+    const campusIcon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:28px;height:28px;border-radius:50%;
+        background:${brand.gold};border:3px solid #fff;
+        box-shadow:0 0 10px ${brand.gold}60;
+      "></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+    L.marker([campus.lat, campus.lng], { icon: campusIcon, zIndexOffset: 2000 })
+      .bindTooltip(campus.campusShort, { permanent: true, direction: 'top', offset: [0, -16], className: 'campus-tooltip' })
+      .addTo(lg);
+
+    // Incident markers
+    for (const inc of incidents) {
+      const dist = haversine(campus.lat, campus.lng, inc.lat, inc.lng);
+      if (dist > 1.5) continue;
+
+      const isClose = dist <= 0.25;
+      L.circleMarker([inc.lat, inc.lng], {
+        radius: isClose ? 7 : 5,
+        fillColor: status.red,
+        fillOpacity: isClose ? 0.9 : 0.6,
+        color: '#FFFFFF',
+        weight: 1,
+      }).bindTooltip(`${inc.title} (${dist.toFixed(2)} mi)`, { direction: 'top', offset: [0, -6] })
+        .addTo(lg);
+    }
+
+    return () => {
+      // Cleanup on unmount only
+    };
+  }, [campus, incidents]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        layerGroupRef.current = null;
       }
     };
-
-    if (window.google?.maps) {
-      createMap();
-    } else {
-      const script = document.createElement('script');
-      script.src = '/api/maps/js?libraries=geometry&callback=initCampusMap';
-      script.async = true;
-      (window as unknown as Record<string, unknown>).initCampusMap = createMap;
-      document.head.appendChild(script);
-    }
-  }, [campus, incidents]);
+  }, []);
 
   return <div ref={mapRef} style={S.mapContainer} />;
 }

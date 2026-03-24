@@ -7,6 +7,8 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { WatchDataState } from './useWatchData';
 import type { WatchIncident, CampusThreat, ThreatLevel } from './types';
 import { THREAT_CONFIG, VIOLENT_CRIME_LABELS, CONFIDENCE_SCORE } from './types';
@@ -305,7 +307,7 @@ const S = {
   } as React.CSSProperties,
 } as const;
 
-// ─── Map Component (Google Maps) ──────────────────────────────────────────
+// ─── Map Component (Leaflet) ─────────────────────────────────────────────
 
 function WatchMap({ campusThreats, incidents, selectedCampus, onSelectCampus }: {
   campusThreats: CampusThreat[];
@@ -314,151 +316,114 @@ function WatchMap({ campusThreats, incidents, selectedCampus, onSelectCampus }: 
   onSelectCampus: (id: number | null) => void;
 }) {
   const mapRef = React.useRef<HTMLDivElement>(null);
-  const mapInstanceRef = React.useRef<google.maps.Map | null>(null);
-  const markersRef = React.useRef<google.maps.Marker[]>([]);
-  const circlesRef = React.useRef<google.maps.Circle[]>([]);
-  const incidentMarkersRef = React.useRef<google.maps.Marker[]>([]);
+  const mapInstanceRef = React.useRef<L.Map | null>(null);
+  const layerGroupRef = React.useRef<L.LayerGroup | null>(null);
 
-  // Initialize map
+  // Initialize Leaflet map once
   React.useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const loadMap = () => {
-      if (!window.google?.maps) {
-        // Load Google Maps script via proxy
-        const script = document.createElement('script');
-        script.src = '/api/maps/js?libraries=geometry&callback=initWatchMap';
-        script.async = true;
-        (window as unknown as Record<string, unknown>).initWatchMap = () => {
-          createMap();
-        };
-        document.head.appendChild(script);
-      } else {
-        createMap();
-      }
-    };
+    const map = L.map(mapRef.current, {
+      center: [41.82, -87.67],
+      zoom: 11,
+      zoomControl: false,
+    });
 
-    const createMap = () => {
-      if (!mapRef.current) return;
-      mapInstanceRef.current = new google.maps.Map(mapRef.current, {
-        center: { lat: 41.82, lng: -87.67 },
-        zoom: 11,
-        mapTypeId: 'roadmap',
-        styles: [
-          { featureType: 'all', elementType: 'labels.text.fill', stylers: [{ color: '#4A5568' }] },
-          { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ color: '#F5F3EF' }, { weight: 3 }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#C5D5E4' }] },
-          { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#E8E4DD' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#D5D0C8' }] },
-          { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#C8C3BB' }] },
-          { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#DDD8D0' }] },
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-          { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-        ],
-        disableDefaultUI: true,
-        zoomControl: true,
-        zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-      });
-    };
+    // Warm-toned CartoDB tile layer (matches Slate aesthetic)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '',
+      maxZoom: 19,
+    }).addTo(map);
 
-    loadMap();
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    mapInstanceRef.current = map;
+    layerGroupRef.current = L.layerGroup().addTo(map);
+
+    // Force a resize after mount to fix any container sizing issues
+    setTimeout(() => map.invalidateSize(), 100);
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      layerGroupRef.current = null;
+    };
   }, []);
 
   // Update campus markers and threat circles
   React.useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !window.google?.maps) return;
+    const lg = layerGroupRef.current;
+    if (!map || !lg) return;
 
-    // Clear old markers
-    markersRef.current.forEach(m => m.setMap(null));
-    circlesRef.current.forEach(c => c.setMap(null));
-    incidentMarkersRef.current.forEach(m => m.setMap(null));
-    markersRef.current = [];
-    circlesRef.current = [];
-    incidentMarkersRef.current = [];
+    // Clear all layers
+    lg.clearLayers();
 
     // Draw campus markers with threat rings
     for (const ct of campusThreats) {
       const config = THREAT_CONFIG[ct.threatLevel];
-      const pos = { lat: ct.lat, lng: ct.lng };
 
-      // Threat radius circle (0.5 mile)
+      // Threat radius circle (0.5 mile = 804.672 meters)
       if (ct.threatLevel !== 'GREEN') {
-        const circle = new google.maps.Circle({
-          center: pos,
-          radius: 804.672, // 0.5 miles in meters
+        L.circle([ct.lat, ct.lng], {
+          radius: 804.672,
           fillColor: config.color,
           fillOpacity: 0.08,
-          strokeColor: config.color,
-          strokeOpacity: 0.3,
-          strokeWeight: 1,
-          map,
-        });
-        circlesRef.current.push(circle);
+          color: config.color,
+          opacity: 0.3,
+          weight: 1,
+        }).addTo(lg);
       }
 
-      // Campus marker
-      const marker = new google.maps.Marker({
-        position: pos,
-        map,
-        title: ct.campusShort,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: ct.threatLevel === 'GREEN' ? 8 : 12,
-          fillColor: config.color,
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 2,
-        },
-        zIndex: ct.threatLevel === 'GREEN' ? 1 : 10,
+      // Campus marker (colored circle)
+      const size = ct.threatLevel === 'GREEN' ? 8 : 12;
+      const campusIcon = L.divIcon({
+        className: '',
+        html: `<div style="
+          width:${size * 2}px;height:${size * 2}px;border-radius:50%;
+          background:${config.color};border:2px solid #fff;
+          box-shadow:0 0 6px ${config.color}40;
+          cursor:pointer;
+        "></div>`,
+        iconSize: [size * 2, size * 2],
+        iconAnchor: [size, size],
       });
 
-      marker.addListener('click', () => onSelectCampus(ct.campusId));
+      const marker = L.marker([ct.lat, ct.lng], { icon: campusIcon, zIndexOffset: ct.threatLevel === 'GREEN' ? 0 : 1000 })
+        .addTo(lg);
+      marker.on('click', () => onSelectCampus(ct.campusId));
 
-      // Label
-      new google.maps.Marker({
-        position: pos,
-        map,
-        icon: {
-          path: 'M 0 0',
-          scale: 0,
-        },
-        label: {
-          text: ct.campusShort,
-          color: text.primary,
-          fontSize: '10px',
-          fontWeight: '500',
-          fontFamily: font.body,
-          className: 'campus-label',
-        },
-        clickable: false,
+      // Campus label
+      const labelIcon = L.divIcon({
+        className: '',
+        html: `<div style="
+          font-size:10px;font-weight:500;font-family:${font.body};
+          color:${text.primary};white-space:nowrap;
+          text-shadow:0 0 4px #fff, 0 0 4px #fff;
+          pointer-events:none;text-align:center;
+          transform:translateY(4px);
+        ">${ct.campusShort}</div>`,
+        iconSize: [80, 16],
+        iconAnchor: [40, -size],
       });
-
-      markersRef.current.push(marker);
+      L.marker([ct.lat, ct.lng], { icon: labelIcon, interactive: false }).addTo(lg);
     }
 
     // Draw incident markers
     for (const inc of incidents) {
-      if (inc.ageMinutes > 360) continue; // Only show last 6 hours
+      if (inc.ageMinutes > 360) continue;
 
       const severity = inc.crimeType === 'HOMICIDE' || inc.crimeType === 'SHOOTING' ? 'high' : 'medium';
+      const r = severity === 'high' ? 6 : 4;
+      const opacity = severity === 'high' ? 0.9 : 0.6;
 
-      const marker = new google.maps.Marker({
-        position: { lat: inc.lat, lng: inc.lng },
-        map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: severity === 'high' ? 6 : 4,
-          fillColor: status.red,
-          fillOpacity: severity === 'high' ? 0.9 : 0.6,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 1,
-        },
-        title: inc.title,
-        zIndex: 5,
-      });
-
-      incidentMarkersRef.current.push(marker);
+      L.circleMarker([inc.lat, inc.lng], {
+        radius: r,
+        fillColor: status.red,
+        fillOpacity: opacity,
+        color: '#FFFFFF',
+        weight: 1,
+      }).bindTooltip(inc.title, { direction: 'top', offset: [0, -6] }).addTo(lg);
     }
   }, [campusThreats, incidents, onSelectCampus]);
 
