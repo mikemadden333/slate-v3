@@ -6,15 +6,15 @@
  * pen traces the path of each letter in sequence: S... l... a... t... e...
  * Then the fill materializes behind the strokes. Then the gold period settles.
  *
- * v3.2 — Glass Cathedral. True glassmorphism with:
+ * v3.3 — Aperture + Glass. Features:
+ * - Camera aperture iris that opens to reveal the glass surface
+ * - 6 overlapping blades that rotate and spread apart
  * - Reflected "Slate." mirrored below (like text on a glass table)
- * - Caustic light refractions that shift slowly
+ * - "Start with the Facts" glows bright white for emphasis
  * - Breathing ambient light pulse
  * - Frosted glass surface effect
- * - Parallax depth layers
  *
  * Design: restraint, motion, story. Sharp, classy, modern.
- * Think Apple Vision Pro marketing meets luxury watch commercial.
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -37,46 +37,131 @@ const LETTERS = [
 const UPEM = 1000;
 const TOTAL_WIDTH = 2325;
 
-// ─── Caustic Light Refractions ──────────────────────────────────────────
-function CausticLight({ active }: { active: boolean }) {
+// ─── Aperture Iris ─────────────────────────────────────────────────────
+function ApertureIris({ open }: { open: boolean }) {
+  // 6 blades that rotate and spread apart like a camera iris
+  const BLADE_COUNT = 6;
+  const blades = useMemo(() =>
+    Array.from({ length: BLADE_COUNT }, (_, i) => ({
+      id: i,
+      angle: (360 / BLADE_COUNT) * i,
+    })), []);
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      overflow: 'hidden',
+    }}>
+      <style>{`
+        @keyframes irisOpen {
+          0% { 
+            clip-path: inset(0% round 0%);
+            opacity: 1;
+          }
+          60% {
+            clip-path: inset(0% round 50%);
+            opacity: 1;
+          }
+          100% {
+            clip-path: inset(-10% round 50%);
+            opacity: 0;
+          }
+        }
+        @keyframes bladeRetract {
+          0% { transform: rotate(var(--blade-angle)) translateY(0%) scaleX(1); }
+          40% { transform: rotate(calc(var(--blade-angle) + 15deg)) translateY(-5%) scaleX(0.95); }
+          100% { transform: rotate(calc(var(--blade-angle) + 30deg)) translateY(-120%) scaleX(0.3); }
+        }
+      `}</style>
+      {/* Central iris overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        animation: open ? 'irisOpen 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards' : 'none',
+      }}>
+        <svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="transparent" />
+              <stop offset="35%" stopColor="transparent" />
+              <stop offset="45%" stopColor={BG_BASE} stopOpacity="0.7" />
+              <stop offset="60%" stopColor={BG_BASE} />
+              <stop offset="100%" stopColor={BG_BASE} />
+            </radialGradient>
+          </defs>
+          {/* Iris blades */}
+          {blades.map(blade => (
+            <g key={blade.id} style={{
+              transformOrigin: '500px 500px',
+              ['--blade-angle' as string]: `${blade.angle}deg`,
+              animation: open ? `bladeRetract 1.6s cubic-bezier(0.4, 0, 0.2, 1) ${blade.id * 0.04}s forwards` : 'none',
+              transform: `rotate(${blade.angle}deg)`,
+            } as React.CSSProperties}>
+              <path
+                d={`M 350,500 Q 500,350 650,500 Q 500,380 350,500 Z`}
+                fill={BG_BASE}
+                stroke="rgba(255,255,255,0.04)"
+                strokeWidth="0.5"
+                style={{
+                  filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.5))',
+                }}
+              />
+              {/* Blade highlight edge */}
+              <path
+                d={`M 360,498 Q 500,360 640,498`}
+                fill="none"
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth="0.8"
+              />
+            </g>
+          ))}
+          {/* Central circle cutout gradient */}
+          <circle cx="500" cy="500" r="500" fill="url(#irisGrad)"
+            style={{
+              opacity: open ? 0 : 1,
+              transition: 'opacity 1.2s ease 0.4s',
+            }}
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─── Ambient Light (subtle, no X pattern) ──────────────────────────────
+function AmbientLight({ active }: { active: boolean }) {
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
       <style>{`
-        @keyframes causticShift1 {
-          0% { transform: translate(-5%, -5%) rotate(0deg) scale(1); }
-          33% { transform: translate(3%, 2%) rotate(120deg) scale(1.1); }
-          66% { transform: translate(-2%, 4%) rotate(240deg) scale(0.95); }
-          100% { transform: translate(-5%, -5%) rotate(360deg) scale(1); }
-        }
-        @keyframes causticShift2 {
-          0% { transform: translate(5%, 3%) rotate(0deg) scale(1.05); }
-          33% { transform: translate(-3%, -2%) rotate(-120deg) scale(0.9); }
-          66% { transform: translate(2%, -4%) rotate(-240deg) scale(1.1); }
-          100% { transform: translate(5%, 3%) rotate(-360deg) scale(1.05); }
-        }
-        @keyframes breathe {
+        @keyframes ambientBreath {
           0%, 100% { opacity: 0.015; }
           50% { opacity: 0.04; }
+        }
+        @keyframes ambientDrift {
+          0% { transform: translate(-2%, -1%) scale(1); }
+          50% { transform: translate(2%, 1%) scale(1.05); }
+          100% { transform: translate(-2%, -1%) scale(1); }
         }
       `}</style>
       {active && (
         <>
+          {/* Warm center glow */}
           <div style={{
-            position: 'absolute', width: '140%', height: '140%', top: '-20%', left: '-20%',
-            background: 'radial-gradient(ellipse at 30% 40%, rgba(240,180,41,0.04) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(240,180,41,0.03) 0%, transparent 45%), radial-gradient(ellipse at 50% 30%, rgba(255,220,130,0.02) 0%, transparent 40%)',
-            animation: 'causticShift1 30s ease-in-out infinite',
-            opacity: 1, transition: 'opacity 3s ease',
+            position: 'absolute', width: '120%', height: '120%', top: '-10%', left: '-10%',
+            background: 'radial-gradient(ellipse at 50% 45%, rgba(240,180,41,0.035) 0%, transparent 50%)',
+            animation: 'ambientDrift 20s ease-in-out infinite',
           }} />
+          {/* Cool accent */}
           <div style={{
-            position: 'absolute', width: '130%', height: '130%', top: '-15%', left: '-15%',
-            background: 'radial-gradient(ellipse at 60% 35%, rgba(100,160,255,0.02) 0%, transparent 45%), radial-gradient(ellipse at 35% 70%, rgba(140,180,255,0.015) 0%, transparent 40%)',
-            animation: 'causticShift2 25s ease-in-out infinite',
-            opacity: 1, transition: 'opacity 3s ease',
+            position: 'absolute', width: '100%', height: '100%',
+            background: 'radial-gradient(ellipse at 30% 35%, rgba(100,160,255,0.015) 0%, transparent 45%), radial-gradient(ellipse at 70% 65%, rgba(140,180,255,0.01) 0%, transparent 40%)',
+            animation: 'ambientDrift 25s ease-in-out 5s infinite',
           }} />
+          {/* Breathing pulse */}
           <div style={{
             position: 'absolute', inset: 0,
             background: 'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.03) 0%, transparent 60%)',
-            animation: 'breathe 8s ease-in-out infinite',
+            animation: 'ambientBreath 8s ease-in-out infinite',
           }} />
         </>
       )}
@@ -315,52 +400,72 @@ function GlassRule({ visible }: { visible: boolean }) {
 interface SplashScreenProps { onEnter: () => void; }
 
 export default function SplashScreen({ onEnter }: SplashScreenProps) {
-  const [phase, setPhase] = useState<'splash' | 'fadeout' | 'disclaimer'>('splash');
+  const [phase, setPhase] = useState<'iris' | 'splash' | 'fadeout' | 'disclaimer'>('iris');
   const [drawPhase, setDrawPhase] = useState(0);
   const [fillVisible, setFillVisible] = useState(false);
   const [showPeriod, setShowPeriod] = useState(false);
   const [dustActive, setDustActive] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(false);
   const [taglineVisible, setTaglineVisible] = useState(false);
+  const [taglineGlow, setTaglineGlow] = useState(false);
   const [subtitleVisible, setSubtitleVisible] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const [orbVisible, setOrbVisible] = useState(false);
   const [particlesActive, setParticlesActive] = useState(false);
   const [ruleVisible, setRuleVisible] = useState(false);
-  const [causticsActive, setCausticsActive] = useState(false);
+  const [ambientActive, setAmbientActive] = useState(false);
   const [reflectionVisible, setReflectionVisible] = useState(false);
   const [glassSurfaceVisible, setGlassSurfaceVisible] = useState(false);
+  const [irisOpen, setIrisOpen] = useState(false);
   const periodRef = useRef<SVGCircleElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const debug = window.location.search.includes('debug');
-    const DRAW_START = 800;
+
+    // Phase 1: Iris opens (0-1.5s)
+    // Phase 2: Content draws (1.5s onward)
+    const IRIS_DELAY = 400;
+    const IRIS_DURATION = 1600;
+    const DRAW_START = IRIS_DELAY + IRIS_DURATION + 200; // Start drawing after iris opens
     const LETTER_GAP = 450;
 
     const timers = [
-      setTimeout(() => setCausticsActive(true), 100),
-      setTimeout(() => setOrbVisible(true), 200),
-      setTimeout(() => setParticlesActive(true), 400),
-      setTimeout(() => setBadgeVisible(true), 300),
+      // Iris opens
+      setTimeout(() => setIrisOpen(true), IRIS_DELAY),
+      setTimeout(() => { setPhase('splash'); setAmbientActive(true); }, IRIS_DELAY + 600),
+      setTimeout(() => setOrbVisible(true), IRIS_DELAY + 800),
+      setTimeout(() => setParticlesActive(true), IRIS_DELAY + 1000),
+      setTimeout(() => setBadgeVisible(true), DRAW_START - 300),
+
+      // Letters draw
       setTimeout(() => setDrawPhase(1), DRAW_START),
       setTimeout(() => setDrawPhase(2), DRAW_START + LETTER_GAP),
       setTimeout(() => setDrawPhase(3), DRAW_START + LETTER_GAP * 2),
       setTimeout(() => setDrawPhase(4), DRAW_START + LETTER_GAP * 3),
       setTimeout(() => setDrawPhase(5), DRAW_START + LETTER_GAP * 4),
       setTimeout(() => setDrawPhase(6), DRAW_START + LETTER_GAP * 5),
+
+      // Post-draw reveals
       setTimeout(() => setDustActive(true), DRAW_START + LETTER_GAP * 5 + 600),
       setTimeout(() => setFillVisible(true), DRAW_START + LETTER_GAP * 5 + 200),
       setTimeout(() => setShowPeriod(true), DRAW_START + LETTER_GAP * 5 + 600),
       setTimeout(() => setGlassSurfaceVisible(true), DRAW_START + LETTER_GAP * 5 + 700),
       setTimeout(() => setReflectionVisible(true), DRAW_START + LETTER_GAP * 5 + 900),
       setTimeout(() => setRuleVisible(true), DRAW_START + LETTER_GAP * 5 + 1100),
+
+      // Tagline appears, then GLOWS bright white
       setTimeout(() => setTaglineVisible(true), DRAW_START + LETTER_GAP * 5 + 1300),
+      setTimeout(() => setTaglineGlow(true), DRAW_START + LETTER_GAP * 5 + 1600),
+      setTimeout(() => setTaglineGlow(false), DRAW_START + LETTER_GAP * 5 + 4000), // Glow fades after ~2.4s
+
       setTimeout(() => setSubtitleVisible(true), DRAW_START + LETTER_GAP * 5 + 1800),
       setTimeout(() => setFooterVisible(true), DRAW_START + LETTER_GAP * 5 + 2200),
+
+      // Auto-advance to disclaimer
       ...(debug ? [] : [
-        setTimeout(() => setPhase('fadeout'), DRAW_START + LETTER_GAP * 5 + 3800),
-        setTimeout(() => setPhase('disclaimer'), DRAW_START + LETTER_GAP * 5 + 4400),
+        setTimeout(() => setPhase('fadeout'), DRAW_START + LETTER_GAP * 5 + 4200),
+        setTimeout(() => setPhase('disclaimer'), DRAW_START + LETTER_GAP * 5 + 4800),
       ]),
     ];
     return () => timers.forEach(clearTimeout);
@@ -375,7 +480,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         animation: 'fadeInDisclaimer 0.6s ease forwards',
       }}>
-        <CausticLight active={true} />
+        <AmbientLight active={true} />
         <AmbientParticles active={true} />
         <style>{`
           @keyframes fadeInDisclaimer { from { opacity: 0; } to { opacity: 1; } }
@@ -437,19 +542,16 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       overflow: 'hidden', opacity: isFadingOut ? 0 : 1, transition: 'opacity 0.6s ease', paddingBottom: 80,
     }}>
-      {/* Caustic light refractions */}
-      <CausticLight active={causticsActive} />
+      {/* Aperture iris overlay */}
+      <ApertureIris open={irisOpen} />
+
+      {/* Ambient light (replaces caustic X pattern) */}
+      <AmbientLight active={ambientActive} />
 
       {/* Warm light gradients */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
         backgroundImage: 'radial-gradient(circle at 40% 35%, rgba(240,180,41,0.03) 0%, transparent 45%), radial-gradient(circle at 60% 65%, rgba(183,145,69,0.02) 0%, transparent 40%)',
-      }} />
-
-      {/* Glass refraction lines */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: 'linear-gradient(135deg, transparent 0%, transparent 47%, rgba(255,255,255,0.012) 48%, rgba(255,255,255,0.012) 52%, transparent 53%, transparent 100%), linear-gradient(225deg, transparent 0%, transparent 47%, rgba(255,255,255,0.008) 48%, rgba(255,255,255,0.008) 52%, transparent 53%, transparent 100%), linear-gradient(315deg, transparent 0%, transparent 47%, rgba(255,255,255,0.006) 48%, rgba(255,255,255,0.006) 52%, transparent 53%, transparent 100%)',
       }} />
 
       <GlassOrb visible={orbVisible} />
@@ -491,14 +593,29 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         <GlassRule visible={ruleVisible} />
       </div>
 
-      {/* Tagline */}
+      {/* Tagline — glows bright white for emphasis */}
       <div style={{
         opacity: taglineVisible ? 1 : 0, transform: taglineVisible ? 'translateY(0)' : 'translateY(6px)',
         transition: 'all 0.8s ease', fontFamily: font.mono, fontSize: 13, letterSpacing: 5,
-        color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' as const,
+        textTransform: 'uppercase' as const,
         marginBottom: 44, position: 'relative', zIndex: 1,
+        // Glow effect: transitions from muted to bright white and back
+        color: taglineGlow ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+        textShadow: taglineGlow ? '0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.3), 0 0 80px rgba(255,255,255,0.15)' : 'none',
       }}>
-        Start with the Facts
+        <style>{`
+          @keyframes taglineGlowPulse {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+            100% { filter: brightness(1); }
+          }
+        `}</style>
+        <span style={{
+          animation: taglineGlow ? 'taglineGlowPulse 2s ease-in-out infinite' : 'none',
+          transition: 'color 0.8s ease, text-shadow 0.8s ease',
+        }}>
+          Start with the Facts
+        </span>
       </div>
 
       {/* Subtitle */}
