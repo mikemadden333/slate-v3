@@ -1,40 +1,42 @@
 /**
  * Watch v2 — Main Entry Point
  * Orchestrates CEO Network View ↔ Principal Campus View
- * Single data hook feeds both views.
+ * Reads role + selectedCampusId from the global DataStore
+ * so the Sidebar toggle drives the view switch.
  */
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { useWatchData } from './useWatchData';
 import { CEOView } from './CEOView';
 import { PrincipalView } from './PrincipalView';
+import { useRole } from '../../../data/DataStore';
 
 export const WatchAppV2: React.FC = () => {
   const data = useWatchData();
-  const [selectedCampusId, setSelectedCampusId] = useState<number | null>(null);
+  const { role, selectedCampusId, setRole, setCampus } = useRole();
 
-  const handleSelectCampus = useCallback((campusId: number) => {
-    setSelectedCampusId(campusId);
-  }, []);
-
-  const handleBack = useCallback(() => {
-    setSelectedCampusId(null);
-  }, []);
-
-  if (selectedCampusId !== null) {
+  // Principal view — when the global role is 'principal' and a campus is selected
+  if (role === 'principal' && selectedCampusId !== null && selectedCampusId !== undefined) {
     return (
       <PrincipalView
         data={data}
         campusId={selectedCampusId}
-        onBack={handleBack}
+        onBack={() => {
+          setRole('ceo');
+        }}
       />
     );
   }
 
+  // CEO view — default, or when role is 'ceo'
   return (
     <CEOView
       data={data}
-      onSelectCampus={handleSelectCampus}
+      onSelectCampus={(campusId: number) => {
+        // Clicking a campus in the CEO grid switches to principal view for that campus
+        setCampus(campusId);
+        setRole('principal');
+      }}
     />
   );
 };
