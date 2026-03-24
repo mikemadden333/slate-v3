@@ -532,6 +532,8 @@ export default function WatchApp() {
                   redditIncidentCount={redditIncidents.length}
                   cpdCount={dataFreshness.cpdCount}
                   onSelectCampus={handleSelectCampus}
+                  allIncidents={allIncidents}
+                  tempF={tempF}
                 />
               )}
               {networkTab === 'map' && (
