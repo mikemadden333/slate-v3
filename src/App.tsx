@@ -9,7 +9,7 @@ import { DataStoreProvider } from './data/DataStore';
 import SlateShell from './shell/SlateShell';
 import Dashboard from './modules/dashboard/Dashboard';
 import DataHub from './data/DataHub';
-import WatchApp from './modules/watch/WatchApp';
+import WatchAppV2 from './modules/watch/v2/WatchAppV2';
 import LedgerApp from './modules/ledger/LedgerApp';
 import ScholarApp from './modules/scholar/ScholarApp';
 import BriefingApp from './modules/briefing/BriefingApp';
@@ -77,7 +77,7 @@ function AppContent() {
       case 'datahub':
         return <DataHub />;
       case 'watch':
-        return <WatchApp />;
+        return <WatchAppV2 />;
       case 'ledger':
         return <LedgerApp />;
       case 'scholar':
