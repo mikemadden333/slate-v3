@@ -150,7 +150,7 @@ function ExecutiveSummary() {
   return (
     <BriefSection icon="◈" title="Executive Summary" accent={brand.navy}>
       <p style={{ margin: '0 0 12px' }}>
-        Good morning. Here is your intelligence briefing for <strong>{net.name}</strong>, a{' '}
+        Good {(() => { const h = new Date().getHours(); return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening'; })()}. Here is your intelligence briefing for <strong>{net.name}</strong>, a{' '}
         <M v={`${net.campusCount}-campus`} /> charter network serving{' '}
         <M v={fmtNum(enr.networkTotal)} /> students in {net.city}.
       </p>
@@ -699,9 +699,9 @@ function PrincipalBriefing() {
     <div>
       <BriefTimestamp />
 
-      <BriefSection icon="◈" title={`${campus.name} — Morning Brief`} accent={modColors.scholar}>
+      <BriefSection icon="◈" title={`${campus.name} — ${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'} Brief`} accent={modColors.scholar}>
         <p style={{ margin: '0 0 12px' }}>
-          Good morning, Principal. Here is your campus intelligence for <strong>{campus.name}</strong>
+          Good {(() => { const h = new Date().getHours(); return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening'; })()}, Principal. Here is your campus intelligence for <strong>{campus.name}</strong>
           {netCampus && <> in {netCampus.communityArea}</>}.
         </p>
         <p style={{ margin: '0 0 12px' }}>
@@ -747,7 +747,7 @@ export default function BriefingApp() {
       <div>
         <ModuleHeader
           title="Briefing"
-          subtitle="Campus Morning Intelligence"
+          subtitle={`Campus ${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'} Intelligence`}
           accent={modColors.briefing}
           freshness={{ lastUpdated: enr.lastUpdated, source: 'All Modules' }}
         />

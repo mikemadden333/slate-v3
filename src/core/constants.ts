@@ -15,7 +15,7 @@ export const MODULES: ModuleMeta[] = [
     icon: '◉',
     color: '#B79145',
     category: 'intelligence',
-    description: 'Network overview and morning intelligence',
+    description: 'Network overview and intelligence briefing',
   },
   {
     id: 'watch',
@@ -103,7 +103,7 @@ export const MODULES: ModuleMeta[] = [
     icon: '◈',
     color: modules.briefing,
     category: 'intelligence',
-    description: 'AI-synthesized morning intelligence briefing',
+    description: 'AI-synthesized intelligence briefing',
   },
   {
     id: 'datahub',

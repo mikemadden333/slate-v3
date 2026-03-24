@@ -219,10 +219,10 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
 
   return (
     <div>
-      {/* Morning Greeting */}
+      {/* Time-Aware Greeting */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: fontSize['3xl'], fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.serif, margin: 0 }}>
-          Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}
+          Good {(() => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; })()}
         </h1>
         <p style={{ fontSize: fontSize.md, color: text.muted, margin: '4px 0 0 0' }}>
           {network.name} · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
@@ -234,7 +234,7 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
 
       {/* AI Morning Briefing */}
       <div style={{ marginBottom: 28 }}>
-        <AIInsight content={aiInsight} loading={aiLoading} label="Morning Intelligence Briefing" />
+        <AIInsight content={aiInsight} loading={aiLoading} label={`${(() => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; })()} Intelligence Briefing`} />
       </div>
 
       {/* Critical KPIs — The Big Four */}

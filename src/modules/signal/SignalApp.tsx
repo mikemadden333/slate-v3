@@ -289,6 +289,26 @@ function RadarScope({
   }, [warnings, selected, networkHealth]);
 
   // Click handler
+  // Hover handler for cursor feedback
+  const handleMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = 600 / rect.width;
+      const scaleY = 600 / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+      let hovering = false;
+      dotsRef.current.forEach(dot => {
+        const dist = Math.sqrt((dot.x - mx) ** 2 + (dot.y - my) ** 2);
+        if (dist < 40) hovering = true;
+      });
+      canvas.style.cursor = hovering ? 'pointer' : 'crosshair';
+    },
+    []
+  );
+
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
@@ -299,7 +319,7 @@ function RadarScope({
       const mx = (e.clientX - rect.left) * scaleX;
       const my = (e.clientY - rect.top) * scaleY;
       let closest: (typeof dotsRef.current)[0] | null = null;
-      let minDist = 25;
+      let minDist = 40;
       dotsRef.current.forEach(dot => {
         const dist = Math.sqrt((dot.x - mx) ** 2 + (dot.y - my) ** 2);
         if (dist < minDist) {
@@ -308,6 +328,9 @@ function RadarScope({
         }
       });
       if (closest) onSelect((closest as any).w);
+      else {
+        // Click on empty space deselects
+      }
     },
     [onSelect]
   );
@@ -318,6 +341,7 @@ function RadarScope({
       width={600}
       height={600}
       onClick={handleClick}
+      onMouseMove={handleMove}
       style={{
         width: '100%',
         maxWidth: 480,

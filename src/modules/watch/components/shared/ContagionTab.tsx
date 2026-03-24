@@ -49,6 +49,7 @@ export default function ContagionTab({ zones, allRisks, incidents, selectedCampu
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [expandedZone, setExpandedZone] = useState<string | null>(null);
+  const [expandedCampus, setExpandedCampus] = useState<string | null>(null);
 
   // Network-level stats
   const stats = useMemo(() => {
@@ -145,6 +146,8 @@ export default function ContagionTab({ zones, allRisks, incidents, selectedCampu
           onRunAi={runAiAnalysis}
           expandedZone={expandedZone}
           onToggleZone={setExpandedZone}
+          expandedCampus={expandedCampus}
+          onToggleCampus={setExpandedCampus}
         />
       )}
     </div>
@@ -153,10 +156,11 @@ export default function ContagionTab({ zones, allRisks, incidents, selectedCampu
 
 // ─── Network-Level View ──────────────────────────────────────────────────────
 
-function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, onRunAi, expandedZone, onToggleZone }: {
+function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, onRunAi, expandedZone, onToggleZone, expandedCampus, onToggleCampus }: {
   stats: ReturnType<typeof Object>; zones: ContagionZone[]; allRisks: CampusRisk[];
   aiAnalysis: string; aiLoading: boolean; onRunAi: () => void;
   expandedZone: string | null; onToggleZone: (id: string | null) => void;
+  expandedCampus: string | null; onToggleCampus: (id: string | null) => void;
 }) {
   const s = stats as any;
   return (
@@ -233,13 +237,27 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
                 ? row.zones.reduce((min: any, z: ContagionZone) =>
                     (z.distanceFromCampus ?? 99) < (min.distanceFromCampus ?? 99) ? z : min, row.zones[0])
                 : null;
+              const isExpanded = expandedCampus === row.campus.id;
+              const hasZones = row.zones.length > 0;
               return (
-                <tr key={row.campus.id} style={{
-                  borderBottom: `1px solid ${border.light}`,
-                  background: row.inRetWin ? '#FEF2F2' : i % 2 === 0 ? bg.card : bg.subtle,
-                }}>
+                <>
+                <tr
+                  key={row.campus.id}
+                  onClick={() => hasZones && onToggleCampus(isExpanded ? null : row.campus.id)}
+                  style={{
+                    borderBottom: isExpanded ? 'none' : `1px solid ${border.light}`,
+                    background: row.inRetWin ? '#FEF2F2' : i % 2 === 0 ? bg.card : bg.subtle,
+                    cursor: hasZones ? 'pointer' : 'default',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (hasZones) (e.currentTarget as HTMLElement).style.background = row.inRetWin ? '#FEE2E2' : '#F5F0E8'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = row.inRetWin ? '#FEF2F2' : i % 2 === 0 ? bg.card : bg.subtle; }}
+                >
                   <td style={{ padding: '10px 14px', fontWeight: fontWeight.semibold, color: text.primary }}>
-                    {row.campus.short || row.campus.name}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {hasZones && <span style={{ fontSize: '10px', color: text.muted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>{"\u25B6"}</span>}
+                      {row.campus.short || row.campus.name}
+                    </span>
                   </td>
                   <td style={{ textAlign: 'center', padding: '10px 8px' }}>
                     <span style={{
@@ -288,6 +306,101 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
                     ) : '--'}
                   </td>
                 </tr>
+                {/* Expanded campus detail drawer */}
+                {isExpanded && (
+                  <tr key={`${row.campus.id}-detail`}>
+                    <td colSpan={6} style={{ padding: 0, borderBottom: `1px solid ${border.light}` }}>
+                      <div style={{
+                        padding: '16px 20px', background: '#FAFAF5',
+                        borderTop: `2px solid ${PHASE_COLORS[row.maxPhase]?.color || brand.brass}`,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                          <div>
+                            <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: brand.brass, letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>
+                              CAMPUS EXPOSURE DETAIL
+                            </div>
+                            <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: text.primary, marginTop: 2 }}>
+                              {row.campus.name}
+                            </div>
+                            <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>
+                              {row.campus.addr} &middot; {row.zones.length} active zone{row.zones.length !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: fontSize.xs, color: text.muted }}>PULSE Risk Score</div>
+                            <div style={{ fontSize: '24px', fontWeight: fontWeight.black, color: riskColor.color }}>
+                              {campusRisk?.score ?? '--'}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Zone cards inside the drawer */}
+                        <div style={{ display: 'grid', gap: 8 }}>
+                          {row.zones.map((zone: ContagionZone) => (
+                            <div key={zone.incidentId} style={{
+                              padding: '12px 16px', borderRadius: radius.md,
+                              background: bg.card, border: `1px solid ${PHASE_COLORS[zone.phase]?.border || border.light}`,
+                              borderLeft: `4px solid ${PHASE_COLORS[zone.phase]?.color || '#6B7280'}`,
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                    <span style={{
+                                      fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px',
+                                      borderRadius: radius.sm, color: 'white',
+                                      background: PHASE_COLORS[zone.phase]?.color || '#6B7280',
+                                    }}>
+                                      {zone.phase}
+                                    </span>
+                                    {zone.retWin && (
+                                      <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px', borderRadius: radius.sm, color: 'white', background: '#DC2626' }}>
+                                        RET. WINDOW
+                                      </span>
+                                    )}
+                                    {zone.gang && (
+                                      <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px', borderRadius: radius.sm, color: '#7C3AED', background: '#EDE9FE' }}>
+                                        GANG
+                                      </span>
+                                    )}
+                                    {zone.firearm && (
+                                      <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px', borderRadius: radius.sm, color: '#DC2626', background: '#FEF2F2' }}>
+                                        FIREARM
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.primary }}>
+                                    Homicide {zone.block ? `near ${zone.block}` : 'location unknown'}
+                                  </div>
+                                  <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>
+                                    {fmtAgo(zone.homicideDate)} &middot; {zone.daysLeft}d remaining in 125-day window
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <div style={{ fontSize: '16px', fontWeight: fontWeight.black, color: PHASE_COLORS[zone.phase]?.color || '#6B7280' }}>
+                                    {fmtDist(zone.distanceFromCampus ?? 0)}
+                                  </div>
+                                  <div style={{ fontSize: fontSize.xs, color: text.muted }}>
+                                    {zone.bearingFromCampus != null ? compassLabel(zone.bearingFromCampus) : ''} of campus
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{
+                                marginTop: 8, padding: '6px 10px', borderRadius: radius.sm,
+                                background: bg.subtle, fontSize: fontSize.xs, color: text.secondary,
+                                display: 'flex', gap: 12, flexWrap: 'wrap' as const,
+                              }}>
+                                <span><strong>Zone radius:</strong> {zone.radius} mi</span>
+                                <span><strong>Distance:</strong> {(zone.distanceFromCampus ?? 0).toFixed(2)} mi</span>
+                                <span><strong>Bearing:</strong> {zone.bearingFromCampus != null ? `${Math.round(zone.bearingFromCampus)}\u00B0 (${compassLabel(zone.bearingFromCampus)})` : 'N/A'}</span>
+                                <span><strong>Phase window:</strong> {PHASE_LABELS[zone.phase]}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </>
               );
             })}
           </tbody>
