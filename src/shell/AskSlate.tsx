@@ -287,13 +287,13 @@ INSTRUCTIONS:
               <button onClick={() => setMessages([])} style={{
                 background: bg.subtle, border: `1px solid ${border.light}`, cursor: 'pointer',
                 fontSize: fontSize.xs, color: text.muted, padding: '4px 10px', borderRadius: radius.full,
-                fontFamily: font.sans,
+                fontFamily: font.body,
               }}>Clear</button>
             )}
             <button onClick={onClose} style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: fontSize.sm, color: text.light, padding: '4px 8px', borderRadius: radius.sm,
-              fontFamily: font.mono,
+              fontFamily: font.body,
             }}>Esc</button>
           </div>
         </div>
@@ -318,7 +318,7 @@ INSTRUCTIONS:
                     padding: '8px 16px', borderRadius: radius.full,
                     border: `1px solid ${border.light}`, background: bg.subtle,
                     cursor: 'pointer', fontSize: fontSize.xs, color: text.secondary,
-                    fontFamily: font.sans, transition: transition.fast, lineHeight: 1.4,
+                    fontFamily: font.body, transition: transition.fast, lineHeight: 1.4,
                   }}>
                     {suggestion}
                   </button>
@@ -341,7 +341,7 @@ INSTRUCTIONS:
                 borderRadius: msg.role === 'user'
                   ? `${radius.lg} ${radius.lg} ${radius.sm} ${radius.lg}`
                   : `${radius.lg} ${radius.lg} ${radius.lg} ${radius.sm}`,
-                background: msg.role === 'user' ? brand.navy : bg.subtle,
+                background: msg.role === 'user' ? brand.gold + '20' : bg.subtle,
                 color: msg.role === 'user' ? text.inverse : text.primary,
                 fontSize: fontSize.sm, lineHeight: 1.7, whiteSpace: 'pre-wrap',
                 border: msg.role === 'assistant' ? `1px solid ${border.light}` : 'none',
@@ -380,19 +380,19 @@ INSTRUCTIONS:
               style={{
                 flex: 1, padding: '12px 16px', borderRadius: radius.lg,
                 border: `1px solid ${border.light}`, background: bg.subtle,
-                fontSize: fontSize.sm, fontFamily: font.sans, color: text.primary,
+                fontSize: fontSize.sm, fontFamily: font.body, color: text.primary,
                 outline: 'none', transition: transition.fast,
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = brand.brass; e.currentTarget.style.boxShadow = `0 0 0 3px ${brand.brass}20`; }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = brand.gold; e.currentTarget.style.boxShadow = `0 0 0 3px ${brand.gold}20`; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = border.light; e.currentTarget.style.boxShadow = 'none'; }}
             />
             <button onClick={() => handleSubmit()} disabled={!query.trim() || loading} style={{
               padding: '12px 24px', borderRadius: radius.lg, border: 'none',
               background: query.trim() ? brand.gold : bg.subtle,
               color: query.trim() ? brand.navy : text.light,
-              fontWeight: fontWeight.bold, fontSize: fontSize.sm,
+              fontWeight: fontWeight.medium, fontSize: fontSize.sm,
               cursor: query.trim() ? 'pointer' : 'default',
-              transition: transition.fast, fontFamily: font.sans,
+              transition: transition.fast, fontFamily: font.body,
             }}>
               ↵
             </button>

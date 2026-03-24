@@ -1,10 +1,6 @@
 /**
  * Slate v3 — TopBar
- * Module header bar with breadcrumb, data freshness indicator, Pulse heartbeat,
- * and Ask Slate trigger.
- *
- * v3.2 — Added "Pulse" — a living heartbeat indicator that makes the platform
- * feel alive. A breathing dot, AI status timestamp, and emergency awareness.
+ * MEA Brand Guide v1.0 — Glass surface header with breathing pulse.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -26,7 +22,6 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
 
   const activeEmergencies = activeEvents;
 
-  // Live clock that updates every minute
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);
@@ -36,15 +31,14 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-  // Pulse animation styles
   const pulseKeyframes = `
     @keyframes slatePulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
-      50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(52, 211, 153, 0); }
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 155, 110, 0.4); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(74, 155, 110, 0); }
     }
     @keyframes emergencyPulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-      50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(217, 79, 79, 0.5); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(217, 79, 79, 0); }
     }
   `;
 
@@ -54,7 +48,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
     <div style={{
       height: 56,
       minHeight: 56,
-      background: bg.card,
+      background: bg.header,
       borderBottom: `1px solid ${border.light}`,
       display: 'flex',
       alignItems: 'center',
@@ -73,8 +67,8 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             </span>
             <div>
               <div style={{
-                fontSize: fontSize.lg, fontWeight: fontWeight.semibold,
-                color: text.primary, fontFamily: font.sans,
+                fontSize: fontSize.lg, fontWeight: fontWeight.medium,
+                color: text.primary, fontFamily: font.body,
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>
                 {mod.label}
@@ -92,24 +86,22 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
         )}
       </div>
 
-      {/* Center: Pulse + Date/Time + Intelligence Status */}
+      {/* Center: Pulse + Date/Time */}
       <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Breathing pulse dot */}
           <div style={{
             width: 7, height: 7, borderRadius: '50%',
-            background: hasEmergency ? '#EF4444' : '#34D399',
+            background: hasEmergency ? '#D94F4F' : '#4A9B6E',
             animation: hasEmergency ? 'emergencyPulse 1.5s ease-in-out infinite' : 'slatePulse 3s ease-in-out infinite',
           }} />
-          <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: text.secondary }}>
+          <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.normal, color: text.secondary }}>
             {dateStr}
           </div>
-          {/* Emergency count badge */}
           {hasEmergency && (
             <div style={{
               padding: '1px 7px', borderRadius: radius.full,
-              background: '#FEE2E2', border: '1px solid #FECACA',
-              fontSize: 10, fontWeight: 700, color: '#DC2626',
+              background: 'rgba(217, 79, 79, 0.12)', border: '1px solid rgba(217, 79, 79, 0.25)',
+              fontSize: 10, fontWeight: 500, color: '#D94F4F',
               letterSpacing: 0.5,
             }}>
               {activeEmergencies.length} ALERT{activeEmergencies.length > 1 ? 'S' : ''}
@@ -121,8 +113,8 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
           letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6,
         }}>
           <span>{timeStr} CDT</span>
-          <span style={{ color: border.light }}>·</span>
-          <span style={{ color: hasEmergency ? '#EF4444' : '#34D399' }}>
+          <span style={{ color: border.medium }}>·</span>
+          <span style={{ color: hasEmergency ? '#D94F4F' : '#4A9B6E' }}>
             {hasEmergency ? 'EMERGENCY ACTIVE' : 'AI MONITORING'}
           </span>
         </div>
@@ -130,28 +122,27 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
 
       {/* Right: Ask Slate + Role badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {/* Role badge */}
         <div style={{
           padding: '4px 12px', borderRadius: radius.full,
-          background: role === 'ceo' ? `${brand.gold}15` : `${brand.brass}15`,
-          border: `1px solid ${role === 'ceo' ? brand.gold : brand.brass}30`,
-          fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
-          color: brand.brass, textTransform: 'uppercase', letterSpacing: '1px',
+          background: `${brand.gold}15`,
+          border: `1px solid ${brand.gold}30`,
+          fontSize: fontSize.xs, fontWeight: fontWeight.medium,
+          color: brand.gold, textTransform: 'uppercase', letterSpacing: '1px',
         }}>
           {role === 'ceo' ? 'CEO View' : `Principal · ${campus?.short || ''}`}
         </div>
 
-        {/* Ask Slate button */}
         <button onClick={onAskSlate} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 16px', borderRadius: radius.lg,
-          border: `1px solid ${border.light}`, background: bg.card,
+          border: `1px solid ${border.light}`, background: bg.surface,
           cursor: 'pointer', transition: transition.fast,
-          fontFamily: font.sans, fontSize: fontSize.sm, color: text.muted,
+          fontFamily: font.body, fontSize: fontSize.sm, color: text.muted,
+          backdropFilter: 'blur(8px)',
         }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = brand.brass;
-            e.currentTarget.style.boxShadow = `0 0 0 2px ${brand.brass}20`;
+            e.currentTarget.style.borderColor = brand.gold;
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${brand.gold}20`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.borderColor = border.light;
@@ -162,7 +153,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
           Ask Slate
           <span style={{
             fontSize: fontSize.xs, color: text.light,
-            padding: '1px 6px', borderRadius: radius.sm, background: bg.subtle,
+            padding: '1px 6px', borderRadius: radius.sm, background: 'rgba(255,255,255,0.05)',
           }}>
             ⌘K
           </span>

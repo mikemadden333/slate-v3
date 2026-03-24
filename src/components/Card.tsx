@@ -1,6 +1,6 @@
 /**
  * Slate v3 — Shared UI Components
- * Every reusable component lives here.
+ * MEA Brand Guide v1.0 — Glass cards on deep navy, ice blue text, gold accents.
  */
 
 import React, { type ReactNode, type CSSProperties } from 'react';
@@ -28,16 +28,17 @@ export function Card({ children, style, accent, onClick, hover }: CardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        background: bg.card,
+        background: bg.cardGlass,
+        backdropFilter: 'blur(12px)',
         borderRadius: radius.lg,
-        border: `1px solid ${border.light}`,
-        boxShadow: isHovered && hover ? shadow.md : shadow.sm,
+        border: `1px solid ${border.glass}`,
+        boxShadow: isHovered && hover ? shadow.md : `${shadow.sm}, ${shadow.glassInset}`,
         padding: 20,
         transition: transition.fast,
         cursor: onClick ? 'pointer' : 'default',
         position: 'relative',
         overflow: 'hidden',
-        ...(accent ? { borderTop: `3px solid ${accent}` } : {}),
+        ...(accent ? { borderTop: `2px solid ${accent}` } : {}),
         ...style,
       }}
     >
@@ -58,7 +59,7 @@ interface KPICardProps {
   onClick?: () => void;
 }
 
-export function KPICard({ label, value, subValue, trend, icon, accent = brand.brass, onClick }: KPICardProps) {
+export function KPICard({ label, value, subValue, trend, icon, accent = brand.gold, onClick }: KPICardProps) {
   return (
     <Card accent={accent} onClick={onClick} hover={!!onClick}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -69,14 +70,16 @@ export function KPICard({ label, value, subValue, trend, icon, accent = brand.br
             textTransform: 'uppercase',
             letterSpacing: '1px',
             marginBottom: 8,
+            fontFamily: font.body,
+            fontWeight: fontWeight.medium,
           }}>
             {label}
           </div>
           <div style={{
             fontSize: fontSize['3xl'],
-            fontWeight: fontWeight.bold,
+            fontWeight: fontWeight.light,
             color: text.primary,
-            fontFamily: font.sans,
+            fontFamily: font.display,
             lineHeight: 1,
           }}>
             {value}
@@ -86,6 +89,7 @@ export function KPICard({ label, value, subValue, trend, icon, accent = brand.br
               fontSize: fontSize.sm,
               color: text.muted,
               marginTop: 4,
+              fontFamily: font.body,
             }}>
               {subValue}
             </div>
@@ -93,12 +97,13 @@ export function KPICard({ label, value, subValue, trend, icon, accent = brand.br
           {trend && (
             <div style={{
               fontSize: fontSize.sm,
-              fontWeight: fontWeight.semibold,
+              fontWeight: fontWeight.medium,
               color: trend.positive ? status.green : status.red,
               marginTop: 6,
               display: 'flex',
               alignItems: 'center',
               gap: 4,
+              fontFamily: font.body,
             }}>
               <span>{trend.positive ? '▲' : '▼'}</span>
               {trend.value}
@@ -142,6 +147,7 @@ export function DataFreshness({ lastUpdated, source, thresholdDays = 30 }: DataF
       gap: 6,
       fontSize: fontSize.xs,
       color: text.light,
+      fontFamily: font.body,
     }}>
       <span style={{
         width: 6,
@@ -184,9 +190,10 @@ export function StatusBadge({ label, variant, size = 'sm' }: StatusBadgeProps) {
       background: c.bg,
       border: `1px solid ${c.border}`,
       fontSize: size === 'sm' ? fontSize.xs : fontSize.sm,
-      fontWeight: fontWeight.semibold,
+      fontWeight: fontWeight.medium,
       color: c.color,
       whiteSpace: 'nowrap',
+      fontFamily: font.body,
     }}>
       {label}
     </span>
@@ -199,7 +206,6 @@ interface AIInsightProps {
   content: string;
   loading?: boolean;
   label?: string;
-  /** Live AI fields — when provided, shows AI-generated content with regenerate */
   aiText?: string;
   aiLoading?: boolean;
   aiError?: boolean;
@@ -208,18 +214,16 @@ interface AIInsightProps {
 }
 
 export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, aiLoading, aiError, onRegenerate, lastGenerated }: AIInsightProps) {
-  // Determine what to show: live AI text > static content
   const displayText = (aiText && aiText.length > 0) ? aiText : content;
   const isLoading = aiLoading || loading;
   const isLive = !!(aiText && aiText.length > 0 && !aiError);
 
-  // Format bold markers from AI responses: **text** → <strong>text</strong>
   const formatText = (t: string) => {
     if (!t) return null;
     const parts = t.split(/(\*\*[^*]+\*\*)/);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return React.createElement('strong', { key: i, style: { color: text.primary, fontWeight: fontWeight.semibold } }, part.slice(2, -2));
+        return React.createElement('strong', { key: i, style: { color: text.primary, fontWeight: fontWeight.medium } }, part.slice(2, -2));
       }
       return part;
     });
@@ -227,12 +231,13 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
 
   return (
     <div style={{
-      background: `linear-gradient(135deg, ${bg.subtle} 0%, ${bg.card} 100%)`,
-      border: `1px solid ${isLive ? brand.gold + '40' : brand.brass + '30'}`,
+      background: `linear-gradient(135deg, rgba(42,63,95,0.4) 0%, rgba(42,63,95,0.6) 100%)`,
+      border: `1px solid ${isLive ? brand.gold + '40' : brand.gold + '20'}`,
       borderRadius: radius.lg,
       padding: 16,
       position: 'relative',
       transition: transition.fast,
+      backdropFilter: 'blur(8px)',
     }}>
       <div style={{
         display: 'flex',
@@ -244,23 +249,25 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
           <span style={{ color: brand.gold, fontSize: fontSize.md }}>✦</span>
           <span style={{
             fontSize: fontSize.xs,
-            fontWeight: fontWeight.semibold,
-            color: brand.brass,
+            fontWeight: fontWeight.medium,
+            color: brand.gold,
             textTransform: 'uppercase',
             letterSpacing: '1px',
+            fontFamily: font.body,
           }}>
             {label}
           </span>
           {isLive && (
             <span style={{
               fontSize: 9,
-              fontWeight: fontWeight.semibold,
-              color: '#10B981',
-              background: '#10B98115',
+              fontWeight: fontWeight.medium,
+              color: '#4A9B6E',
+              background: 'rgba(74,155,110,0.12)',
               padding: '2px 6px',
               borderRadius: radius.full,
               letterSpacing: '0.5px',
               textTransform: 'uppercase',
+              fontFamily: font.body,
             }}>
               LIVE AI
             </span>
@@ -279,7 +286,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
               padding: '2px 8px',
               cursor: isLoading ? 'not-allowed' : 'pointer',
               opacity: isLoading ? 0.5 : 1,
-              fontFamily: 'inherit',
+              fontFamily: font.body,
               transition: transition.fast,
             }}
           >
@@ -295,6 +302,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
           display: 'flex',
           alignItems: 'center',
           gap: 8,
+          fontFamily: font.body,
         }}>
           <span style={{
             display: 'inline-block',
@@ -311,6 +319,8 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
           color: text.secondary,
           lineHeight: 1.7,
           whiteSpace: 'pre-wrap',
+          fontFamily: font.body,
+          fontWeight: fontWeight.light,
         }}>
           {formatText(displayText)}
         </div>
@@ -321,6 +331,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
           color: text.light,
           marginTop: 8,
           opacity: 0.6,
+          fontFamily: font.body,
         }}>
           {isLive ? 'AI analysis' : 'Static analysis'} · {lastGenerated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
         </div>
@@ -340,7 +351,7 @@ interface ModuleHeaderProps {
   freshness?: { lastUpdated: string; source: string; thresholdDays?: number };
 }
 
-export function ModuleHeader({ title, subtitle, accent = brand.brass, actions, freshness }: ModuleHeaderProps) {
+export function ModuleHeader({ title, subtitle, accent = brand.gold, actions, freshness }: ModuleHeaderProps) {
   return (
     <div style={{
       display: 'flex',
@@ -351,9 +362,9 @@ export function ModuleHeader({ title, subtitle, accent = brand.brass, actions, f
       <div>
         <h1 style={{
           fontSize: fontSize['2xl'],
-          fontWeight: fontWeight.bold,
+          fontWeight: fontWeight.light,
           color: text.primary,
-          fontFamily: font.serif,
+          fontFamily: font.display,
           margin: 0,
           lineHeight: 1.2,
         }}>
@@ -364,6 +375,7 @@ export function ModuleHeader({ title, subtitle, accent = brand.brass, actions, f
             fontSize: fontSize.sm,
             color: text.muted,
             margin: '4px 0 0 0',
+            fontFamily: font.body,
           }}>
             {subtitle}
           </p>
@@ -396,13 +408,14 @@ export function Section({ title, children, style }: SectionProps) {
     <div style={{ marginBottom: 32, ...style }}>
       <div style={{
         fontSize: fontSize.xs,
-        fontWeight: fontWeight.semibold,
+        fontWeight: fontWeight.medium,
         color: text.muted,
         textTransform: 'uppercase',
         letterSpacing: '1.5px',
         marginBottom: 12,
         paddingBottom: 8,
         borderBottom: `1px solid ${border.light}`,
+        fontFamily: font.body,
       }}>
         {title}
       </div>
@@ -428,23 +441,23 @@ export function EmptyState({ icon = '◇', title, description, action }: EmptySt
       color: text.light,
     }}>
       <div style={{ fontSize: '32px', marginBottom: 12, opacity: 0.5 }}>{icon}</div>
-      <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.medium, color: text.secondary, marginBottom: 4 }}>
+      <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.medium, color: text.secondary, marginBottom: 4, fontFamily: font.body }}>
         {title}
       </div>
-      <div style={{ fontSize: fontSize.sm, marginBottom: 16 }}>{description}</div>
+      <div style={{ fontSize: fontSize.sm, marginBottom: 16, fontFamily: font.body }}>{description}</div>
       {action && (
         <button
           onClick={action.onClick}
           style={{
             padding: '8px 20px',
             borderRadius: radius.lg,
-            border: `1px solid ${brand.brass}`,
+            border: `1px solid ${brand.gold}`,
             background: 'transparent',
-            color: brand.brass,
-            fontWeight: fontWeight.semibold,
+            color: brand.gold,
+            fontWeight: fontWeight.medium,
             fontSize: fontSize.sm,
             cursor: 'pointer',
-            fontFamily: font.sans,
+            fontFamily: font.body,
           }}
         >
           {action.label}

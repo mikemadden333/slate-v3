@@ -1,5 +1,6 @@
 /**
  * Slate v3 — Unified Design System
+ * MEA Brand Guide v1.0 — "Deep navy. Warm gold. Glass-like depth. Quiet authority."
  * Every color, spacing, and typography token lives here.
  * No module defines its own colors. Ever.
  */
@@ -7,110 +8,122 @@
 // ─── Brand Colors ─────────────────────────────────────────────────────────
 
 export const brand = {
-  navy:     '#151C28',   // Rich dark slate — deep charcoal with cool blue undertone
-  gold:     '#F0B429',
-  brass:    '#B79145',
-  white:    '#FFFFFF',
-  parchment:'#F7F5F1',
+  navy:     '#0A1628',   // Deep Navy — all primary backgrounds
+  gold:     '#C9A54E',   // Warm Gold — headlines, accent lines, buttons
+  mutedGold:'#D4B978',   // Muted Gold — secondary buttons, hover
+  ivory:    '#E8DCC8',   // Soft Ivory — pull quotes, warm emphasis
+  white:    '#F0F2F5',   // Signal White — headlines, critical text
+  iceBlue:  '#B8C9DB',   // Ice Blue — body text, labels
+  slateBlue:'#2A3F5F',   // Slate Blue — cards, elevated surfaces
 } as const;
 
 // ─── Backgrounds ──────────────────────────────────────────────────────────
 
 export const bg = {
-  app:      '#F7F5F1',
-  card:     '#FFFFFF',
-  sidebar:  '#151C28',   // Rich dark slate
-  sidebarGlass: 'linear-gradient(180deg, #1E2735 0%, #171F2C 30%, #131A25 70%, #101620 100%)', // Glossy glass gradient — highlight at top fading to deep
-  header:   '#1E2735',   // Slightly lighter slate for top bar
-  hover:    '#F0EDE6',
-  selected: '#FEF9E7',
-  subtle:   '#F5F3EF',
-  gradient: 'linear-gradient(180deg, #F7F5F1 0%, #F0EDE6 100%)',
+  app:      '#0A1628',   // Deep Navy — unified background
+  card:     '#2A3F5F',   // Slate Blue — glass card surfaces
+  cardGlass:'rgba(42, 63, 95, 0.65)', // Glass Card — 50-80% opacity with backdrop blur
+  sidebar:  '#0A1628',   // Deep Navy
+  sidebarGlass: 'linear-gradient(180deg, #122040 0%, #0E1A32 30%, #0A1628 70%, #081220 100%)',
+  header:   '#0F1D35',   // Slightly lighter navy for top bar
+  hover:    'rgba(42, 63, 95, 0.4)',
+  selected: 'rgba(201, 165, 78, 0.12)',
+  subtle:   '#0E1A32',   // Slightly lighter than deep navy
+  gradient: 'linear-gradient(180deg, #0A1628 0%, #0E1A32 100%)',
+  surface:  'rgba(42, 63, 95, 0.5)', // Glass surface fallback
 } as const;
 
 // ─── Text Colors ──────────────────────────────────────────────────────────
 
 export const text = {
-  primary:   '#121315',
-  secondary: '#2D3748',
-  muted:     '#6B7280',
-  light:     '#9CA3AF',
-  inverse:   '#FFFFFF',
-  accent:    '#B79145',
-  link:      '#0EA5E9',
+  primary:   '#F0F2F5',  // Signal White — headlines, critical text
+  secondary: '#B8C9DB',  // Ice Blue — body text, labels
+  muted:     '#7A8FA8',  // Muted ice blue
+  light:     '#5A6F88',  // Subdued
+  inverse:   '#F0F2F5',  // Signal White
+  accent:    '#C9A54E',  // Warm Gold
+  ivory:     '#E8DCC8',  // Soft Ivory — pull quotes
+  link:      '#5B8DB8',  // Steel Blue
 } as const;
 
-// ─── Semantic Colors ──────────────────────────────────────────────────────
+// ─── Semantic / Functional Colors (Slate Product Only) ────────────────────
 
 export const status = {
-  // Positive
-  green:     '#059669',
-  greenBg:   '#ECFDF5',
-  greenBorder: '#A7F3D0',
+  // Positive — Sage Green
+  green:     '#4A9B6E',
+  greenBg:   'rgba(74, 155, 110, 0.12)',
+  greenBorder: 'rgba(74, 155, 110, 0.25)',
 
-  // Negative
-  red:       '#DC2626',
-  redBg:     '#FEF2F2',
-  redBorder: '#FECACA',
+  // Negative — Ember Red
+  red:       '#D94F4F',
+  redBg:     'rgba(217, 79, 79, 0.12)',
+  redBorder: 'rgba(217, 79, 79, 0.25)',
 
-  // Warning
-  amber:     '#D97706',
-  amberBg:   '#FFFBEB',
-  amberBorder: '#FDE68A',
+  // Warning — Amber
+  amber:     '#E8A838',
+  amberBg:   'rgba(232, 168, 56, 0.12)',
+  amberBorder: 'rgba(232, 168, 56, 0.25)',
 
-  // Info
-  blue:      '#0EA5E9',
-  blueBg:    '#EFF6FF',
-  blueBorder: '#BFDBFE',
+  // Info — Steel Blue
+  blue:      '#5B8DB8',
+  blueBg:    'rgba(91, 141, 184, 0.12)',
+  blueBorder: 'rgba(91, 141, 184, 0.25)',
 
   // Neutral
-  gray:      '#6B7280',
-  grayBg:    '#F3F4F6',
-  grayBorder: '#E5E7EB',
+  gray:      '#7A8FA8',
+  grayBg:    'rgba(122, 143, 168, 0.12)',
+  grayBorder: 'rgba(122, 143, 168, 0.25)',
 } as const;
 
 // ─── Module Accent Colors ─────────────────────────────────────────────────
 
 export const modules = {
-  watch:    '#10B981',  // Emerald — safety, vigilance
-  ledger:   '#0EA5E9',  // Sky blue — financial clarity
-  scholar:  '#8B5CF6',  // Violet — academic, enrollment
-  shield:   '#F59E0B',  // Amber — risk, protection
-  fund:     '#06B6D4',  // Cyan — fundraising, growth
-  grounds:  '#78716C',  // Stone — facilities, physical
-  civic:    '#EC4899',  // Pink — public affairs, advocacy
-  signal:   '#F97316',  // Orange — network health
-  draft:    '#6366F1',  // Indigo — communications
-  reports:  '#14B8A6',  // Teal — reporting
-  briefing: '#B79145',  // Brass — executive intelligence
-  datahub:  '#059669',  // Green — data management
+  watch:    '#4A9B6E',  // Sage Green — safety, vigilance
+  ledger:   '#5B8DB8',  // Steel Blue — financial clarity
+  scholar:  '#8B7EC8',  // Soft violet — academic, enrollment
+  shield:   '#E8A838',  // Amber — risk, protection
+  fund:     '#5B8DB8',  // Steel Blue — fundraising, growth
+  grounds:  '#7A8FA8',  // Muted — facilities, physical
+  civic:    '#C97A8E',  // Muted rose — public affairs
+  signal:   '#D4B978',  // Muted Gold — network health
+  draft:    '#6B7EC8',  // Soft indigo — communications
+  reports:  '#5B9B8E',  // Teal — reporting
+  briefing: '#C9A54E',  // Warm Gold — executive intelligence
+  datahub:  '#4A9B6E',  // Sage Green — data management
 } as const;
 
 // ─── Borders & Dividers ──────────────────────────────────────────────────
 
 export const border = {
-  light:    '#E7E2D8',
-  medium:   '#D1CBC0',
-  dark:     '#9CA3AF',
-  focus:    '#B79145',
+  light:    'rgba(255, 255, 255, 0.08)',  // Glass edge
+  medium:   'rgba(255, 255, 255, 0.12)',
+  dark:     'rgba(255, 255, 255, 0.18)',
+  focus:    '#C9A54E',  // Gold focus ring
+  glass:    'rgba(255, 255, 255, 0.08)',  // Glass Card edge catch
 } as const;
 
 // ─── Shadows ──────────────────────────────────────────────────────────────
 
 export const shadow = {
-  sm:   '0 1px 2px rgba(0, 0, 0, 0.05)',
-  md:   '0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
-  lg:   '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05)',
-  xl:   '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+  sm:   '0 1px 3px rgba(0, 0, 0, 0.3)',
+  md:   '0 4px 8px rgba(0, 0, 0, 0.35)',
+  lg:   '0 10px 20px rgba(0, 0, 0, 0.4)',
+  xl:   '0 20px 40px rgba(0, 0, 0, 0.45)',
   glow: (color: string) => `0 0 12px ${color}30`,
+  glassInset: 'inset 0 1px 0 rgba(255,255,255,0.06)',
 } as const;
 
 // ─── Typography ───────────────────────────────────────────────────────────
+// Brand Guide: Cormorant Garamond (display) + Jost (body)
+// No bold anywhere. Light weights only.
 
 export const font = {
-  sans:    "'Inter', system-ui, -apple-system, sans-serif",
-  serif:   "'Playfair Display', Georgia, serif",
+  display: "'Cormorant Garamond', Georgia, serif",  // Display — editorial, elegant
+  body:    "'Jost', system-ui, -apple-system, sans-serif",  // Body — geometric, modern
   mono:    "'JetBrains Mono', 'Fira Code', monospace",
+  // Backward compat aliases
+  sans:    "'Jost', system-ui, -apple-system, sans-serif",
+  serif:   "'Cormorant Garamond', Georgia, serif",
 } as const;
 
 export const fontSize = {
@@ -126,11 +139,12 @@ export const fontSize = {
 } as const;
 
 export const fontWeight = {
-  normal: 400,
-  medium: 500,
-  semibold: 600,
-  bold:   700,
-  black:  800,
+  light:    300,  // Primary weight for Cormorant headlines
+  normal:   400,  // Cormorant section titles, Jost body
+  medium:   500,  // Jost labels
+  semibold: 500,  // Mapped to medium — no bold in brand
+  bold:     500,  // Mapped to medium — no bold in brand
+  black:    500,  // Mapped to medium — no bold in brand
 } as const;
 
 // ─── Spacing ──────────────────────────────────────────────────────────────
@@ -167,24 +181,24 @@ export const transition = {
 // ─── Risk Level Colors (Watch) ────────────────────────────────────────────
 
 export const risk = {
-  critical: { color: '#DC2626', bg: '#FEF2F2', label: 'CRITICAL' },
-  high:     { color: '#EA580C', bg: '#FFF7ED', label: 'HIGH' },
-  elevated: { color: '#D97706', bg: '#FFFBEB', label: 'ELEVATED' },
-  low:      { color: '#059669', bg: '#ECFDF5', label: 'LOW' },
-  clear:    { color: '#6B7280', bg: '#F3F4F6', label: 'CLEAR' },
+  critical: { color: '#D94F4F', bg: 'rgba(217, 79, 79, 0.12)', label: 'CRITICAL' },
+  high:     { color: '#E87040', bg: 'rgba(232, 112, 64, 0.12)', label: 'HIGH' },
+  elevated: { color: '#E8A838', bg: 'rgba(232, 168, 56, 0.12)', label: 'ELEVATED' },
+  low:      { color: '#4A9B6E', bg: 'rgba(74, 155, 110, 0.12)', label: 'LOW' },
+  clear:    { color: '#7A8FA8', bg: 'rgba(122, 143, 168, 0.12)', label: 'CLEAR' },
 } as const;
 
 // ─── Chart Colors ─────────────────────────────────────────────────────────
 
 export const chart = {
-  primary:   '#F0B429',
-  secondary: '#0EA5E9',
-  tertiary:  '#8B5CF6',
-  quaternary:'#10B981',
-  danger:    '#EF4444',
-  muted:     '#94A3B8',
-  grid:      '#E8EDF2',
-  bars: ['#F0B429', '#0EA5E9', '#8B5CF6', '#10B981', '#F97316', '#EF4444', '#06B6D4', '#EC4899'],
+  primary:   '#C9A54E',  // Warm Gold
+  secondary: '#5B8DB8',  // Steel Blue
+  tertiary:  '#8B7EC8',  // Soft violet
+  quaternary:'#4A9B6E',  // Sage Green
+  danger:    '#D94F4F',  // Ember Red
+  muted:     '#5A6F88',
+  grid:      'rgba(255, 255, 255, 0.06)',
+  bars: ['#C9A54E', '#5B8DB8', '#8B7EC8', '#4A9B6E', '#D4B978', '#D94F4F', '#5B9B8E', '#C97A8E'],
 } as const;
 
 // ─── Convenience: Flat "C" object for quick access (backward compat) ─────
@@ -197,13 +211,13 @@ export const C = {
 
   // Text
   deep: text.primary,
-  rock: '#1E2735',
+  rock: '#0F1D35',
   mid: text.secondary,
   light: text.muted,
   muted: text.light,
 
   // Brand
-  brass: brand.brass,
+  brass: brand.gold,
   gold: brand.gold,
   navy: brand.navy,
 
@@ -222,7 +236,7 @@ export const C = {
   blueBg: status.blueBg,
 
   // Typography
-  fontSans: font.sans,
-  fontSerif: font.serif,
+  fontSans: font.body,
+  fontSerif: font.display,
   fontMono: font.mono,
 } as const;
