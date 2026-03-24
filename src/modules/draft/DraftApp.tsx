@@ -326,11 +326,8 @@ export default function DraftApp() {
       />
 
       {/* Intro */}
-      <AIInsight title="Your AI Speechwriter">
-        <p style={{ margin: 0 }}>
-          Draft generates professional communications grounded in real-time Slate data. Every memo, letter, and report is enriched with live enrollment, financial, safety, and operational intelligence — ensuring accuracy and consistency across all stakeholder communications.
-        </p>
-      </AIInsight>
+      <AIInsight label="Your AI Speechwriter"
+        content="Draft generates professional communications grounded in real-time Slate data. Every memo, letter, and report is enriched with live enrollment, financial, safety, and operational intelligence — ensuring accuracy and consistency across all stakeholder communications." />
 
       <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 20, marginTop: 20 }}>
         {/* Left: Template Selector */}

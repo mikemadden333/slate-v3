@@ -17,6 +17,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useFinancials, useEnrollment, useNetwork, useRole } from '../../data/DataStore';
+import { useSlateAI } from '../../core/useSlateAI';
 import { Card, KPICard, ModuleHeader, Section, AIInsight, StatusBadge, EmptyState } from '../../components/Card';
 import { fmt, fmtNum, fmtPct, fmtDscr, fmtFull, fmtCompact } from '../../core/formatters';
 import {
@@ -156,6 +157,12 @@ function OverviewTab() {
   const revTrend = actuals.map(m => m.revenue.total);
   const expTrend = actuals.map(m => m.expenses.total);
 
+  const ai = useSlateAI({
+    prompt: `Provide a concise financial health assessment for this charter school network. Cover YTD revenue vs budget performance, expense tracking, surplus position, covenant compliance (DSCR, days cash), and the single most important financial trend the CEO should focus on today. Be specific with numbers.`,
+    domain: 'ledger-overview',
+    fallback: `Through ${monthsElapsed} months of FY26, Veritas is tracking $${(ytdRevActual - ytdRevBudget).toFixed(1)}M ${ytdRevActual >= ytdRevBudget ? 'ahead of' : 'behind'} revenue budget and $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M ${ytdExpActual <= ytdExpBudget ? 'under' : 'over'} on expenses. The YTD surplus of $${ytdSurplus.toFixed(1)}M provides a cushion. Days cash at ${ytd.daysCash} is strong. DSCR of ${fmtDscr(ytd.dscr)} exceeds covenant minimum.`,
+  });
+
   return (
     <div>
       {/* 5-KPI Header */}
@@ -280,7 +287,8 @@ function OverviewTab() {
       </Card>
 
       <AIInsight label="Slate Financial Intelligence"
-        content={`Through ${monthsElapsed} months of FY26, Veritas is tracking $${(ytdRevActual - ytdRevBudget).toFixed(1)}M ${ytdRevActual >= ytdRevBudget ? 'ahead of' : 'behind'} revenue budget and $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M ${ytdExpActual <= ytdExpBudget ? 'under' : 'over'} on expenses. The YTD surplus of $${ytdSurplus.toFixed(1)}M provides a cushion against the budgeted annual deficit of $${Math.abs(bud.netSurplus).toFixed(1)}M. Days cash at ${ytd.daysCash} is ${(ytd.daysCash / bud.daysCashTarget * 100).toFixed(0)}% of the ${bud.daysCashTarget}-day target — a strong liquidity position. The DSCR of ${fmtDscr(ytd.dscr)} comfortably exceeds the bond document minimum of ${fmtDscr(fin.covenants.dscrBondDoc)}. Key watch: December philanthropy spike ($1.7M) inflated the surplus; January's $0.4M philanthropy is more typical. Monitor whether Q3-Q4 giving sustains the YTD advantage.`} />
+        content={`Through ${monthsElapsed} months of FY26, Veritas is tracking $${(ytdRevActual - ytdRevBudget).toFixed(1)}M ${ytdRevActual >= ytdRevBudget ? 'ahead of' : 'behind'} revenue budget and $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M ${ytdExpActual <= ytdExpBudget ? 'under' : 'over'} on expenses. The YTD surplus of $${ytdSurplus.toFixed(1)}M provides a cushion against the budgeted annual deficit of $${Math.abs(bud.netSurplus).toFixed(1)}M. Days cash at ${ytd.daysCash} is ${(ytd.daysCash / bud.daysCashTarget * 100).toFixed(0)}% of the ${bud.daysCashTarget}-day target — a strong liquidity position. The DSCR of ${fmtDscr(ytd.dscr)} comfortably exceeds the bond document minimum of ${fmtDscr(fin.covenants.dscrBondDoc)}. Key watch: December philanthropy spike ($1.7M) inflated the surplus; January's $0.4M philanthropy is more typical. Monitor whether Q3-Q4 giving sustains the YTD advantage.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }
@@ -298,6 +306,12 @@ function RevenueTab() {
   const ytdCPS = actuals.reduce((s, m) => s + m.revenue.cps, 0);
   const ytdOther = actuals.reduce((s, m) => s + m.revenue.otherPublic, 0);
   const ytdPhil = actuals.reduce((s, m) => s + m.revenue.philanthropy, 0);
+
+  const ai = useSlateAI({
+    prompt: `Analyze the revenue composition and trends for this charter school network. Focus on CPS per-pupil revenue concentration risk, philanthropy volatility, revenue diversification strategy, and the historical growth trajectory. What is the single biggest revenue risk and what should the CEO do about it?`,
+    domain: 'ledger-revenue',
+    fallback: `Revenue has grown from $83.5M (FY20) to a budgeted $138.3M (FY26). CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue — a concentration risk. Philanthropy shows significant monthly volatility. Recommendation: Build a 3-year revenue diversification strategy.`,
+  });
 
   return (
     <div>
@@ -383,7 +397,8 @@ function RevenueTab() {
       </Card>
 
       <AIInsight label="Revenue Intelligence"
-        content={`Veritas revenue has grown from $83.5M in FY20 to a budgeted $138.3M in FY26 — a ${((138.3 / 83.5 - 1) * 100).toFixed(0)}% increase driven primarily by enrollment growth and per-pupil rate increases. The critical dependency: CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue. This concentration creates existential risk if per-pupil rates flatten or decline. Philanthropy at $${bud.revenue.philanthropy.toFixed(1)}M (${(bud.revenue.philanthropy / bud.revenue.total * 100).toFixed(1)}% of revenue) is healthy for a network this size but shows significant monthly volatility — December's $1.7M vs January's $0.4M. Recommendation: Build a 3-year revenue diversification strategy targeting 75% CPS dependency by FY29.`} />
+        content={`Veritas revenue has grown from $83.5M in FY20 to a budgeted $138.3M in FY26 — a ${((138.3 / 83.5 - 1) * 100).toFixed(0)}% increase driven primarily by enrollment growth and per-pupil rate increases. The critical dependency: CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue. This concentration creates existential risk if per-pupil rates flatten or decline. Philanthropy at $${bud.revenue.philanthropy.toFixed(1)}M (${(bud.revenue.philanthropy / bud.revenue.total * 100).toFixed(1)}% of revenue) is healthy for a network this size but shows significant monthly volatility — December's $1.7M vs January's $0.4M. Recommendation: Build a 3-year revenue diversification strategy targeting 75% CPS dependency by FY29.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }
@@ -402,6 +417,12 @@ function ExpensesTab() {
   const ytdDirect = actuals.reduce((s, m) => s + m.expenses.directStudent, 0);
   const ytdOccupancy = actuals.reduce((s, m) => s + m.expenses.occupancy, 0);
   const ytdTotal = actuals.reduce((s, m) => s + m.expenses.total, 0);
+
+  const ai = useSlateAI({
+    prompt: `Analyze the expense structure and trends for this charter school network. Focus on personnel cost as % of total, the expense growth rate vs revenue growth rate, the FY23 deficit year as a cautionary tale, cost per student competitiveness, and the structural challenge of expense growth outpacing revenue. What is the crossover risk and what should the board understand?`,
+    domain: 'ledger-expenses',
+    fallback: `Total expenses have grown from $82.1M (FY20) to a budgeted $131.9M (FY26). Personnel consistently represents 70-85% of total expenses. The key structural challenge: expense growth is outpacing revenue growth, creating a potential crossover point. This is the single most important financial trend for the board to understand.`,
+  });
 
   return (
     <div>
@@ -440,7 +461,8 @@ function ExpensesTab() {
       </Card>
 
       <AIInsight label="Expense Intelligence"
-        content={`Total expenses have grown from $82.1M (FY20) to a budgeted $131.9M (FY26) — a ${((131.9 / 82.1 - 1) * 100).toFixed(0)}% increase. Personnel consistently represents 70-85% of total expenses, which is typical for charter networks. The FY23 spike to $113.5M (vs $107.8M revenue) created a -$1.7M deficit — a cautionary year. Cost per student at ${fmtFull(Math.round(bud.expenses.total * 1000000 / bud.enrollment))} is competitive for a Chicago charter. The key structural challenge: expense growth is outpacing revenue growth in the reasonable scenario, creating a potential crossover point in FY28 where expenses exceed revenue. This is the single most important financial trend for the board to understand.`} />
+        content={`Total expenses have grown from $82.1M (FY20) to a budgeted $131.9M (FY26) — a ${((131.9 / 82.1 - 1) * 100).toFixed(0)}% increase. Personnel consistently represents 70-85% of total expenses, which is typical for charter networks. The FY23 spike to $113.5M (vs $107.8M revenue) created a -$1.7M deficit — a cautionary year. Cost per student at ${fmtFull(Math.round(bud.expenses.total * 1000000 / bud.enrollment))} is competitive for a Chicago charter. The key structural challenge: expense growth is outpacing revenue growth in the reasonable scenario, creating a potential crossover point in FY28 where expenses exceed revenue. This is the single most important financial trend for the board to understand.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }
@@ -453,6 +475,12 @@ function CovenantsTab() {
   const fin = useFinancials();
   const ytd = fin.ytdSummary;
   const cov = fin.covenants;
+
+  const ai = useSlateAI({
+    prompt: `Analyze the bond covenant compliance for this charter school network. Cover DSCR cushion above minimum, days cash strength, current ratio and net asset ratio health. What strategic opportunities does the covenant cushion create? Should the network be more aggressive with investments given the compliance headroom?`,
+    domain: 'ledger-covenants',
+    fallback: `All four financial covenants are in compliance. The DSCR of ${fmtDscr(ytd.dscr)} provides a ${((ytd.dscr - cov.dscrMinimum) / cov.dscrMinimum * 100).toFixed(0)}% cushion above the ${fmtDscr(cov.dscrMinimum)} minimum. Days cash at ${ytd.daysCash} is ${((ytd.daysCash / cov.daysCashMinimum - 1) * 100).toFixed(0)}% above the ${cov.daysCashMinimum}-day minimum. Recommendation: Use the covenant cushion strategically.`,
+  });
 
   const covenantItems = [
     { name: 'Debt Service Coverage Ratio (DSCR)', actual: ytd.dscr, minimum: cov.dscrMinimum, bondDoc: cov.dscrBondDoc, format: fmtDscr, description: 'Measures ability to service debt obligations. Calculated as (Net Income + Depreciation + Interest) / Annual Debt Service.', isRatio: true },
@@ -560,7 +588,8 @@ function CovenantsTab() {
       </Card>
 
       <AIInsight label="Covenant Intelligence"
-        content={`All four financial covenants are in compliance. The DSCR of ${fmtDscr(ytd.dscr)} provides a ${((ytd.dscr - cov.dscrMinimum) / cov.dscrMinimum * 100).toFixed(0)}% cushion above the ${fmtDscr(cov.dscrMinimum)} minimum and exceeds the bond document threshold of ${fmtDscr(cov.dscrBondDoc)}. Days cash at ${ytd.daysCash} is ${((ytd.daysCash / cov.daysCashMinimum - 1) * 100).toFixed(0)}% above the ${cov.daysCashMinimum}-day minimum — the strongest liquidity position in four years. The current ratio of ${ytd.currentRatio.toFixed(2)}x and net asset ratio of ${ytd.netAssetRatio.toFixed(1)}% both reflect healthy balance sheet positioning. Recommendation: Use the covenant cushion strategically — this is the window to invest in compensation competitiveness before the CPS gap widens further.`} />
+        content={`All four financial covenants are in compliance. The DSCR of ${fmtDscr(ytd.dscr)} provides a ${((ytd.dscr - cov.dscrMinimum) / cov.dscrMinimum * 100).toFixed(0)}% cushion above the ${fmtDscr(cov.dscrMinimum)} minimum and exceeds the bond document threshold of ${fmtDscr(cov.dscrBondDoc)}. Days cash at ${ytd.daysCash} is ${((ytd.daysCash / cov.daysCashMinimum - 1) * 100).toFixed(0)}% above the ${cov.daysCashMinimum}-day minimum — the strongest liquidity position in four years. The current ratio of ${ytd.currentRatio.toFixed(2)}x and net asset ratio of ${ytd.netAssetRatio.toFixed(1)}% both reflect healthy balance sheet positioning. Recommendation: Use the covenant cushion strategically — this is the window to invest in compensation competitiveness before the CPS gap widens further.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }
@@ -574,6 +603,12 @@ function ScenariosTab() {
   const [activeScenario, setActiveScenario] = useState<'optimistic' | 'reasonable' | 'pessimistic' | 'custom'>('reasonable');
   const scenarios = fin.scenarios;
   const historical = fin.historical;
+
+  const scenarioAI = useSlateAI({
+    prompt: `Analyze the financial scenario projections for this charter school network. Compare the optimistic, reasonable, and pessimistic scenarios. What is the revenue-expense crossover risk? What is the single most important variable that determines whether the network thrives or struggles over the next 5 years? Be specific about the spread between revenue growth and expense growth.`,
+    domain: 'ledger-scenarios',
+    fallback: `The critical variable across all scenarios is the spread between revenue growth and expense growth. Every 0.5% change in this spread compounds significantly over 5 years. The reasonable scenario maintains covenant compliance, but the pessimistic scenario shows crossover risk.`,
+  });
 
   // Custom scenario sliders
   const [enrollGrowth, setEnrollGrowth] = useState(0);
@@ -789,7 +824,8 @@ function ScenariosTab() {
       </div>
 
       <AIInsight label="Scenario Intelligence"
-        content={`The ${scenarioLabels[activeScenario]} scenario projects ${endpoint.year} enrollment at ${fmtNum(endpoint.enrollmentC1)} with revenue of $${endpoint.totalRevenue.toFixed(1)}M and expenses of $${endpoint.totalExpenses.toFixed(1)}M, yielding a net surplus of $${endpoint.netSurplus.toFixed(1)}M and DSCR of ${fmtDscr(endpoint.dscr)}. ${endpoint.netSurplus < 0 ? `WARNING: This scenario produces cumulative deficits that would erode reserves. ${endpoint.dscr < fin.covenants.dscrMinimum ? 'CRITICAL: DSCR falls below covenant minimum, triggering technical default risk.' : ''}` : `This scenario maintains covenant compliance with a DSCR cushion of ${((endpoint.dscr - fin.covenants.dscrMinimum) / fin.covenants.dscrMinimum * 100).toFixed(0)}% above minimum.`} The critical variable across all scenarios is the spread between revenue growth and expense growth — every 0.5% change in this spread compounds to $${(fin.budget.revenue.total * 0.005 * 5).toFixed(1)}M over 5 years.`} />
+        content={`The ${scenarioLabels[activeScenario]} scenario projects ${endpoint.year} enrollment at ${fmtNum(endpoint.enrollmentC1)} with revenue of $${endpoint.totalRevenue.toFixed(1)}M and expenses of $${endpoint.totalExpenses.toFixed(1)}M, yielding a net surplus of $${endpoint.netSurplus.toFixed(1)}M and DSCR of ${fmtDscr(endpoint.dscr)}. ${endpoint.netSurplus < 0 ? `WARNING: This scenario produces cumulative deficits that would erode reserves. ${endpoint.dscr < fin.covenants.dscrMinimum ? 'CRITICAL: DSCR falls below covenant minimum, triggering technical default risk.' : ''}` : `This scenario maintains covenant compliance with a DSCR cushion of ${((endpoint.dscr - fin.covenants.dscrMinimum) / fin.covenants.dscrMinimum * 100).toFixed(0)}% above minimum.`} The critical variable across all scenarios is the spread between revenue growth and expense growth — every 0.5% change in this spread compounds to $${(fin.budget.revenue.total * 0.005 * 5).toFixed(1)}M over 5 years.`}
+        aiText={scenarioAI.text} aiLoading={scenarioAI.loading} aiError={scenarioAI.error} onRegenerate={scenarioAI.regenerate} lastGenerated={scenarioAI.lastGenerated} />
     </div>
   );
 }
@@ -809,6 +845,12 @@ function SupportTeamTab() {
   const underBudgetDepts = depts.filter(d => d.variance < 0);
   const totalOverage = overBudgetDepts.reduce((s, d) => s + d.variance, 0);
   const totalSavings = Math.abs(underBudgetDepts.reduce((s, d) => s + d.variance, 0));
+
+  const ai = useSlateAI({
+    prompt: `Analyze the Support Team (central office) spending patterns and compensation competitiveness for this charter school network. Focus on which departments are over/under budget, the CPS salary gap and its impact on teacher recruitment, the 5-year compensation pressure, and personnel as % of operating expenses. What is the most strategic investment the network should make in compensation?`,
+    domain: 'ledger-support-team',
+    fallback: `Support Team spending is ${totalActual > totalBudget ? `$${fmtNum(totalActual - totalBudget)}K over budget` : `$${fmtNum(totalBudget - totalActual)}K under budget`} in aggregate. The CPS compensation gap of ${comp.cpsGap.gapPct.toFixed(1)}% is a strategic risk that directly impacts recruitment competitiveness. Recommendation: Prioritize closing the CPS gap for high-turnover positions first.`,
+  });
 
   return (
     <div>
@@ -950,7 +992,8 @@ function SupportTeamTab() {
       </Card>
 
       <AIInsight label="Support Team Intelligence"
-        content={`Support Team spending is ${totalActual > totalBudget ? `$${fmtNum(totalActual - totalBudget)}K over budget` : `$${fmtNum(totalBudget - totalActual)}K under budget`} in aggregate. The largest overage is Academic at +$257K (40% over budget), followed by Health/Fitness/Athletics at +$133K. These overages are partially offset by underspending in IT (-$72K) and Education Team (-$97K). The CPS compensation gap of ${comp.cpsGap.gapPct.toFixed(1)}% (${fmtFull(comp.cpsGap.cpsL1Step0 - comp.cpsGap.veritasStarting)} per starting teacher) is a strategic risk — it directly impacts recruitment competitiveness and drives the $${comp.fiveYearPressure.toFixed(1)}M 5-year pressure. Personnel at ${comp.fy26.personnelPctOfOpex}% of operating expenses is within the typical 70-85% range for charter networks, but the trend line shows compression. Recommendation: Prioritize closing the CPS gap for high-turnover positions first.`} />
+        content={`Support Team spending is ${totalActual > totalBudget ? `$${fmtNum(totalActual - totalBudget)}K over budget` : `$${fmtNum(totalBudget - totalActual)}K under budget`} in aggregate. The largest overage is Academic at +$257K (40% over budget), followed by Health/Fitness/Athletics at +$133K. These overages are partially offset by underspending in IT (-$72K) and Education Team (-$97K). The CPS compensation gap of ${comp.cpsGap.gapPct.toFixed(1)}% (${fmtFull(comp.cpsGap.cpsL1Step0 - comp.cpsGap.veritasStarting)} per starting teacher) is a strategic risk — it directly impacts recruitment competitiveness and drives the $${comp.fiveYearPressure.toFixed(1)}M 5-year pressure. Personnel at ${comp.fy26.personnelPctOfOpex}% of operating expenses is within the typical 70-85% range for charter networks, but the trend line shows compression. Recommendation: Prioritize closing the CPS gap for high-turnover positions first.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }
@@ -980,6 +1023,12 @@ function PrincipalLedger() {
   const expVar = campusExp - campusBudgetExp;
   const perPupilRev = enrolled > 0 ? campusRev / enrolled : 0;
   const perPupilExp = enrolled > 0 ? campusExp / enrolled : 0;
+
+  const ai = useSlateAI({
+    prompt: `Provide a campus-level financial briefing for a principal. This campus has ${enrolled} students (${(pctOfNetwork * 100).toFixed(1)}% of network). Revenue is ${revVar >= 0 ? 'above' : 'below'} budget. What should this principal focus on financially? Be specific and actionable.`,
+    domain: `ledger-campus-${selectedCampusId}`,
+    fallback: `${campusName} represents ${fmtPct(pctOfNetwork * 100)} of network enrollment (${enrolled} students). Revenue is ${revVar >= 0 ? 'tracking above' : 'below'} budget. ${campusSurplus < 0 ? 'Campus is in deficit — review discretionary spending.' : 'Campus is in surplus — maintain current trajectory.'}`,
+  });
 
   return (
     <div>
@@ -1072,7 +1121,8 @@ function PrincipalLedger() {
       </Section>
 
       <AIInsight label="Campus Financial Intelligence"
-        content={`${campusName} represents ${fmtPct(pctOfNetwork * 100)} of network enrollment (${enrolled} students) and proportional revenue of ${fmtCompact(campusRev)}. Revenue is ${revVar >= 0 ? 'tracking above' : 'below'} budget by ${fmtCompact(Math.abs(revVar))}. Per-pupil revenue of ${fmt(perPupilRev)} is ${perPupilRev >= net.revenuePerPupil ? 'above' : 'below'} the network average of ${fmt(net.revenuePerPupil)}. Key action: ${campusSurplus < 0 ? 'Campus is in deficit — review discretionary spending and staffing levels.' : 'Campus is in surplus — maintain current trajectory and consider strategic investments.'}`} />
+        content={`${campusName} represents ${fmtPct(pctOfNetwork * 100)} of network enrollment (${enrolled} students) and proportional revenue of ${fmtCompact(campusRev)}. Revenue is ${revVar >= 0 ? 'tracking above' : 'below'} budget by ${fmtCompact(Math.abs(revVar))}. Per-pupil revenue of ${fmt(perPupilRev)} is ${perPupilRev >= net.revenuePerPupil ? 'above' : 'below'} the network average of ${fmt(net.revenuePerPupil)}. Key action: ${campusSurplus < 0 ? 'Campus is in deficit — review discretionary spending and staffing levels.' : 'Campus is in surplus — maintain current trajectory and consider strategic investments.'}`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }

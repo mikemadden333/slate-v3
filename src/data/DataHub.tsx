@@ -15,6 +15,7 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { Card, KPICard, StatusBadge, DataFreshness, ModuleHeader, Section, AIInsight, EmptyState } from '../components/Card';
 import { bg, text, brand, border, status, font, fontSize, fontWeight, shadow, radius, transition, modules as moduleColors } from '../core/theme';
 import { useDataStore } from './DataStore';
+import { useSlateAI } from '../core/useSlateAI';
 import { fmtDate, fmtRelative, fmtFull, fmtNum, fmtPct, fmtCompact } from '../core/formatters';
 import { getFreshness } from '../core/types';
 import type { FreshnessLevel } from '../core/types';
@@ -215,6 +216,12 @@ function UploadModal({ domain, onClose, onUploadComplete }: { domain: DataDomain
 function NerveCenterTab({ domains, freshCounts, overallHealth }: { domains: DataDomain[]; freshCounts: Record<FreshnessLevel, number>; overallHealth: number }) {
   const { store } = useDataStore();
 
+  const nerveAI = useSlateAI({
+    prompt: `Analyze the data health and cross-module intelligence signals for this charter school network's intelligence platform. There are ${domains.length} data domains feeding 10 modules. Overall data health is ${overallHealth}%. Identify the most critical data gaps, stale domains, and cross-module signals that require attention. What is the single most important data action to improve intelligence quality?`,
+    domain: 'datahub-nerve',
+    fallback: `System operating at ${overallHealth}% data health. ${freshCounts.fresh || 0} of ${domains.length} domains current. Monitor stale domains to maintain intelligence quality.`,
+  });
+
   // Cross-module signal detection
   const signals = useMemo(() => {
     const sigs: { severity: 'critical' | 'warning' | 'info'; source: string; target: string; message: string; color: string }[] = [];
@@ -370,8 +377,8 @@ function NerveCenterTab({ domains, freshCounts, overallHealth }: { domains: Data
       )}
 
       <AIInsight label="Data Hub Intelligence"
-        content={`The Slate intelligence system is operating at ${overallHealth}% data health with ${freshCounts.fresh || 0} of ${domains.length} data domains current. ${criticalSignals.length > 0 ? `CRITICAL: ${criticalSignals.length} cross-module signal${criticalSignals.length > 1 ? 's' : ''} require immediate attention — ${criticalSignals.map(s => s.message.split('.')[0]).join('; ')}.` : 'No critical cross-module signals detected.'} ${warningSignals.length > 0 ? `${warningSignals.length} warning signal${warningSignals.length > 1 ? 's' : ''} flagged for review.` : ''} The data architecture feeds ${domains.reduce((s, d) => s + d.getRecordCount(), 0)} records across ${domains.length} domains into 10 intelligence modules. ${overallHealth < 80 ? 'Data freshness is degraded — stale domains reduce intelligence quality. Update flagged domains to restore full analytical capability.' : 'All systems operating within normal parameters.'}`} />
-
+        content={`The Slate intelligence system is operating at ${overallHealth}% data health with ${freshCounts.fresh || 0} of ${domains.length} data domains current. ${criticalSignals.length > 0 ? `CRITICAL: ${criticalSignals.length} cross-module signal${criticalSignals.length > 1 ? 's' : ''} require immediate attention \u2014 ${criticalSignals.map(s => s.message.split('.')[0]).join('; ')}.` : 'No critical cross-module signals detected.'} ${warningSignals.length > 0 ? `${warningSignals.length} warning signal${warningSignals.length > 1 ? 's' : ''} flagged for review.` : ''} The data architecture feeds ${domains.reduce((s, d) => s + d.getRecordCount(), 0)} records across ${domains.length} domains into 10 intelligence modules. ${overallHealth < 80 ? 'Data freshness is degraded \u2014 stale domains reduce intelligence quality. Update flagged domains to restore full analytical capability.' : 'All systems operating within normal parameters.'}`}
+        aiText={nerveAI.text} aiLoading={nerveAI.loading} aiError={nerveAI.error} onRegenerate={nerveAI.regenerate} lastGenerated={nerveAI.lastGenerated} />
       <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
     </div>
   );
@@ -448,6 +455,11 @@ function DataDomainsTab({ domains, onUpload }: { domains: DataDomain[]; onUpload
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SignalsTab({ domains }: { domains: DataDomain[] }) {
+  const signalAI = useSlateAI({
+    prompt: `Analyze the cross-module data dependency architecture for this charter school intelligence platform. Identify the most critical dependency relationships, which modules are most vulnerable to data staleness, and what the cascade effects would be if key data domains go stale. Recommend a data refresh priority order.`,
+    domain: 'datahub-signals',
+    fallback: `The data architecture connects ${domains.length} domains to 10 intelligence modules. Enrollment is the highest-impact data source. Monitor dependency health to maintain cross-module intelligence quality.`,
+  });
   const { store } = useDataStore();
 
   // Dependency matrix
@@ -536,7 +548,8 @@ function SignalsTab({ domains }: { domains: DataDomain[] }) {
       </Card>
 
       <AIInsight label="Signal Intelligence"
-        content={`The Slate data architecture connects ${domains.length} data domains to ${moduleList.length} intelligence modules through ${Object.values(matrix).reduce((s, deps) => s + deps.length, 0)} dependency relationships. The most connected domain is Enrollment (feeds ${Object.values(matrix).filter(deps => deps.includes('Enrollment')).length} modules), making it the highest-impact data source. Briefing is the most data-dependent module (${matrix['Briefing']?.length || 0} domain dependencies), which is expected as the executive summary layer. ${domains.some(d => getFreshness(d.getLastUpdated(), d.thresholdDays) === 'stale') ? 'WARNING: Stale data domains are degrading intelligence quality in dependent modules. Priority refresh recommended.' : 'All data domains are within freshness thresholds.'}`} />
+        content={`The Slate data architecture connects ${domains.length} data domains to ${moduleList.length} intelligence modules through ${Object.values(matrix).reduce((s, deps) => s + deps.length, 0)} dependency relationships. The most connected domain is Enrollment (feeds ${Object.values(matrix).filter(deps => deps.includes('Enrollment')).length} modules), making it the highest-impact data source. Briefing is the most data-dependent module (${matrix['Briefing']?.length || 0} domain dependencies), which is expected as the executive summary layer. ${domains.some(d => getFreshness(d.getLastUpdated(), d.thresholdDays) === 'stale') ? 'WARNING: Stale data domains are degrading intelligence quality in dependent modules. Priority refresh recommended.' : 'All data domains are within freshness thresholds.'}`}
+        aiText={signalAI.text} aiLoading={signalAI.loading} aiError={signalAI.error} onRegenerate={signalAI.regenerate} lastGenerated={signalAI.lastGenerated} />
     </div>
   );
 }

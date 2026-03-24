@@ -8,6 +8,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useEnrollment, useNetwork, useFinancials, useRole } from '../../data/DataStore';
+import { useSlateAI } from '../../core/useSlateAI';
 import { Card, KPICard, ModuleHeader, AIInsight, StatusBadge } from '../../components/Card';
 import { fmt, fmtNum, fmtPct, fmtFull, fmtCompact } from '../../core/formatters';
 import {
@@ -94,6 +95,12 @@ function OverviewTab() {
   const net = useNetwork();
   const fin = useFinancials();
   const sorted = [...enr.byCampus].sort((a, b) => b.enrolled - a.enrolled);
+
+  const overviewAI = useSlateAI({
+    prompt: `Analyze enrollment health for this charter school network. Cover total enrollment vs target, capacity utilization, revenue at risk from unfilled seats, attrition rates, campus-level performance, and the pipeline (applications, acceptances, yield). What is the single most important enrollment action the CEO should take? Be specific.`,
+    domain: 'scholar-overview',
+    fallback: `Network enrollment at ${enr.networkTotal} students. Capacity utilization and attrition are the key metrics to watch. Grade 9 entry point yield rate is the most predictive indicator of long-term enrollment health.`,
+  });
 
   const totalCapacity = enr.byCampus.reduce((s, c) => s + c.capacity, 0);
   const totalApplied = enr.byCampus.reduce((s, c) => s + c.applied, 0);
@@ -251,6 +258,7 @@ function OverviewTab() {
       <AIInsight
         label="Enrollment Intelligence"
         content={`Veritas is at ${fmtNum(enr.networkTotal)} students against a target of ${fmtNum(enr.targetEnrollment)} — ${enrollmentGap > 0 ? `${enrollmentGap} seats below target, representing ${fmtFull(revenueAtRisk)} in unrealized revenue` : 'meeting or exceeding target'}. Capacity utilization at ${fmtPct(utilization)} is ${utilization >= 90 ? 'strong' : 'concerning'}. The highest-performing campuses by enrollment are ${sorted[0].name} (${fmtNum(sorted[0].enrolled)}) and ${sorted[1].name} (${fmtNum(sorted[1].enrolled)}). Network-wide attrition at ${fmtPct(avgAttrition)} translates to approximately ${Math.round(enr.networkTotal * avgAttrition / 100)} students lost annually — each worth ${fmtFull(net.revenuePerPupil)} in per-pupil revenue. The campuses with the highest attrition rates require immediate retention intervention plans. Grade 9 is the critical entry point: yield rate and 9-to-10 retention are the two metrics that most directly predict long-term enrollment health.`}
+        aiText={overviewAI.text} aiLoading={overviewAI.loading} aiError={overviewAI.error} onRegenerate={overviewAI.regenerate} lastGenerated={overviewAI.lastGenerated}
       />
     </div>
   );
@@ -402,9 +410,14 @@ function PipelineTab() {
   const enr = useEnrollment();
   const net = useNetwork();
   const sorted = [...enr.byCampus].sort((a, b) => b.applied - a.applied);
-
   const totalApplied = sorted.reduce((s, c) => s + c.applied, 0);
   const totalAccepted = sorted.reduce((s, c) => s + c.accepted, 0);
+
+  const pipeAI = useSlateAI({
+    prompt: `Analyze the admissions pipeline for this charter school network. Cover total applications, acceptance rates, yield rates, projected new enrollments, and revenue implications. Which campuses have the strongest and weakest pipelines? What is the single most impactful action to improve yield?`,
+    domain: 'scholar-pipeline',
+    fallback: `Pipeline shows ${totalApplied} total applications with ${totalAccepted} accepted. Yield rate is the critical conversion metric. Focus retention efforts on the 48 hours after acceptance notification.`,
+  });
   const avgYield = sorted.reduce((s, c) => s + c.yield, 0) / sorted.length;
   const projectedEnroll = Math.round(totalAccepted * avgYield / 100);
 
@@ -463,6 +476,7 @@ function PipelineTab() {
       <AIInsight
         label="Pipeline Intelligence"
         content={`The admissions pipeline shows ${fmtNum(totalApplied)} total applications across ${sorted.length} campuses, with ${fmtNum(totalAccepted)} accepted (${fmtPct(totalAccepted / totalApplied * 100)} acceptance rate). At the current average yield of ${fmtPct(avgYield)}, this projects to approximately ${fmtNum(projectedEnroll)} new enrollments worth ${fmtFull(projectedEnroll * net.revenuePerPupil)} in per-pupil revenue. The strongest pipeline campuses are ${sorted[0].name} (${fmtNum(sorted[0].applied)} applications) and ${sorted[1].name} (${fmtNum(sorted[1].applied)}). Yield rate is the critical conversion metric — every 1% improvement in yield across the network adds approximately ${Math.round(totalAccepted * 0.01)} students and ${fmtFull(Math.round(totalAccepted * 0.01) * net.revenuePerPupil)} in revenue. Focus retention efforts on the 48 hours after acceptance notification.`}
+        aiText={pipeAI.text} aiLoading={pipeAI.loading} aiError={pipeAI.error} onRegenerate={pipeAI.regenerate} lastGenerated={pipeAI.lastGenerated}
       />
     </div>
   );
@@ -476,10 +490,15 @@ function AttritionTab() {
   const enr = useEnrollment();
   const net = useNetwork();
   const sorted = [...enr.byCampus].sort((a, b) => b.attrition - a.attrition);
-
   const avgAttrition = sorted.reduce((s, c) => s + c.attrition, 0) / sorted.length;
   const totalAttritionStudents = sorted.reduce((s, c) => s + Math.round(c.enrolled * c.attrition / 100), 0);
   const totalRevenueLoss = totalAttritionStudents * net.revenuePerPupil;
+
+  const attrAI = useSlateAI({
+    prompt: `Analyze student attrition for this charter school network. Cover the financial impact of attrition, which campuses have the highest and lowest rates, what the revenue recovery opportunity is from reducing attrition, and what specific retention strategies should be implemented. Be blunt about the financial cost.`,
+    domain: 'scholar-attrition',
+    fallback: `Network attrition is costing approximately ${totalAttritionStudents} students annually. Reducing attrition by 2 percentage points would retain significant revenue. Conduct exit interviews at high-attrition campuses.`,
+  });
 
   return (
     <div>
@@ -556,6 +575,7 @@ function AttritionTab() {
       <AIInsight
         label="Attrition Intelligence"
         content={`Network-wide attrition at ${fmtPct(avgAttrition)} is costing Veritas approximately ${fmtNum(totalAttritionStudents)} students and ${fmtFull(totalRevenueLoss)} annually. ${sorted[0].name} at ${fmtPct(sorted[0].attrition)} is the most critical — losing approximately ${Math.round(sorted[0].enrolled * sorted[0].attrition / 100)} students per year. In contrast, ${sorted[sorted.length - 1].name} at ${fmtPct(sorted[sorted.length - 1].attrition)} demonstrates that low attrition is achievable within the network. The financial math is stark: reducing network attrition by just 2 percentage points would retain approximately ${Math.round(enr.networkTotal * 0.02)} students and ${fmtFull(Math.round(enr.networkTotal * 0.02) * net.revenuePerPupil)} in revenue — more than the cost of most retention programs. Recommendation: Conduct exit interviews at the top 3 attrition campuses and implement the retention practices from ${sorted[sorted.length - 1].short} across the network.`}
+        aiText={attrAI.text} aiLoading={attrAI.loading} aiError={attrAI.error} onRegenerate={attrAI.regenerate} lastGenerated={attrAI.lastGenerated}
       />
     </div>
   );
@@ -570,6 +590,12 @@ function ForecastTab() {
   const net = useNetwork();
   const historical = enr.historical;
   const forecasts = enr.forecasts;
+
+  const forecastAI = useSlateAI({
+    prompt: `Analyze the 5-year enrollment forecast for this charter school network. Cover the optimistic, probable, and pessimistic scenarios, the revenue spread between them, historical growth trajectory, and the key assumptions that drive each scenario. What is the biggest risk to enrollment growth and what is the tipping point?`,
+    domain: 'scholar-forecast',
+    fallback: `The 5-year forecast shows a wide range between optimistic and pessimistic scenarios. Historical growth has been driven by campus expansion and yield improvement. Key risk: pessimistic scenario could trigger covenant pressure.`,
+  });
 
   return (
     <div>
@@ -683,6 +709,7 @@ function ForecastTab() {
       <AIInsight
         label="Forecast Intelligence"
         content={`The 5-year enrollment forecast shows a range of ${fmtNum(forecasts[forecasts.length - 1]?.pessimistic ?? 0)} (pessimistic) to ${fmtNum(forecasts[forecasts.length - 1]?.optimistic ?? 0)} (optimistic) students by ${forecasts[forecasts.length - 1]?.label ?? 'FY31'}. The revenue spread between scenarios is ${fmt((forecasts[forecasts.length - 1]?.revenueOptimistic ?? 0) - (forecasts[forecasts.length - 1]?.revenuePessimistic ?? 0))} — a massive gap that underscores why enrollment management is the single most important operational lever. Historical data shows enrollment grew from ${fmtNum(historical[0]?.totalEnrolled ?? 0)} in ${historical[0]?.label ?? 'FY20'} to ${fmtNum(enr.networkTotal)} today, driven by campus expansion and yield improvement. The probable scenario assumes modest 1-2% annual growth, which is achievable if attrition holds below ${fmtPct(12)} and yield stays above ${fmtPct(80)}. Key risk: the pessimistic scenario shows enrollment declining below ${fmtNum(6500)} — a level that would trigger covenant pressure on the DSCR.`}
+        aiText={forecastAI.text} aiLoading={forecastAI.loading} aiError={forecastAI.error} onRegenerate={forecastAI.regenerate} lastGenerated={forecastAI.lastGenerated}
       />
     </div>
   );

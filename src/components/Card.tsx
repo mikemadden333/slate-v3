@@ -199,41 +199,111 @@ interface AIInsightProps {
   content: string;
   loading?: boolean;
   label?: string;
+  /** Live AI fields — when provided, shows AI-generated content with regenerate */
+  aiText?: string;
+  aiLoading?: boolean;
+  aiError?: boolean;
+  onRegenerate?: () => void;
+  lastGenerated?: Date | null;
 }
 
-export function AIInsight({ content, loading, label = 'Slate Analysis' }: AIInsightProps) {
+export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, aiLoading, aiError, onRegenerate, lastGenerated }: AIInsightProps) {
+  // Determine what to show: live AI text > static content
+  const displayText = (aiText && aiText.length > 0) ? aiText : content;
+  const isLoading = aiLoading || loading;
+  const isLive = !!(aiText && aiText.length > 0 && !aiError);
+
+  // Format bold markers from AI responses: **text** → <strong>text</strong>
+  const formatText = (t: string) => {
+    if (!t) return null;
+    const parts = t.split(/(\*\*[^*]+\*\*)/);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return React.createElement('strong', { key: i, style: { color: text.primary, fontWeight: fontWeight.semibold } }, part.slice(2, -2));
+      }
+      return part;
+    });
+  };
+
   return (
     <div style={{
       background: `linear-gradient(135deg, ${bg.subtle} 0%, ${bg.card} 100%)`,
-      border: `1px solid ${brand.brass}30`,
+      border: `1px solid ${isLive ? brand.gold + '40' : brand.brass + '30'}`,
       borderRadius: radius.lg,
       padding: 16,
       position: 'relative',
+      transition: transition.fast,
     }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
+        justifyContent: 'space-between',
         marginBottom: 8,
       }}>
-        <span style={{ color: brand.gold, fontSize: fontSize.md }}>✦</span>
-        <span style={{
-          fontSize: fontSize.xs,
-          fontWeight: fontWeight.semibold,
-          color: brand.brass,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-        }}>
-          {label}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: brand.gold, fontSize: fontSize.md }}>✦</span>
+          <span style={{
+            fontSize: fontSize.xs,
+            fontWeight: fontWeight.semibold,
+            color: brand.brass,
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            {label}
+          </span>
+          {isLive && (
+            <span style={{
+              fontSize: 9,
+              fontWeight: fontWeight.semibold,
+              color: '#10B981',
+              background: '#10B98115',
+              padding: '2px 6px',
+              borderRadius: radius.full,
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+            }}>
+              LIVE AI
+            </span>
+          )}
+        </div>
+        {onRegenerate && (
+          <button
+            onClick={onRegenerate}
+            disabled={isLoading}
+            style={{
+              fontSize: fontSize.xs,
+              color: text.light,
+              background: 'none',
+              border: `1px solid ${border.light}`,
+              borderRadius: radius.sm,
+              padding: '2px 8px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.5 : 1,
+              fontFamily: 'inherit',
+              transition: transition.fast,
+            }}
+          >
+            {isLoading ? '...' : '↻'}
+          </button>
+        )}
       </div>
-      {loading ? (
+      {isLoading ? (
         <div style={{
           fontSize: fontSize.sm,
           color: text.light,
           fontStyle: 'italic',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
         }}>
-          Analyzing data...
+          <span style={{
+            display: 'inline-block',
+            width: 8, height: 8,
+            borderRadius: '50%',
+            background: brand.gold,
+            animation: 'slatePulse 1.5s ease-in-out infinite',
+          }} />
+          Slate is analyzing your data...
         </div>
       ) : (
         <div style={{
@@ -242,9 +312,20 @@ export function AIInsight({ content, loading, label = 'Slate Analysis' }: AIInsi
           lineHeight: 1.7,
           whiteSpace: 'pre-wrap',
         }}>
-          {content}
+          {formatText(displayText)}
         </div>
       )}
+      {lastGenerated && !isLoading && (
+        <div style={{
+          fontSize: 10,
+          color: text.light,
+          marginTop: 8,
+          opacity: 0.6,
+        }}>
+          {isLive ? 'AI analysis' : 'Static analysis'} · {lastGenerated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+        </div>
+      )}
+      <style>{`@keyframes slatePulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }`}</style>
     </div>
   );
 }

@@ -12,6 +12,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useFacilities, useRole, useNetwork, useEmergencies } from '../../data/DataStore';
+import { useSlateAI } from '../../core/useSlateAI';
 import { Card, KPICard, ModuleHeader, Section, AIInsight, StatusBadge, EmptyState } from '../../components/Card';
 import { fmt, fmtPct, fmtCompact, fmtNum, fmtFull } from '../../core/formatters';
 import {
@@ -365,6 +366,12 @@ function OverviewTab() {
   const conditions = fac.campusConditions || [];
   const criticalCampuses = conditions.filter(c => c.fciScore < 65);
 
+  const ai = useSlateAI({
+    prompt: `Analyze the facilities health for this charter school network. Cover the network FCI score, campus conditions, deferred maintenance backlog, urgent work orders, capital project status, and vendor contract expirations. What is the biggest facilities risk and what action should the CEO take? Be specific with numbers.`,
+    domain: 'grounds-overview',
+    fallback: `Network FCI of ${networkFCI} (Grade ${getFCIGrade(networkFCI).label}) indicates ${getFCIGrade(networkFCI).description.toLowerCase()} overall condition across ${conditions.length} campuses. ${criticalCampuses.length > 0 ? `${criticalCampuses.length} campus${criticalCampuses.length > 1 ? 'es' : ''} below 65 FCI require priority attention.` : 'All campuses above critical threshold.'} Deferred maintenance backlog of ${fmtCompact(totalDeferred)}. ${urgentOrders.length > 0 ? `${urgentOrders.length} urgent work orders require immediate response.` : 'No urgent work orders.'}`,
+  });
+
   return (
     <div>
       {/* 5-KPI Header */}
@@ -383,7 +390,8 @@ function OverviewTab() {
 
       {/* AI Intelligence */}
       <AIInsight label="Facilities Intelligence"
-        content={`Network FCI of ${networkFCI} (Grade ${getFCIGrade(networkFCI).label}) indicates ${getFCIGrade(networkFCI).description.toLowerCase()} overall condition across ${conditions.length} campuses. ${criticalCampuses.length > 0 ? `${criticalCampuses.length} campus${criticalCampuses.length > 1 ? 'es' : ''} below 65 FCI require priority attention: ${criticalCampuses.map(c => `${c.campusName} (${c.fciScore})`).join(', ')}.` : 'All campuses above critical threshold.'} Deferred maintenance backlog of ${fmtCompact(totalDeferred)} represents ${conditions.length > 0 ? fmtCompact(Math.round(totalDeferred / conditions.length)) : '$0'} per campus. ${urgentOrders.length > 0 ? `URGENT: ${urgentOrders.length} work order${urgentOrders.length > 1 ? 's' : ''} require immediate response: ${urgentOrders.map(wo => `${wo.description} (${wo.campus})`).join('; ')}.` : 'No urgent work orders.'} ${atRiskProjects.length > 0 ? `Capital projects at risk: ${atRiskProjects.map(p => `${p.name} — ${p.status}`).join('; ')}.` : 'All capital projects on track.'}`} />
+        content={`Network FCI of ${networkFCI} (Grade ${getFCIGrade(networkFCI).label}) indicates ${getFCIGrade(networkFCI).description.toLowerCase()} overall condition across ${conditions.length} campuses. ${criticalCampuses.length > 0 ? `${criticalCampuses.length} campus${criticalCampuses.length > 1 ? 'es' : ''} below 65 FCI require priority attention: ${criticalCampuses.map(c => `${c.campusName} (${c.fciScore})`).join(', ')}.` : 'All campuses above critical threshold.'} Deferred maintenance backlog of ${fmtCompact(totalDeferred)} represents ${conditions.length > 0 ? fmtCompact(Math.round(totalDeferred / conditions.length)) : '$0'} per campus. ${urgentOrders.length > 0 ? `URGENT: ${urgentOrders.length} work order${urgentOrders.length > 1 ? 's' : ''} require immediate response: ${urgentOrders.map(wo => `${wo.description} (${wo.campus})`).join('; ')}.` : 'No urgent work orders.'} ${atRiskProjects.length > 0 ? `Capital projects at risk: ${atRiskProjects.map(p => `${p.name} \u2014 ${p.status}`).join('; ')}.` : 'All capital projects on track.'}`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
 
       {/* Capital Projects Quick View */}
       <div style={{ marginTop: 24, marginBottom: 24 }}>
@@ -734,6 +742,12 @@ function VendorsTab() {
   const expiring = contracts.filter(c => c.status === 'expiring');
   const avgRating = contracts.length > 0 ? (contracts.reduce((s, c) => s + c.rating, 0) / contracts.length).toFixed(1) : '0';
 
+  const ai = useSlateAI({
+    prompt: `Analyze the vendor contract portfolio for this charter school network. Focus on expiring contracts, vendor performance ratings, annual spend optimization, and renewal strategy. What contracts should be renegotiated and which vendors should be replaced?`,
+    domain: 'grounds-vendors',
+    fallback: `${expiring.length} vendor contract${expiring.length > 1 ? 's' : ''} expiring within 90 days. Total annual vendor spend of ${fmtCompact(totalAnnual)} across ${contracts.length} contracts. ${expiring.some(c => c.rating >= 4) ? 'High-performing vendors should be prioritized for renewal.' : 'Consider competitive bidding for underperforming contracts.'}`,
+  });
+
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
@@ -780,7 +794,8 @@ function VendorsTab() {
       {expiring.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <AIInsight label="Vendor Intelligence"
-            content={`${expiring.length} vendor contract${expiring.length > 1 ? 's' : ''} expiring within 90 days: ${expiring.map(c => `${c.vendor} (${c.service}, ${fmtCompact(c.annualValue)}/yr, ends ${c.endDate})`).join('; ')}. ${expiring.some(c => c.rating >= 4) ? 'High-performing vendors should be prioritized for renewal.' : 'Consider competitive bidding for underperforming contracts.'} Total annual vendor spend of ${fmtCompact(totalAnnual)} across ${contracts.length} contracts.`} />
+            content={`${expiring.length} vendor contract${expiring.length > 1 ? 's' : ''} expiring within 90 days: ${expiring.map(c => `${c.vendor} (${c.service}, ${fmtCompact(c.annualValue)}/yr, ends ${c.endDate})`).join('; ')}. ${expiring.some(c => c.rating >= 4) ? 'High-performing vendors should be prioritized for renewal.' : 'Consider competitive bidding for underperforming contracts.'} Total annual vendor spend of ${fmtCompact(totalAnnual)} across ${contracts.length} contracts.`}
+            aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
         </div>
       )}
     </div>
