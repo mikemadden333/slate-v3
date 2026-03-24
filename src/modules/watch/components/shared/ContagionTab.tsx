@@ -12,6 +12,142 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+
+// ─── Explainer Panel ─────────────────────────────────────────────────────────
+
+function ContagionExplainerPanel() {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{
+      background: '#FFFFFF', border: '1px solid #E5E1D8', borderRadius: '12px',
+      marginBottom: 24, overflow: 'hidden',
+    }}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 20px', border: 'none', background: 'transparent', cursor: 'pointer',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14, color: '#B79145' }}>?</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>
+            Understanding This View
+          </span>
+        </div>
+        <span style={{ fontSize: 12, color: '#6B7280', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+          \u25BC
+        </span>
+      </button>
+
+      {expanded && (
+        <div style={{ padding: '0 20px 20px', borderTop: '1px solid #E5E1D8' }}>
+          {/* What is a contagion zone? */}
+          <div style={{ marginTop: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A1A', marginBottom: 8 }}>
+              WHAT IS A CONTAGION ZONE?
+            </div>
+            <div style={{ fontSize: 13, color: '#2D2D2D', lineHeight: 1.7 }}>
+              A contagion zone is a geographic area of elevated risk created by a <strong>homicide</strong>. Research by
+              Green, Horel &amp; Papachristos (JAMA 2017) proved that gun violence spreads like a contagious disease \u2014
+              over <strong>60% of shootings occur in cascades</strong>, where one killing triggers retaliatory violence nearby.
+              Each homicide within 2 miles of a campus generates a zone that persists for <strong>125 days</strong>.
+              When you see a campus \u201cin a contagion zone,\u201d it means a homicide occurred nearby recently enough that
+              the statistical risk of follow-on violence is elevated above baseline.
+            </div>
+          </div>
+
+          {/* The three phases */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A1A', marginBottom: 8 }}>
+              THE THREE PHASES
+            </div>
+            <div style={{ fontSize: 13, color: '#2D2D2D', lineHeight: 1.7, marginBottom: 10 }}>
+              Every contagion zone progresses through three phases as time passes since the homicide.
+              Risk is highest immediately after the event and decays over the 125-day window.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {[
+                { phase: 'ACUTE', time: '0 \u2013 72 hours', color: '#DC2626', bg: '#FEF2F2',
+                  desc: 'Maximum danger. The retaliation window (18-72h) falls within this phase. This is when retaliatory shootings are most likely. Enhanced security protocols should be active.' },
+                { phase: 'ACTIVE', time: '72 hours \u2013 14 days', color: '#EA580C', bg: '#FFF7ED',
+                  desc: 'Elevated risk. The community is still processing the event. Social media tensions, memorial gatherings, and neighborhood anxiety can trigger secondary violence.' },
+                { phase: 'WATCH', time: '14 \u2013 125 days', color: '#D97706', bg: '#FFFBEB',
+                  desc: 'Extended awareness. The immediate danger has passed, but the statistical risk of follow-on violence remains above baseline. Routine heightened monitoring continues.' },
+              ].map(item => (
+                <div key={item.phase} style={{
+                  padding: '12px 14px', borderRadius: 8,
+                  background: item.bg, borderLeft: `3px solid ${item.color}`,
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: item.color, letterSpacing: '0.06em' }}>
+                    {item.phase}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: '#6B7280', marginTop: 2 }}>
+                    {item.time}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#2D2D2D', marginTop: 6, lineHeight: 1.5 }}>
+                    {item.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* What the KPIs mean */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A1A', marginBottom: 8 }}>
+              READING THE NUMBERS
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {[
+                { label: 'Total Zones', desc: 'Total number of active contagion zones across the network. Each zone = one homicide still within its 125-day risk window.' },
+                { label: 'Acute / Active / Watch', desc: 'How many zones are in each phase. Acute zones demand immediate attention; Watch zones require routine awareness.' },
+                { label: 'Ret. Windows', desc: 'Retaliation windows (18-72h post-homicide). This is the single most dangerous period. If this number is > 0, enhanced security is critical.' },
+                { label: 'Gang-Related', desc: 'Zones generated by gang-affiliated homicides. These carry higher retaliation risk due to organized group dynamics.' },
+              ].map(item => (
+                <div key={item.label} style={{
+                  padding: '8px 12px', borderRadius: 6,
+                  background: '#F3F0EA', fontSize: 12,
+                }}>
+                  <span style={{ fontWeight: 700, color: '#1A1A1A' }}>{item.label}: </span>
+                  <span style={{ color: '#2D2D2D' }}>{item.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Campus Exposure Matrix explanation */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A1A', marginBottom: 8 }}>
+              THE CAMPUS EXPOSURE MATRIX
+            </div>
+            <div style={{ fontSize: 13, color: '#2D2D2D', lineHeight: 1.7 }}>
+              The table below shows every campus and how many contagion zones currently overlap with it.
+              <strong> \u201cMax Phase\u201d</strong> shows the most severe phase among all zones affecting that campus.
+              <strong> \u201cRet. Window\u201d</strong> flags campuses where a retaliation window is active.
+              Click any campus row with zones to expand the detail view showing each zone\u2019s location,
+              distance, bearing, and phase. <strong>Risk Score</strong> is the campus\u2019s overall PULSE score \u2014
+              contagion proximity is the largest component of this score.
+            </div>
+          </div>
+
+          {/* Data integrity */}
+          <div style={{
+            padding: '12px 16px', borderRadius: 8,
+            background: '#F3F0EA', borderLeft: '3px solid #B79145',
+          }}>
+            <div style={{ fontSize: 12, fontStyle: 'italic', color: '#2D2D2D', lineHeight: 1.6 }}>
+              \u201cThe data tells the story. We do not engineer outcomes.\u201d Contagion zones are generated
+              deterministically from verified homicide data. No manual overrides. No subjective adjustments.
+              The Papachristos model applies equally to every campus, every day.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 import type { Campus } from '../../data/campuses';
 import { CAMPUSES } from '../../data/campuses';
 import type { CampusRisk, ContagionZone, Incident } from '../../engine/types';
@@ -180,13 +316,33 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
       </div>
 
       {/* KPI Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 8 }}>
         <KPICard label="Total Zones" value={s.total} color={s.total > 0 ? '#DC2626' : '#059669'} />
         <KPICard label="Acute" value={s.acute.length} color={PHASE_COLORS.ACUTE.color} sub="0-72h" />
         <KPICard label="Active" value={s.active.length} color={PHASE_COLORS.ACTIVE.color} sub="72h-14d" />
         <KPICard label="Watch" value={s.watch.length} color={PHASE_COLORS.WATCH.color} sub="14-125d" />
         <KPICard label="Ret. Windows" value={s.retWindows.length} color={s.retWindows.length > 0 ? '#DC2626' : '#059669'} sub="18-72h" alert={s.retWindows.length > 0} />
         <KPICard label="Gang-Related" value={s.gangRelated.length} color="#7C3AED" />
+      </div>
+
+      {/* KPI Narrative Context */}
+      <div style={{
+        padding: '10px 14px', borderRadius: radius.sm, marginBottom: 24,
+        background: bg.subtle, fontSize: fontSize.xs, color: text.secondary, lineHeight: 1.6,
+      }}>
+        {s.total === 0 ? (
+          <span><strong style={{ color: '#059669' }}>Network clear.</strong> No active contagion zones affecting any campus. This is the safest posture.</span>
+        ) : (
+          <span>
+            <strong>{s.total} homicide{s.total !== 1 ? 's' : ''}</strong> within the last 125 days {s.total !== 1 ? 'have' : 'has'} generated
+            active contagion zones near your campuses.
+            {s.acute.length > 0 && <> <strong style={{ color: '#DC2626' }}>{s.acute.length} zone{s.acute.length !== 1 ? 's are' : ' is'} in the ACUTE phase</strong> (0-72h) \u2014 this is the highest-risk period.</>}
+            {s.retWindows.length > 0 && <> <strong style={{ color: '#DC2626' }}>{s.retWindows.length} retaliation window{s.retWindows.length !== 1 ? 's are' : ' is'} active</strong> \u2014 the 18-72h period when retaliatory violence is most likely.</>}
+            {s.acute.length === 0 && s.active.length > 0 && <> <strong style={{ color: '#EA580C' }}>{s.active.length} zone{s.active.length !== 1 ? 's are' : ' is'} in the ACTIVE phase</strong> (72h-14d) \u2014 elevated monitoring recommended.</>}
+            {s.acute.length === 0 && s.active.length === 0 && <> All {s.total} zone{s.total !== 1 ? 's are' : ' is'} in the <strong>WATCH phase</strong> (14-125d) \u2014 the immediate danger has passed but statistical risk remains above baseline.</>}
+            {' '}Scroll down to see which campuses are affected and how close each zone is.
+          </span>
+        )}
       </div>
 
       {/* Retaliation Window Alert */}
@@ -212,8 +368,16 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
         </div>
       )}
 
+      {/* Understanding This View */}
+      <ContagionExplainerPanel />
+
       {/* Campus Exposure Matrix */}
       <SectionLabel>Campus Exposure Matrix</SectionLabel>
+      <div style={{
+        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.5, marginBottom: 10,
+      }}>
+        Which campuses are inside a contagion zone? Click any row with zones to see the specific homicide locations, distances, and phase details.
+      </div>
       <div style={{
         borderRadius: radius.md, border: `1px solid ${border.light}`,
         overflow: 'hidden', marginBottom: 24,
@@ -410,6 +574,11 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
       {/* Zone Timeline */}
       <SectionLabel>Zone Timeline (125-Day Window)</SectionLabel>
       <div style={{
+        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.5, marginBottom: 10,
+      }}>
+        Each bar represents one homicide-generated zone. The colored portion shows elapsed time; the marker shows the current position in the 125-day window. Zones progress from ACUTE (red) through ACTIVE (orange) to WATCH (amber) as time passes.
+      </div>
+      <div style={{
         padding: '16px', borderRadius: radius.md,
         background: bg.card, border: `1px solid ${border.light}`,
         marginBottom: 24,
@@ -530,6 +699,11 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
 
       {/* Active Zone Detail */}
       <SectionLabel>Active Zones ({zones.length})</SectionLabel>
+      <div style={{
+        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.5, marginBottom: 10,
+      }}>
+        Every active contagion zone in the network. Click to expand and see which campuses are exposed, zone radius, and detailed location data.
+      </div>
       <div style={{ marginBottom: 24 }}>
         {zones.length === 0 ? (
           <div style={{
@@ -592,6 +766,25 @@ function CampusContagionView({ campus, exposure, allZones, risk, aiAnalysis, aiL
         </div>
         <div style={{ fontSize: fontSize.sm, color: text.muted, marginTop: 4 }}>
           {campus.addr} &middot; {exposure.length} active zone{exposure.length !== 1 ? 's' : ''} affecting this campus
+        </div>
+        {/* Campus-level narrative */}
+        <div style={{
+          marginTop: 10, padding: '10px 14px', borderRadius: radius.sm,
+          background: bg.subtle, fontSize: fontSize.xs, color: text.secondary, lineHeight: 1.6,
+        }}>
+          {exposure.length === 0 ? (
+            <span><strong style={{ color: '#059669' }}>No active exposure.</strong> This campus is not within any homicide-generated contagion zone. This is the safest posture for this location.</span>
+          ) : (
+            <span>
+              <strong>{campus.name}</strong> is currently inside <strong>{exposure.length} contagion zone{exposure.length !== 1 ? 's' : ''}</strong> \u2014
+              meaning {exposure.length !== 1 ? 'homicides have' : 'a homicide has'} occurred nearby within the last 125 days, and the statistical risk of
+              follow-on violence remains elevated. {retWindows.length > 0 && <><strong style={{ color: '#DC2626' }}>A retaliation window is active</strong> \u2014 this is the most dangerous period (18-72h post-homicide). Enhanced security protocols should be in effect. </>}
+              {acuteCount > 0 && retWindows.length === 0 && <><strong style={{ color: '#DC2626' }}>{acuteCount} zone{acuteCount !== 1 ? 's are' : ' is'} in the ACUTE phase</strong> (0-72h). Heightened vigilance is recommended. </>}
+              {acuteCount === 0 && activeCount > 0 && <>{activeCount} zone{activeCount !== 1 ? 's are' : ' is'} in the ACTIVE phase (72h-14d). The community is still processing the event. </>}
+              {acuteCount === 0 && activeCount === 0 && <>All zones are in the WATCH phase (14-125d). The immediate danger has passed but awareness should continue. </>}
+              See details below for each zone\u2019s location, distance, and bearing from campus.
+            </span>
+          )}
         </div>
       </div>
 
@@ -717,6 +910,11 @@ function CampusContagionView({ campus, exposure, allZones, risk, aiAnalysis, aiL
 
       {/* Network Context */}
       <SectionLabel>Network Context</SectionLabel>
+      <div style={{
+        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.5, marginBottom: 10,
+      }}>
+        How this campus compares to the rest of the network.
+      </div>
       <div style={{
         padding: '12px 16px', borderRadius: radius.md, marginBottom: 24,
         background: bg.subtle, border: `1px solid ${border.light}`,

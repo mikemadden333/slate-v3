@@ -780,11 +780,21 @@ function WatchNewsFeed({ newsItems, iceAlerts }: { newsItems: any[]; iceAlerts: 
         color: text.muted,
         textTransform: 'uppercase',
         letterSpacing: '1.5px',
-        marginBottom: 16,
+        marginBottom: 8,
         paddingBottom: 8,
         borderBottom: `1px solid ${border.light}`,
       }}>
         The Wire — {newsItems.length} stories from {new Set(newsItems.map((n: any) => n.source)).size} sources
+      </div>
+      <div style={{
+        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.6,
+        marginBottom: 16, padding: '8px 12px',
+        background: bg.subtle, borderRadius: radius.sm,
+      }}>
+        Live news from Chicago media sources filtered for safety-relevant stories near your campuses.
+        Slate monitors <strong>Block Club Chicago, ABC7, NBC5, Sun-Times, WGN, Fox 32</strong>, and others.
+        Stories are ranked by proximity to your campuses and severity of the incident described.
+        {iceAlerts.length > 0 && <> <strong style={{ color: '#7C3AED' }}>{iceAlerts.length} ICE alert{iceAlerts.length !== 1 ? 's' : ''}</strong> are currently active based on news intelligence.</>}
       </div>
       {newsItems.slice(0, 30).map((item: any, i: number) => (
         <div key={i} style={{
@@ -869,11 +879,22 @@ function WatchFeed({ incidents, iceAlerts, campus }: {
         color: text.muted,
         textTransform: 'uppercase',
         letterSpacing: '1.5px',
-        marginBottom: 16,
+        marginBottom: 8,
         paddingBottom: 8,
         borderBottom: `1px solid ${border.light}`,
       }}>
         {campus ? `${campus.short} Area` : 'Network'} — {filtered.length} incidents
+      </div>
+      <div style={{
+        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.6,
+        marginBottom: 16, padding: '8px 12px',
+        background: bg.subtle, borderRadius: radius.sm,
+      }}>
+        {campus ? (
+          <span>All CPD-reported incidents within <strong>2 miles</strong> of {campus.name} from the last 30 days, shown in reverse chronological order. Red dots indicate violent crimes (homicides, shootings, weapons violations, battery, robbery, assault). Amber dots indicate other incident types.</span>
+        ) : (
+          <span>All CPD-reported incidents within <strong>2 miles</strong> of any campus in the network from the last 30 days, shown in reverse chronological order. Red dots indicate violent crimes; amber dots indicate other incident types. This is the raw data feed that powers the PULSE scoring engine.</span>
+        )}
       </div>
       {filtered.slice(0, 50).map((inc, i) => {
         const isViolent = ['HOMICIDE', 'SHOOTING', 'WEAPONS VIOLATION', 'BATTERY', 'ROBBERY', 'ASSAULT'].includes(inc.type);
