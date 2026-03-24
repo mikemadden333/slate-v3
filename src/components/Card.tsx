@@ -231,7 +231,7 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
 
   return (
     <div style={{
-      background: `linear-gradient(135deg, rgba(42,63,95,0.4) 0%, rgba(42,63,95,0.6) 100%)`,
+      background: `linear-gradient(135deg, rgba(18,32,56,0.5) 0%, rgba(18,32,56,0.7) 100%)`,
       border: `1px solid ${isLive ? brand.gold + '40' : brand.gold + '20'}`,
       borderRadius: radius.lg,
       padding: 16,

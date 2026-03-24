@@ -166,7 +166,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                     cursor: 'pointer',
                     transition: transition.fast,
                     background: isActive
-                      ? 'rgba(255,255,255,0.06)'
+                      ? 'rgba(201,165,78,0.08)'
                       : isHovered
                         ? 'rgba(255,255,255,0.03)'
                         : 'transparent',

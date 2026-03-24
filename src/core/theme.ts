@@ -21,16 +21,16 @@ export const brand = {
 
 export const bg = {
   app:      '#0A1628',   // Deep Navy — unified background
-  card:     '#2A3F5F',   // Slate Blue — glass card surfaces
-  cardGlass:'rgba(42, 63, 95, 0.65)', // Glass Card — 50-80% opacity with backdrop blur
+  card:     '#111E35',   // Very subtle lift off deep navy — readable
+  cardGlass:'rgba(18, 32, 56, 0.75)', // Subtle glass — barely lifts off navy, readable
   sidebar:  '#0A1628',   // Deep Navy
   sidebarGlass: 'linear-gradient(180deg, #122040 0%, #0E1A32 30%, #0A1628 70%, #081220 100%)',
   header:   '#0F1D35',   // Slightly lighter navy for top bar
-  hover:    'rgba(42, 63, 95, 0.4)',
+  hover:    'rgba(18, 32, 56, 0.5)',
   selected: 'rgba(201, 165, 78, 0.12)',
   subtle:   '#0E1A32',   // Slightly lighter than deep navy
   gradient: 'linear-gradient(180deg, #0A1628 0%, #0E1A32 100%)',
-  surface:  'rgba(42, 63, 95, 0.5)', // Glass surface fallback
+  surface:  'rgba(18, 32, 56, 0.6)', // Subtle glass surface fallback
 } as const;
 
 // ─── Text Colors ──────────────────────────────────────────────────────────

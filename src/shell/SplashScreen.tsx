@@ -37,9 +37,9 @@ const LETTERS = [
 const UPEM = 1000;
 const TOTAL_WIDTH = 2325;
 
-// ─── Aperture Iris ─────────────────────────────────────────────────────
+// ─── Aperture Iris — Smooth Camera Lens ──────────────────────────────────
 function ApertureIris({ open }: { open: boolean }) {
-  const BLADE_COUNT = 6;
+  const BLADE_COUNT = 8;
   const blades = useMemo(() =>
     Array.from({ length: BLADE_COUNT }, (_, i) => ({
       id: i,
@@ -55,45 +55,62 @@ function ApertureIris({ open }: { open: boolean }) {
       <style>{`
         @keyframes irisOpen {
           0% { clip-path: inset(0% round 0%); opacity: 1; }
-          60% { clip-path: inset(0% round 50%); opacity: 1; }
+          70% { clip-path: inset(0% round 50%); opacity: 0.8; }
           100% { clip-path: inset(-10% round 50%); opacity: 0; }
         }
-        @keyframes bladeRetract {
-          0% { transform: rotate(var(--blade-angle)) translateY(0%) scaleX(1); }
-          40% { transform: rotate(calc(var(--blade-angle) + 15deg)) translateY(-5%) scaleX(0.95); }
-          100% { transform: rotate(calc(var(--blade-angle) + 30deg)) translateY(-120%) scaleX(0.3); }
+        @keyframes lensBladeOpen {
+          0% {
+            transform: rotate(var(--blade-angle)) translateX(0px);
+            opacity: 1;
+          }
+          50% {
+            transform: rotate(calc(var(--blade-angle) + 8deg)) translateX(40px);
+            opacity: 0.8;
+          }
+          100% {
+            transform: rotate(calc(var(--blade-angle) + 12deg)) translateX(520px);
+            opacity: 0;
+          }
         }
       `}</style>
       <div style={{
         position: 'absolute', inset: 0,
-        animation: open ? 'irisOpen 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards' : 'none',
+        animation: open ? 'irisOpen 2.2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards' : 'none',
       }}>
         <svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
           <defs>
             <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="transparent" />
-              <stop offset="35%" stopColor="transparent" />
-              <stop offset="45%" stopColor={BG_BASE} stopOpacity="0.7" />
-              <stop offset="60%" stopColor={BG_BASE} />
+              <stop offset="30%" stopColor="transparent" />
+              <stop offset="50%" stopColor={BG_BASE} stopOpacity="0.6" />
+              <stop offset="70%" stopColor={BG_BASE} />
               <stop offset="100%" stopColor={BG_BASE} />
             </radialGradient>
           </defs>
+          {/* Smooth overlapping curved blades — like a real camera iris */}
           {blades.map(blade => (
             <g key={blade.id} style={{
               transformOrigin: '500px 500px',
               ['--blade-angle' as string]: `${blade.angle}deg`,
-              animation: open ? `bladeRetract 1.6s cubic-bezier(0.4, 0, 0.2, 1) ${blade.id * 0.04}s forwards` : 'none',
+              animation: open
+                ? `lensBladeOpen 2s cubic-bezier(0.25, 0.1, 0.25, 1) ${blade.id * 0.06}s forwards`
+                : 'none',
               transform: `rotate(${blade.angle}deg)`,
             } as React.CSSProperties}>
-              <path d={`M 350,500 Q 500,350 650,500 Q 500,380 350,500 Z`}
-                fill={BG_BASE} stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"
-                style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.5))' }} />
-              <path d={`M 360,498 Q 500,360 640,498`}
-                fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.8" />
+              {/* Main blade — soft curved leaf shape */}
+              <ellipse cx="500" cy="340" rx="260" ry="200"
+                fill={BG_BASE}
+                stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"
+                style={{ filter: 'blur(0.5px)' }} />
+              {/* Subtle highlight edge — mimics light catching the blade edge */}
+              <ellipse cx="500" cy="345" rx="255" ry="195"
+                fill="none"
+                stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
             </g>
           ))}
+          {/* Soft vignette overlay */}
           <circle cx="500" cy="500" r="500" fill="url(#irisGrad)"
-            style={{ opacity: open ? 0 : 1, transition: 'opacity 1.2s ease 0.4s' }} />
+            style={{ opacity: open ? 0 : 1, transition: 'opacity 1.5s ease 0.3s' }} />
         </svg>
       </div>
     </div>
@@ -437,7 +454,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
           @keyframes glassShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         `}</style>
         <div style={{
-          background: 'rgba(42, 63, 95, 0.85)', backdropFilter: 'blur(40px)',
+          background: 'rgba(18, 32, 56, 0.9)', backdropFilter: 'blur(40px)',
           borderRadius: 20, padding: '56px 48px', maxWidth: 520, width: '90%',
           textAlign: 'center', position: 'relative', zIndex: 1,
           boxShadow: '0 32px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.1)',
@@ -507,7 +524,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         transition: 'all 0.8s ease', marginBottom: 48, position: 'relative', zIndex: 1,
       }}>
         <div style={{
-          fontFamily: font.mono, fontSize: 11, letterSpacing: 3.5, color: 'rgba(240,242,245,0.35)',
+          fontFamily: font.mono, fontSize: 11, letterSpacing: 3.5, color: 'rgba(240,242,245,0.55)',
           textTransform: 'uppercase' as const, border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 24, padding: '10px 28px', backdropFilter: 'blur(8px)',
           background: 'rgba(255,255,255,0.025)',
@@ -559,8 +576,8 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       {/* Subtitle */}
       <div style={{
         opacity: subtitleVisible ? 1 : 0, transition: 'all 1s ease',
-        fontFamily: font.body, fontSize: 15, color: 'rgba(184,201,219,0.4)',
-        letterSpacing: 1.2, position: 'relative', zIndex: 1, fontWeight: 300,
+        fontFamily: font.body, fontSize: 17, color: 'rgba(184,201,219,0.85)',
+        letterSpacing: 1.5, position: 'relative', zIndex: 1, fontWeight: 400,
       }}>
         Intelligence for School Systems
       </div>
@@ -571,10 +588,10 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         alignItems: 'center', gap: 8, opacity: footerVisible ? 1 : 0,
         transition: 'all 1s ease', zIndex: 1,
       }}>
-        <div style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: 3, color: 'rgba(240,242,245,0.25)', textTransform: 'uppercase' as const, fontWeight: 500 }}>
+        <div style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: 3, color: 'rgba(240,242,245,0.5)', textTransform: 'uppercase' as const, fontWeight: 500 }}>
           Madden Education Advisory
         </div>
-        <div style={{ fontFamily: font.mono, fontSize: 8, letterSpacing: 2, color: 'rgba(240,242,245,0.1)', textTransform: 'uppercase' as const }}>
+        <div style={{ fontFamily: font.mono, fontSize: 8, letterSpacing: 2, color: 'rgba(240,242,245,0.3)', textTransform: 'uppercase' as const }}>
           Proprietary & Confidential · All Rights Reserved · 2026
         </div>
         <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 15, opacity: 0.12 }}>
