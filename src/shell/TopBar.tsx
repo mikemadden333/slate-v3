@@ -1,7 +1,7 @@
 /**
  * Slate v3 — TopBar
  * Dark chrome header: deep navy background, light text.
- * Part of the dark frame that wraps the light content area.
+ * Typography v2: IBM Plex Sans — crystal clear on dark backgrounds.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -69,17 +69,17 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             <div>
               <div style={{
                 fontSize: fontSize.lg, fontWeight: fontWeight.medium,
-                color: '#F0F2F5', fontFamily: font.body,
+                color: '#FFFFFF', fontFamily: font.body,
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>
                 {mod.label}
                 {campus && (
-                  <span style={{ fontSize: fontSize.sm, fontWeight: fontWeight.normal, color: '#B8C9DB' }}>
+                  <span style={{ fontSize: fontSize.base, fontWeight: fontWeight.normal, color: '#C8D5E3' }}>
                     / {campus.short}
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: fontSize.xs, color: '#7A8FA8', marginTop: -1 }}>
+              <div style={{ fontSize: fontSize.sm, color: '#8FA3B8', marginTop: -1, fontFamily: font.body }}>
                 {mod.description}
               </div>
             </div>
@@ -95,27 +95,27 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             background: hasEmergency ? '#D94F4F' : '#4A9B6E',
             animation: hasEmergency ? 'emergencyPulse 1.5s ease-in-out infinite' : 'slatePulse 3s ease-in-out infinite',
           }} />
-          <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.normal, color: '#B8C9DB' }}>
+          <div style={{ fontSize: fontSize.base, fontWeight: fontWeight.normal, color: '#C8D5E3', fontFamily: font.body }}>
             {dateStr}
           </div>
           {hasEmergency && (
             <div style={{
-              padding: '1px 7px', borderRadius: radius.full,
+              padding: '2px 8px', borderRadius: radius.full,
               background: 'rgba(217, 79, 79, 0.15)', border: '1px solid rgba(217, 79, 79, 0.30)',
-              fontSize: 10, fontWeight: 500, color: '#D94F4F',
-              letterSpacing: 0.5,
+              fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: '#D94F4F',
+              letterSpacing: 0.5, fontFamily: font.body,
             }}>
               {activeEmergencies.length} ALERT{activeEmergencies.length > 1 ? 'S' : ''}
             </div>
           )}
         </div>
         <div style={{
-          fontSize: 10, color: '#7A8FA8', fontFamily: font.mono,
+          fontSize: fontSize.sm, color: '#8FA3B8', fontFamily: font.mono,
           letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6,
         }}>
           <span>{timeStr} CDT</span>
           <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
-          <span style={{ color: hasEmergency ? '#D94F4F' : '#4A9B6E' }}>
+          <span style={{ color: hasEmergency ? '#D94F4F' : '#4A9B6E', fontWeight: fontWeight.medium }}>
             {hasEmergency ? 'EMERGENCY ACTIVE' : 'AI MONITORING'}
           </span>
         </div>
@@ -124,11 +124,12 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
       {/* Right: Ask Slate + Role badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
-          padding: '4px 12px', borderRadius: radius.full,
+          padding: '5px 14px', borderRadius: radius.full,
           background: `${brand.gold}15`,
           border: `1px solid ${brand.gold}30`,
-          fontSize: fontSize.xs, fontWeight: fontWeight.medium,
+          fontSize: fontSize.sm, fontWeight: fontWeight.medium,
           color: brand.gold, textTransform: 'uppercase', letterSpacing: '1px',
+          fontFamily: font.body,
         }}>
           {role === 'ceo' ? 'CEO View' : `Principal · ${campus?.short || ''}`}
         </div>
@@ -136,24 +137,25 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
         <button onClick={onAskSlate} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 16px', borderRadius: radius.lg,
-          border: `1px solid rgba(255,255,255,0.12)`, background: 'rgba(255,255,255,0.05)',
+          border: `1px solid rgba(255,255,255,0.15)`, background: 'rgba(255,255,255,0.06)',
           cursor: 'pointer', transition: transition.fast,
-          fontFamily: font.body, fontSize: fontSize.sm, color: '#B8C9DB',
+          fontFamily: font.body, fontSize: fontSize.base, color: '#C8D5E3',
         }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = brand.gold;
             e.currentTarget.style.boxShadow = `0 0 0 2px ${brand.gold}20`;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
             e.currentTarget.style.boxShadow = 'none';
           }}
         >
           <span style={{ fontSize: fontSize.md }}>✦</span>
           Ask Slate
           <span style={{
-            fontSize: fontSize.xs, color: '#7A8FA8',
-            padding: '1px 6px', borderRadius: radius.sm, background: 'rgba(255,255,255,0.06)',
+            fontSize: fontSize.sm, color: '#8FA3B8',
+            padding: '1px 6px', borderRadius: radius.sm, background: 'rgba(255,255,255,0.08)',
+            fontFamily: font.mono,
           }}>
             ⌘K
           </span>

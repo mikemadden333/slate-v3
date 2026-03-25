@@ -1,6 +1,7 @@
 /**
  * Slate v3 — Sidebar
- * MEA Brand Guide v1.0 — Deep navy glass sidebar with gold accents.
+ * MEA Brand Guide v2.0 — Deep navy glass sidebar with gold accents.
+ * Typography v2: IBM Plex Sans — improved legibility on dark backgrounds.
  */
 
 import React, { useState } from 'react';
@@ -39,22 +40,22 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
       {/* ── Brand ── */}
       <div style={{
         padding: collapsed ? '20px 12px' : '20px 20px',
-        borderBottom: `1px solid ${border.light}`,
+        borderBottom: `1px solid ${border.chromLight}`,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
       }} onClick={onToggleCollapse}>
         <div style={{
-          width: 32,
-          height: 32,
+          width: 34,
+          height: 34,
           borderRadius: radius.md,
           background: `linear-gradient(135deg, ${brand.gold} 0%, ${brand.mutedGold} 100%)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: font.display,
-          fontSize: fontSize.lg,
+          fontSize: fontSize.xl,
           fontWeight: fontWeight.light,
           color: brand.navy,
           flexShrink: 0,
@@ -65,15 +66,15 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
           <div>
             <div style={{
               fontFamily: font.display,
-              fontSize: fontSize.lg,
+              fontSize: fontSize.xl,
               fontWeight: fontWeight.light,
-              color: text.inverse,
+              color: '#FFFFFF',
               letterSpacing: '0.5px',
             }}>
               {APP_NAME}
             </div>
             <div style={{
-              fontSize: '9px',
+              fontSize: fontSize.xs,
               color: brand.gold,
               letterSpacing: '1.5px',
               textTransform: 'uppercase',
@@ -91,11 +92,11 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
       {!collapsed && (
         <div style={{
           padding: '14px 20px',
-          borderBottom: `1px solid ${border.light}`,
+          borderBottom: `1px solid ${border.chromLight}`,
         }}>
           <div style={{
             fontSize: fontSize.xs,
-            color: 'rgba(184,201,219,0.4)',
+            color: 'rgba(184,201,219,0.55)',
             textTransform: 'uppercase',
             letterSpacing: '1px',
             marginBottom: 6,
@@ -105,17 +106,17 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
             Network
           </div>
           <div style={{
-            fontSize: fontSize.sm,
-            color: text.inverse,
+            fontSize: fontSize.base,
+            color: '#E8ECF1',
             fontWeight: fontWeight.normal,
             fontFamily: font.body,
           }}>
             {network.name}
           </div>
           <div style={{
-            fontSize: fontSize.xs,
-            color: 'rgba(184,201,219,0.5)',
-            marginTop: 2,
+            fontSize: fontSize.sm,
+            color: 'rgba(184,201,219,0.65)',
+            marginTop: 3,
             fontFamily: font.body,
           }}>
             {network.campusCount} campuses · {network.city}, {network.state}
@@ -130,11 +131,11 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
         padding: collapsed ? '12px 8px' : '12px 12px',
       }}>
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} style={{ marginBottom: 16 }}>
+          <div key={group.label} style={{ marginBottom: 18 }}>
             {!collapsed && (
               <div style={{
-                fontSize: '9px',
-                color: 'rgba(184,201,219,0.35)',
+                fontSize: fontSize.xs,
+                color: 'rgba(184,201,219,0.50)',
                 textTransform: 'uppercase',
                 letterSpacing: '1.5px',
                 padding: '0 8px',
@@ -161,14 +162,14 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    padding: collapsed ? '10px 0' : '8px 10px',
+                    padding: collapsed ? '10px 0' : '9px 10px',
                     borderRadius: radius.md,
                     cursor: 'pointer',
                     transition: transition.fast,
                     background: isActive
-                      ? 'rgba(201,165,78,0.08)'
+                      ? 'rgba(201,165,78,0.10)'
                       : isHovered
-                        ? 'rgba(255,255,255,0.03)'
+                        ? 'rgba(255,255,255,0.05)'
                         : 'transparent',
                     justifyContent: collapsed ? 'center' : 'flex-start',
                     position: 'relative',
@@ -183,7 +184,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                       bottom: collapsed ? -2 : 'auto',
                       transform: collapsed ? 'translateX(-50%)' : 'translateY(-50%)',
                       width: collapsed ? 20 : 3,
-                      height: collapsed ? 3 : 20,
+                      height: collapsed ? 3 : 22,
                       borderRadius: radius.full,
                       background: mod.color,
                     }} />
@@ -191,9 +192,9 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
 
                   <span style={{
                     fontSize: collapsed ? fontSize.lg : fontSize.md,
-                    color: isActive ? mod.color : 'rgba(184,201,219,0.5)',
+                    color: isActive ? mod.color : 'rgba(184,201,219,0.6)',
                     transition: transition.fast,
-                    width: collapsed ? 'auto' : 20,
+                    width: collapsed ? 'auto' : 22,
                     textAlign: 'center',
                     flexShrink: 0,
                   }}>
@@ -202,9 +203,9 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
 
                   {!collapsed && (
                     <span style={{
-                      fontSize: fontSize.sm,
+                      fontSize: fontSize.base,
                       fontWeight: isActive ? fontWeight.medium : fontWeight.normal,
-                      color: isActive ? text.inverse : 'rgba(184,201,219,0.6)',
+                      color: isActive ? '#FFFFFF' : 'rgba(210,220,232,0.75)',
                       transition: transition.fast,
                       fontFamily: font.body,
                     }}>
@@ -221,12 +222,12 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
       {/* ── Role Switcher ── */}
       <div style={{
         padding: collapsed ? '12px 8px' : '16px',
-        borderTop: `1px solid ${border.light}`,
+        borderTop: `1px solid ${border.chromLight}`,
       }}>
         {!collapsed && (
           <div style={{
-            fontSize: '9px',
-            color: 'rgba(184,201,219,0.35)',
+            fontSize: fontSize.xs,
+            color: 'rgba(184,201,219,0.50)',
             textTransform: 'uppercase',
             letterSpacing: '1.5px',
             marginBottom: 8,
@@ -239,7 +240,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
         <div style={{
           display: 'flex',
           gap: 4,
-          background: 'rgba(255,255,255,0.04)',
+          background: 'rgba(255,255,255,0.06)',
           borderRadius: radius.md,
           padding: 3,
         }}>
@@ -249,13 +250,13 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
               onClick={() => setRole(r)}
               style={{
                 flex: 1,
-                padding: collapsed ? '6px 4px' : '6px 12px',
+                padding: collapsed ? '7px 4px' : '7px 12px',
                 borderRadius: radius.sm,
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: fontSize.xs,
-                fontWeight: role === r ? fontWeight.medium : fontWeight.normal,
-                color: role === r ? brand.navy : 'rgba(184,201,219,0.5)',
+                fontSize: fontSize.sm,
+                fontWeight: role === r ? fontWeight.semibold : fontWeight.normal,
+                color: role === r ? brand.navy : 'rgba(210,220,232,0.70)',
                 background: role === r ? brand.gold : 'transparent',
                 transition: transition.fast,
                 textTransform: 'uppercase',
@@ -275,18 +276,18 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
             style={{
               width: '100%',
               marginTop: 8,
-              padding: '6px 8px',
+              padding: '7px 8px',
               borderRadius: radius.sm,
-              border: `1px solid ${border.light}`,
-              background: 'rgba(255,255,255,0.04)',
-              color: text.inverse,
-              fontSize: fontSize.xs,
+              border: `1px solid ${border.chromMedium}`,
+              background: 'rgba(255,255,255,0.06)',
+              color: '#E8ECF1',
+              fontSize: fontSize.sm,
               fontFamily: font.body,
               outline: 'none',
             }}
           >
             {network.campuses.map((c) => (
-              <option key={c.id} value={c.id} style={{ background: brand.navy, color: text.inverse }}>
+              <option key={c.id} value={c.id} style={{ background: brand.navy, color: '#E8ECF1' }}>
                 {c.short}
               </option>
             ))}

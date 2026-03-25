@@ -1,7 +1,12 @@
 /**
  * Slate v3 — Unified Design System
- * MEA Brand Guide v1.0 — "Deep navy frame. Light content workspace. Warm gold accents."
+ * MEA Brand Guide v2.0 — "Deep navy frame. Light content workspace. Warm gold accents."
  * Split approach: dark sidebar/topbar chrome + light content area for maximum readability.
+ * 
+ * TYPOGRAPHY v2: IBM Plex family — designed for data-dense intelligence interfaces.
+ * IBM Plex Sans for body/data, IBM Plex Serif for display headings, IBM Plex Mono for timestamps.
+ * Optimized for legibility at small sizes with excellent tabular figures.
+ * 
  * Every color, spacing, and typography token lives here.
  * No module defines its own colors. Ever.
  */
@@ -40,9 +45,9 @@ export const bg = {
 
 export const text = {
   primary:   '#1A1A2E',  // Dark charcoal — headlines, critical text on light bg
-  secondary: '#4A5568',  // Medium gray — body text, labels on light bg
-  muted:     '#718096',  // Muted gray — secondary info on light bg
-  light:     '#A0AEC0',  // Subdued — tertiary info on light bg
+  secondary: '#3D4A5C',  // Deeper medium gray — body text, labels on light bg (was #4A5568 — too light)
+  muted:     '#5A6A7E',  // Muted gray — secondary info on light bg (was #718096 — too light)
+  light:     '#8494A7',  // Subdued — tertiary info on light bg (was #A0AEC0 — too light)
   inverse:   '#F0F2F5',  // Signal White — text on dark chrome
   accent:    '#C9A54E',  // Warm Gold
   ivory:     '#E8DCC8',  // Soft Ivory — pull quotes on dark bg
@@ -121,37 +126,39 @@ export const shadow = {
 } as const;
 
 // ─── Typography ───────────────────────────────────────────────────────────
-// Brand Guide: Cormorant Garamond (display) + Jost (body)
-// No bold anywhere. Light weights only.
+// v2: IBM Plex family — intelligence-grade legibility.
+// IBM Plex Sans: body, data, labels — optimized for small sizes, excellent tabular figures
+// IBM Plex Serif: display headings only — authoritative, institutional
+// IBM Plex Mono: timestamps, codes, status — crisp monospace
 
 export const font = {
-  display: "'Cormorant Garamond', Georgia, serif",  // Display — editorial, elegant
-  body:    "'Jost', system-ui, -apple-system, sans-serif",  // Body — geometric, modern
-  mono:    "'JetBrains Mono', 'Fira Code', monospace",
+  display: "'IBM Plex Serif', Georgia, serif",
+  body:    "'IBM Plex Sans', system-ui, -apple-system, sans-serif",
+  mono:    "'IBM Plex Mono', 'Fira Code', monospace",
   // Backward compat aliases
-  sans:    "'Jost', system-ui, -apple-system, sans-serif",
-  serif:   "'Cormorant Garamond', Georgia, serif",
+  sans:    "'IBM Plex Sans', system-ui, -apple-system, sans-serif",
+  serif:   "'IBM Plex Serif', Georgia, serif",
 } as const;
 
 export const fontSize = {
-  xs:   '10px',
-  sm:   '12px',
-  base: '13px',
-  md:   '14px',
-  lg:   '16px',
-  xl:   '18px',
-  '2xl':'22px',
-  '3xl':'28px',
-  '4xl':'36px',
+  xs:   '11px',    // Was 10px — too small for labels. 11px is the legibility floor.
+  sm:   '12.5px',  // Was 12px — slight bump for better readability
+  base: '14px',    // Was 13px — standard body text
+  md:   '15px',    // Was 14px — emphasized body
+  lg:   '17px',    // Was 16px — section headings
+  xl:   '20px',    // Was 18px — card headings
+  '2xl':'24px',    // Was 22px — page headings
+  '3xl':'30px',    // Was 28px — display headings
+  '4xl':'38px',    // Was 36px — hero headings
 } as const;
 
 export const fontWeight = {
-  light:    300,  // Primary weight for Cormorant headlines
-  normal:   400,  // Cormorant section titles, Jost body
-  medium:   500,  // Jost labels
-  semibold: 500,  // Mapped to medium — no bold in brand
-  bold:     500,  // Mapped to medium — no bold in brand
-  black:    500,  // Mapped to medium — no bold in brand
+  light:    300,  // Display headings (Plex Serif)
+  normal:   400,  // Body text (Plex Sans)
+  medium:   500,  // Labels, emphasis (Plex Sans)
+  semibold: 600,  // Strong emphasis — KPI values, critical data
+  bold:     600,  // Mapped to semibold — used sparingly for alerts
+  black:    600,  // Mapped to semibold — no heavier weight needed
 } as const;
 
 // ─── Spacing ──────────────────────────────────────────────────────────────

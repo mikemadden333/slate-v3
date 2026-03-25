@@ -2,6 +2,9 @@
  * Watch v2 — Data Fetchers
  * Clean wrappers around each data source. Each returns WatchIncident[].
  * The classifier runs here — only violent crime passes through.
+ * 
+ * v2.1: Enhanced news geocoding with Chicago street/neighborhood dictionary.
+ *       Scanner transcription pipeline via Whisper proxy.
  */
 
 import type { WatchIncident, DataSource, SourceStatus, ViolentCrimeType } from './types';
@@ -39,6 +42,7 @@ function makeIncident(
   source: DataSource,
   url?: string,
   audioUrl?: string,
+  isEstimatedLocation?: boolean,
 ): WatchIncident {
   const nearest = findNearestCampus(lat, lng);
   const baseConfidence = source === 'CPD' ? 'CONFIRMED' : 'REPORTED';
@@ -61,6 +65,7 @@ function makeIncident(
     url,
     rawTitle: title,
     scannerAudioUrl: audioUrl,
+    isEstimatedLocation,
   };
 }
 
@@ -81,6 +86,84 @@ function updateSourceStatus(source: DataSource, ok: boolean, count: number, late
     latencyMs: latency,
     error,
   });
+}
+
+// ─── Chicago Geocoding Dictionary ────────────────────────────────────────
+// Comprehensive neighborhood/street → lat/lng mapping for news geocoding.
+// When a news headline mentions "Englewood" or "63rd and Halsted", we can
+// approximate the location even without a formal geocoding API.
+
+const CHICAGO_LOCATIONS: Array<{ patterns: string[]; lat: number; lng: number; name: string }> = [
+  // Community areas (matching campus neighborhoods + surrounding areas)
+  { patterns: ['englewood', 'west englewood'], lat: 41.7797, lng: -87.6448, name: 'Englewood' },
+  { patterns: ['woodlawn'], lat: 41.7808, lng: -87.6063, name: 'Woodlawn' },
+  { patterns: ['auburn gresham', 'gresham'], lat: 41.7468, lng: -87.6442, name: 'Auburn Gresham' },
+  { patterns: ['roseland', 'pullman'], lat: 41.6953, lng: -87.6228, name: 'Roseland' },
+  { patterns: ['chatham', 'avalon park'], lat: 41.7444, lng: -87.6063, name: 'Chatham' },
+  { patterns: ['austin', 'west austin'], lat: 41.8876, lng: -87.7696, name: 'Austin' },
+  { patterns: ['north lawndale', 'lawndale'], lat: 41.8555, lng: -87.7199, name: 'North Lawndale' },
+  { patterns: ['garfield park', 'east garfield', 'west garfield'], lat: 41.8752, lng: -87.6919, name: 'Garfield Park' },
+  { patterns: ['humboldt park'], lat: 41.9027, lng: -87.7165, name: 'Humboldt Park' },
+  { patterns: ['loop', 'downtown'], lat: 41.8807, lng: -87.6299, name: 'Loop' },
+  // Additional high-crime areas near campuses
+  { patterns: ['back of the yards', 'back of yards', 'new city'], lat: 41.8095, lng: -87.6567, name: 'Back of the Yards' },
+  { patterns: ['south shore'], lat: 41.7600, lng: -87.5750, name: 'South Shore' },
+  { patterns: ['south chicago'], lat: 41.7395, lng: -87.5545, name: 'South Chicago' },
+  { patterns: ['grand crossing'], lat: 41.7623, lng: -87.6147, name: 'Grand Crossing' },
+  { patterns: ['washington park'], lat: 41.7930, lng: -87.6180, name: 'Washington Park' },
+  { patterns: ['greater grand crossing'], lat: 41.7623, lng: -87.6147, name: 'Greater Grand Crossing' },
+  { patterns: ['bronzeville', 'grand boulevard'], lat: 41.8150, lng: -87.6170, name: 'Bronzeville' },
+  { patterns: ['hyde park'], lat: 41.7943, lng: -87.5907, name: 'Hyde Park' },
+  { patterns: ['pilsen', 'lower west side'], lat: 41.8525, lng: -87.6563, name: 'Pilsen' },
+  { patterns: ['little village'], lat: 41.8456, lng: -87.7130, name: 'Little Village' },
+  { patterns: ['brighton park'], lat: 41.8192, lng: -87.6990, name: 'Brighton Park' },
+  { patterns: ['marquette park', 'chicago lawn'], lat: 41.7700, lng: -87.6950, name: 'Marquette Park' },
+  { patterns: ['gage park'], lat: 41.7950, lng: -87.6960, name: 'Gage Park' },
+  { patterns: ['west side'], lat: 41.8760, lng: -87.7200, name: 'West Side' },
+  { patterns: ['south side'], lat: 41.7500, lng: -87.6300, name: 'South Side' },
+  { patterns: ['far south side'], lat: 41.6900, lng: -87.6200, name: 'Far South Side' },
+  // Major intersections (common in crime reporting)
+  { patterns: ['63rd and halsted', '63rd & halsted'], lat: 41.7797, lng: -87.6448, name: '63rd & Halsted' },
+  { patterns: ['79th and halsted', '79th & halsted'], lat: 41.7510, lng: -87.6442, name: '79th & Halsted' },
+  { patterns: ['87th and dan ryan', '87th & dan ryan'], lat: 41.7360, lng: -87.6310, name: '87th & Dan Ryan' },
+  { patterns: ['95th and western', '95th & western'], lat: 41.7220, lng: -87.6840, name: '95th & Western' },
+  { patterns: ['111th and michigan', '111th & michigan'], lat: 41.6920, lng: -87.6230, name: '111th & Michigan' },
+  { patterns: ['47th and king', '47th & king', '47th and king drive'], lat: 41.8100, lng: -87.6170, name: '47th & King' },
+  { patterns: ['madison and pulaski', 'madison & pulaski'], lat: 41.8808, lng: -87.7267, name: 'Madison & Pulaski' },
+  { patterns: ['chicago and western', 'chicago & western'], lat: 41.8956, lng: -87.6867, name: 'Chicago & Western' },
+  { patterns: ['division and california', 'division & california'], lat: 41.9030, lng: -87.6970, name: 'Division & California' },
+];
+
+function geocodeFromText(text: string): { lat: number; lng: number; name: string } | null {
+  const t = text.toLowerCase();
+  // Check intersections first (more specific)
+  for (const loc of CHICAGO_LOCATIONS) {
+    for (const pattern of loc.patterns) {
+      if (t.includes(pattern)) {
+        // Add slight random offset to prevent exact stacking
+        return {
+          lat: loc.lat + (Math.random() - 0.5) * 0.003,
+          lng: loc.lng + (Math.random() - 0.5) * 0.003,
+          name: loc.name,
+        };
+      }
+    }
+  }
+
+  // Try to match "NNth street" patterns for major Chicago streets
+  const streetMatch = t.match(/(\d{2,3})(?:st|nd|rd|th)\s+(?:street|st\b)/);
+  if (streetMatch) {
+    const streetNum = parseInt(streetMatch[1]);
+    // Approximate south side latitude from street number
+    // Chicago's grid: 800 addresses per mile, streets start at Madison (0)
+    // 63rd St ≈ 41.780, 79th ≈ 41.751, 95th ≈ 41.722, 111th ≈ 41.692
+    if (streetNum >= 30 && streetNum <= 130) {
+      const lat = 41.880 - (streetNum / 800) * 0.1;
+      return { lat, lng: -87.64, name: `${streetNum}th St area` };
+    }
+  }
+
+  return null;
 }
 
 // ─── CITIZEN FETCHER ──────────────────────────────────────────────────────
@@ -178,10 +261,9 @@ export async function fetchCPDIncidents(): Promise<WatchIncident[]> {
   try {
     const since = new Date(Date.now() - 30 * 24 * 3600000).toISOString().slice(0, 19);
     const params = new URLSearchParams({
-      $limit: '5000',
-      $where: `latitude IS NOT NULL AND longitude IS NOT NULL AND latitude > 41.65 AND latitude < 41.97 AND longitude > -87.82 AND longitude < -87.57 AND date > '${since}'`,
-      $order: 'date DESC',
-      $select: 'id,date,primary_type,block,latitude,longitude,description',
+      '$where': `date > '${since}'`,
+      '$order': 'date DESC',
+      '$limit': '500',
     });
 
     const res = await fetch(`https://data.cityofchicago.org/resource/ijzp-q8t2.json?${params}`);
@@ -190,34 +272,27 @@ export async function fetchCPDIncidents(): Promise<WatchIncident[]> {
       return [];
     }
 
-    const rows: unknown[] = await res.json();
+    const rows = await res.json() as Array<Record<string, string>>;
 
-    for (const r of rows) {
-      const row = r as Record<string, string>;
+    for (const row of rows) {
       const lat = parseFloat(row.latitude);
       const lng = parseFloat(row.longitude);
-
       if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) continue;
-      if (lat < 41.6 || lat > 42.1 || lng < -87.95 || lng > -87.5) continue;
 
       const crimeType = classifyCPDIncident(row.primary_type ?? '', row.description ?? '');
-      if (!crimeType) continue; // NOT violent crime — skip
+      if (!crimeType) continue;
+
+      const timestamp = row.date ? new Date(row.date).toISOString() : new Date().toISOString();
 
       incidents.push(makeIncident(
-        `cpd_${row.id ?? Math.random()}`,
+        `cpd_${row.id ?? row.case_number ?? Math.random()}`,
         crimeType,
-        `${row.primary_type}: ${row.description}`,
-        `${row.block} — ${row.description}`,
+        `${row.primary_type}: ${row.description}`.slice(0, 120),
+        `${row.block ?? ''} — ${row.location_description ?? ''}`,
         lat, lng,
-        row.date ?? '',
+        timestamp,
         'CPD',
       ));
-    }
-
-    // Log staleness
-    if (incidents.length > 0) {
-      const newestAge = ageMinutes(incidents[0].timestamp);
-      console.log(`Watch v2 CPD: ${incidents.length} violent incidents. Newest: ${Math.round(newestAge / 60)}h old`);
     }
 
     updateSourceStatus('CPD', true, incidents.length, Date.now() - start);
@@ -229,7 +304,7 @@ export async function fetchCPDIncidents(): Promise<WatchIncident[]> {
   return incidents;
 }
 
-// ─── NEWS FETCHER ─────────────────────────────────────────────────────────
+// ─── NEWS FETCHER (Enhanced Geocoding) ───────────────────────────────────
 
 export async function fetchNewsIncidents(): Promise<WatchIncident[]> {
   const start = Date.now();
@@ -267,16 +342,27 @@ export async function fetchNewsIncidents(): Promise<WatchIncident[]> {
         const age = ageMinutes(timestamp);
         if (age > 1440) return; // Skip news older than 24 hours
 
-        // Try to geocode from neighborhood mentions
-        const text = `${title} ${description}`.toLowerCase();
-        let lat = 0, lng = 0;
+        // Enhanced geocoding: try dictionary first, then campus matching
+        const fullText = `${title} ${description}`;
+        const geo = geocodeFromText(fullText);
 
-        for (const campus of CAMPUSES) {
-          if (text.includes(campus.communityArea.toLowerCase())) {
-            // Place near the campus with slight offset
-            lat = campus.lat + (Math.random() - 0.5) * 0.005;
-            lng = campus.lng + (Math.random() - 0.5) * 0.005;
-            break;
+        let lat = 0, lng = 0;
+        let isEstimated = false;
+
+        if (geo) {
+          lat = geo.lat;
+          lng = geo.lng;
+          isEstimated = true; // News locations are always estimates
+        } else {
+          // Fallback: match against campus community areas
+          const t = fullText.toLowerCase();
+          for (const campus of CAMPUSES) {
+            if (t.includes(campus.communityArea.toLowerCase())) {
+              lat = campus.lat + (Math.random() - 0.5) * 0.005;
+              lng = campus.lng + (Math.random() - 0.5) * 0.005;
+              isEstimated = true;
+              break;
+            }
           }
         }
 
@@ -286,12 +372,14 @@ export async function fetchNewsIncidents(): Promise<WatchIncident[]> {
         incidents.push(makeIncident(
           `news_${link || Math.random()}`,
           crimeType,
-          title,
+          `[NEWS] ${title}`,
           description,
           lat, lng,
           timestamp,
           'NEWS',
           link,
+          undefined,
+          isEstimated,
         ));
       });
 
@@ -312,13 +400,24 @@ export async function fetchNewsIncidents(): Promise<WatchIncident[]> {
           const age = ageMinutes(timestamp);
           if (age > 1440) return;
 
-          const text = `${title} ${summary}`.toLowerCase();
+          const fullText = `${title} ${summary}`;
+          const geo = geocodeFromText(fullText);
           let lat = 0, lng = 0;
-          for (const campus of CAMPUSES) {
-            if (text.includes(campus.communityArea.toLowerCase())) {
-              lat = campus.lat + (Math.random() - 0.5) * 0.005;
-              lng = campus.lng + (Math.random() - 0.5) * 0.005;
-              break;
+          let isEstimated = false;
+
+          if (geo) {
+            lat = geo.lat;
+            lng = geo.lng;
+            isEstimated = true;
+          } else {
+            const t = fullText.toLowerCase();
+            for (const campus of CAMPUSES) {
+              if (t.includes(campus.communityArea.toLowerCase())) {
+                lat = campus.lat + (Math.random() - 0.5) * 0.005;
+                lng = campus.lng + (Math.random() - 0.5) * 0.005;
+                isEstimated = true;
+                break;
+              }
             }
           }
           if (lat === 0 && lng === 0) return;
@@ -326,12 +425,14 @@ export async function fetchNewsIncidents(): Promise<WatchIncident[]> {
           incidents.push(makeIncident(
             `news_${link || Math.random()}`,
             crimeType,
-            title,
+            `[NEWS] ${title}`,
             summary,
             lat, lng,
             timestamp,
             'NEWS',
             link,
+            undefined,
+            isEstimated,
           ));
         });
       }
@@ -347,7 +448,34 @@ export async function fetchNewsIncidents(): Promise<WatchIncident[]> {
   return incidents;
 }
 
-// ─── SCANNER FETCHER (with transcription placeholder) ─────────────────────
+// ─── SCANNER FETCHER (with Whisper Transcription) ────────────────────────
+
+// Chicago street/location patterns for extracting addresses from transcripts
+const CHICAGO_STREET_PATTERNS = [
+  /(\d+)\s+(?:block\s+of\s+)?(?:north|south|east|west|n|s|e|w)?\s*(\w+(?:\s+\w+)?)\s+(?:street|st|avenue|ave|boulevard|blvd|drive|dr|road|rd|place|pl|court|ct|way|parkway|pkwy)/gi,
+  /(\d+)\s+(?:north|south|east|west|n|s|e|w)\s+(\w+)/gi,
+];
+
+// Simple scanner transcript location extraction
+function extractLocationFromTranscript(transcript: string): string | null {
+  const t = transcript.toLowerCase();
+  
+  // Check for known intersections/neighborhoods
+  for (const loc of CHICAGO_LOCATIONS) {
+    for (const pattern of loc.patterns) {
+      if (t.includes(pattern)) return loc.name;
+    }
+  }
+  
+  // Try street pattern matching
+  for (const pattern of CHICAGO_STREET_PATTERNS) {
+    pattern.lastIndex = 0;
+    const match = pattern.exec(transcript);
+    if (match) return match[0];
+  }
+  
+  return null;
+}
 
 export async function fetchScannerActivity(): Promise<{
   incidents: WatchIncident[];
@@ -404,12 +532,65 @@ export async function fetchScannerActivity(): Promise<{
       }
     }
 
-    updateSourceStatus('SCANNER', true, rawCalls.length, Date.now() - start);
-    console.log(`Watch v2 Scanner: ${rawCalls.length} calls, ${spikeZones.length} spike zones`);
+    // Attempt Whisper transcription for recent calls with audio
+    const scannerIncidents: WatchIncident[] = [];
+    const recentCalls = rawCalls
+      .filter((c: any) => {
+        const ts = c.time ? new Date(c.time).getTime() : 0;
+        return Date.now() - ts < 30 * 60 * 1000; // Last 30 minutes only
+      })
+      .slice(0, 5); // Limit to 5 most recent to avoid API overload
 
-    // For now, scanner doesn't produce geocoded incidents (needs transcription)
-    // It provides zone-level corroboration for the fusion engine
-    return { incidents: [], totalCalls: rawCalls.length, spikeZones };
+    for (const raw of recentCalls) {
+      const c = raw as Record<string, unknown>;
+      const audioUrl = c.url as string | undefined;
+      if (!audioUrl) continue;
+
+      try {
+        const transcribeRes = await fetch('/api/transcribe-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: audioUrl }),
+        });
+        
+        if (transcribeRes.ok) {
+          const { transcript, error } = await transcribeRes.json() as { transcript: string; error?: string };
+          if (transcript && !error) {
+            // Classify the transcript
+            const crimeType = classifyViolentCrime(transcript);
+            if (crimeType) {
+              // Try to extract location
+              const locationName = extractLocationFromTranscript(transcript);
+              const geo = locationName ? geocodeFromText(locationName) : null;
+              
+              if (geo) {
+                const ts = c.time ? new Date(c.time as string).toISOString() : new Date().toISOString();
+                scannerIncidents.push(makeIncident(
+                  `scanner_${c._id ?? Math.random()}`,
+                  crimeType,
+                  `[SCANNER] ${transcript.slice(0, 100)}`,
+                  transcript,
+                  geo.lat, geo.lng,
+                  ts,
+                  'SCANNER',
+                  undefined,
+                  audioUrl,
+                  true, // estimated location
+                ));
+                console.log(`Watch v2 Scanner: Transcribed violent call near ${geo.name}: ${transcript.slice(0, 60)}`);
+              }
+            }
+          }
+        }
+      } catch {
+        // Transcription failed for this call — continue with others
+      }
+    }
+
+    updateSourceStatus('SCANNER', true, rawCalls.length, Date.now() - start);
+    console.log(`Watch v2 Scanner: ${rawCalls.length} calls, ${spikeZones.length} spike zones, ${scannerIncidents.length} transcribed incidents`);
+
+    return { incidents: scannerIncidents, totalCalls: rawCalls.length, spikeZones };
   } catch (err) {
     updateSourceStatus('SCANNER', false, 0, Date.now() - start, String(err));
     console.error('Watch v2 Scanner fetch error:', err);
@@ -445,7 +626,6 @@ export async function fetchWeather(): Promise<{
     const code = data.current?.weather_code ?? 0;
     const precip = data.current?.precipitation ?? 0;
 
-    // Weather codes: 0-3 clear/cloudy, 45-48 fog, 51-67 rain, 71-77 snow, 80-82 showers, 95-99 thunderstorm
     let condition = 'Clear';
     if (code >= 95) condition = 'Thunderstorm';
     else if (code >= 71) condition = 'Snow';
@@ -453,8 +633,6 @@ export async function fetchWeather(): Promise<{
     else if (code >= 45) condition = 'Fog';
     else if (code >= 2) condition = 'Cloudy';
 
-    // Risk elevating: hot weather (>80F) correlates with increased violence
-    // Also severe weather affects school operations
     const isRiskElevating = temp > 80 || code >= 95 || precip > 5;
 
     return { tempF: temp, condition, isRiskElevating };

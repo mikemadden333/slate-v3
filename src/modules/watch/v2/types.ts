@@ -70,6 +70,7 @@ export interface WatchIncident {
   url?: string;                    // Link to source
   rawTitle?: string;               // Original title before classification
   scannerAudioUrl?: string;        // If from scanner transcription
+  isEstimatedLocation?: boolean;    // True if location is estimated (news/scanner geocoding)
 }
 
 // ─── Campus Threat Level ──────────────────────────────────────────────────
