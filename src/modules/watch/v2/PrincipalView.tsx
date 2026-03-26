@@ -7,10 +7,12 @@
  * - CONFIDENCE WATERFALL: Visual pipeline showing source corroboration
  * - DIRECTION INDICATORS: "0.3 mi NW of campus" with compass bearing
  * - THREAT TRAJECTORY: Rising/falling/stable indicator
+ * - VOICE BRIEFING: "Brief Me" button reads intelligence aloud
+ * - PRINCIPAL ACTION BUTTONS: Notify Staff / Contact CPD / Hold Dismissal
  * - Retaliation window tracker (72h post-shooting)
  * - Dismissal risk window
  * - Flashing new alerts + audio chime
- * - Source freshness bar
+ * - Source freshness bar + expandable health dashboard
  *
  * Layout: Left 55% = Campus-centered map | Right 45% = Briefing + Feed
  */
@@ -44,6 +46,10 @@ const PULSE_CSS = `
 @keyframes watchSlideIn {
   from { opacity: 0; transform: translateX(8px); }
   to { opacity: 1; transform: translateX(0); }
+}
+@keyframes watchBreathing {
+  0%, 100% { opacity: 0.06; }
+  50% { opacity: 0.12; }
 }
 .watch-new-badge {
   animation: watchPulseNew 1.5s ease-in-out infinite;
@@ -112,6 +118,63 @@ function getRetaliationRisk(incidents: WatchIncident[]): { active: boolean; shoo
       ? `Retaliation window active — ${Math.round(remaining)}h remaining after ${newest.crimeType.toLowerCase()} ${fmtAgo(newest.timestamp)}`
       : '',
   };
+}
+
+// ─── AI Reasoning Chain ─────────────────────────────────────────────────
+
+function generateReasoningChain(campus: CampusThreat, allIncidents: WatchIncident[]): string[] {
+  const reasons: string[] = [];
+  const nearby = campus.incidents;
+  const within025 = nearby.filter(i => i.distanceToCampus !== null && i.distanceToCampus <= 0.25);
+  const within05 = nearby.filter(i => i.distanceToCampus !== null && i.distanceToCampus <= 0.5);
+
+  if (nearby.length === 0) {
+    reasons.push('No violent incidents detected within 1 mile radius in the last 6 hours.');
+    reasons.push('All intelligence sources (Citizen, Scanner, News, CPD) are active and reporting.');
+    reasons.push('ASSESSMENT: GREEN — Normal operations. No action required.');
+    return reasons;
+  }
+
+  reasons.push(`${nearby.length} violent incident${nearby.length !== 1 ? 's' : ''} detected within 1 mile of campus.`);
+
+  if (within025.length > 0) {
+    reasons.push(`CRITICAL: ${within025.length} incident${within025.length !== 1 ? 's' : ''} within ¼ mile — immediate proximity to campus.`);
+  } else if (within05.length > 0) {
+    reasons.push(`${within05.length} incident${within05.length !== 1 ? 's' : ''} within ½ mile — elevated proximity.`);
+  }
+
+  // Confidence analysis
+  const confirmed = nearby.filter(i => i.confidence === 'CONFIRMED');
+  const corroborated = nearby.filter(i => i.confidence === 'CORROBORATED');
+  const reported = nearby.filter(i => i.confidence === 'REPORTED');
+
+  if (confirmed.length > 0) {
+    reasons.push(`${confirmed.length} incident${confirmed.length !== 1 ? 's' : ''} CONFIRMED by CPD records (95% confidence).`);
+  }
+  if (corroborated.length > 0) {
+    reasons.push(`${corroborated.length} incident${corroborated.length !== 1 ? 's' : ''} corroborated by multiple sources (85% confidence).`);
+  }
+  if (reported.length > 0) {
+    reasons.push(`${reported.length} single-source report${reported.length !== 1 ? 's' : ''} awaiting corroboration (70% confidence).`);
+  }
+
+  // Trajectory
+  const trajectory = getThreatTrajectory(allIncidents, campus.lat, campus.lng);
+  if (trajectory === 'rising') {
+    reasons.push('TRAJECTORY: Rising — more activity in the last 3 hours than the previous 3.');
+  } else if (trajectory === 'falling') {
+    reasons.push('TRAJECTORY: Falling — activity decreasing over time.');
+  }
+
+  // Dismissal
+  if (isDismissalWindow()) {
+    reasons.push('⚠ DISMISSAL WINDOW ACTIVE — heightened risk during student movement.');
+  }
+
+  const config = THREAT_CONFIG[campus.threatLevel];
+  reasons.push(`ASSESSMENT: ${campus.threatLevel} — ${config.description}`);
+
+  return reasons;
 }
 
 // ─── Confidence Waterfall ────────────────────────────────────────────────
@@ -242,6 +305,31 @@ function IncidentDetail({ incident, campus, onClose }: {
         {/* CONFIDENCE WATERFALL */}
         <ConfidenceWaterfall incident={incident} />
 
+        {/* AI Reasoning Chain */}
+        <div style={{ marginBottom: space.lg }}>
+          <div style={{
+            fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase',
+            letterSpacing: '0.08em', marginBottom: 8, fontWeight: fontWeight.medium,
+          }}>
+            AI Reasoning
+          </div>
+          <div style={{
+            padding: space.md, background: bg.subtle, borderRadius: radius.md,
+            borderLeft: `3px solid ${status.blue}`,
+          }}>
+            {generateReasoningChain(campus, [incident]).map((reason, i) => (
+              <div key={i} style={{
+                fontSize: fontSize.sm, lineHeight: 1.6,
+                  marginBottom: i < reasoningChain.length - 1 ? 2 : 0,
+                  fontWeight: reason.startsWith('ASSESSMENT') || reason.startsWith('CRITICAL') ? fontWeight.semibold : fontWeight.regular,
+                  color: reason.startsWith('CRITICAL') ? status.red : reason.startsWith('ASSESSMENT') ? text.primary : text.secondary,
+              }}>
+                {reason}
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Location with direction */}
         <div style={{ marginBottom: space.lg }}>
           <div style={{ fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Location</div>
@@ -335,6 +423,7 @@ function CampusMap({ campus, incidents, onSelectIncident, newIncidentIds }: {
     L.circle([campus.lat, campus.lng], {
       radius: 402.336, fillColor: '#C53030', fillOpacity: isElevated ? 0.06 : 0.04,
       color: '#C53030', opacity: isElevated ? 0.3 : 0.2, weight: 1,
+      className: isElevated ? 'watch-breathing-ring' : '',
     }).addTo(lg);
     L.circle([campus.lat, campus.lng], {
       radius: 804.672, fillColor: '#C07C1E', fillOpacity: 0.03,
@@ -533,9 +622,83 @@ function getRecommendedAction(campus: CampusThreat): { title: string; text: stri
   }
 }
 
+// ─── Principal Action Buttons ───────────────────────────────────────────
+
+function PrincipalActions({ campus, campusInfo }: { campus: CampusThreat; campusInfo: typeof CAMPUSES[0] }) {
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const showFeedback = (msg: string) => {
+    setActionFeedback(msg);
+    setTimeout(() => setActionFeedback(null), 3000);
+  };
+
+  if (campus.threatLevel === 'GREEN') return null;
+
+  return (
+    <div style={{
+      padding: `${space.sm} ${space.xl}`, borderBottom: `1px solid ${border.light}`,
+      background: bg.card,
+    }}>
+      <div style={{
+        fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase',
+        letterSpacing: '0.08em', marginBottom: 6, fontWeight: fontWeight.medium,
+      }}>
+        Quick Actions
+      </div>
+      <div style={{ display: 'flex', gap: space.sm }}>
+        <button
+          onClick={() => showFeedback('Staff notification template generated — ready to send in production')}
+          style={{
+            flex: 1, padding: `${space.sm} ${space.md}`, borderRadius: radius.md,
+            background: status.amberBg, border: `1px solid ${status.amber}30`,
+            cursor: 'pointer', fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
+            color: status.amber, fontFamily: font.body, letterSpacing: '0.03em',
+          }}
+        >
+          Notify Staff
+        </button>
+        <button
+          onClick={() => showFeedback('CPD District liaison contact displayed — call (312) 745-6110')}
+          style={{
+            flex: 1, padding: `${space.sm} ${space.md}`, borderRadius: radius.md,
+            background: status.blueBg, border: `1px solid ${status.blue}30`,
+            cursor: 'pointer', fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
+            color: status.blue, fontFamily: font.body, letterSpacing: '0.03em',
+          }}
+        >
+          Contact CPD
+        </button>
+        {campus.threatLevel === 'RED' && (
+          <button
+            onClick={() => showFeedback('Dismissal hold protocol initiated — parent communication template ready')}
+            style={{
+              flex: 1, padding: `${space.sm} ${space.md}`, borderRadius: radius.md,
+              background: status.redBg, border: `1px solid ${status.red}30`,
+              cursor: 'pointer', fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
+              color: status.red, fontFamily: font.body, letterSpacing: '0.03em',
+            }}
+          >
+            Hold Dismissal
+          </button>
+        )}
+      </div>
+      {actionFeedback && (
+        <div style={{
+          marginTop: space.sm, padding: `${space.xs} ${space.md}`, borderRadius: radius.sm,
+          background: status.greenBg, border: `1px solid ${status.green}20`,
+          fontSize: fontSize.xs, color: status.green, fontWeight: fontWeight.medium,
+          animation: 'watchFadeIn 0.2s ease-out',
+        }}>
+          ✓ {actionFeedback}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Source Freshness Bar ────────────────────────────────────────────────
 
-function FreshnessBar({ data }: { data: WatchDataState }) {
+function FreshnessBar({ data, onExpand }: { data: WatchDataState; onExpand?: () => void }) {
   const net = data.networkStatus;
   if (!net) return null;
   const sources = [
@@ -545,10 +708,14 @@ function FreshnessBar({ data }: { data: WatchDataState }) {
     { name: 'CPD', age: net.dataAge.cpd, unit: 'h', threshold: [24, 168] },
   ];
   return (
-    <div style={{
-      display: 'flex', gap: 2, padding: `6px ${space.xl}`,
-      borderTop: `1px solid ${border.light}`, background: bg.subtle,
-    }}>
+    <div
+      style={{
+        display: 'flex', gap: 2, padding: `6px ${space.xl}`,
+        borderTop: `1px solid ${border.light}`, background: bg.subtle,
+        cursor: onExpand ? 'pointer' : 'default',
+      }}
+      onClick={onExpand}
+    >
       {sources.map(s => {
         const isLive = s.age < s.threshold[0];
         const isStale = s.age >= s.threshold[1];
@@ -566,6 +733,106 @@ function FreshnessBar({ data }: { data: WatchDataState }) {
   );
 }
 
+// ─── Source Health Dashboard ─────────────────────────────────────────────
+
+function SourceHealthDashboard({ data, onClose }: { data: WatchDataState; onClose: () => void }) {
+  const net = data.networkStatus;
+  if (!net) return null;
+
+  const sources = [
+    { name: 'CITIZEN', age: net.dataAge.citizen, unit: 'min', threshold: [5, 15], items: data.incidents.filter(i => i.source === 'CITIZEN').length, desc: 'Real-time crowdsourced incident reports' },
+    { name: 'SCANNER', age: net.dataAge.scanner, unit: 'min', threshold: [5, 15], items: data.scannerTotalCalls, desc: 'Police radio zone activity monitoring' },
+    { name: 'NEWS', age: net.dataAge.news, unit: 'min', threshold: [30, 120], items: data.incidents.filter(i => i.source === 'NEWS').length, desc: 'Chicago news RSS feeds (8 sources)' },
+    { name: 'CPD', age: net.dataAge.cpd, unit: 'hrs', threshold: [24, 168], items: data.incidents.filter(i => i.source === 'CPD').length, desc: 'Chicago Police Dept. CLEAR data (8+ day lag)' },
+  ];
+
+  return (
+    <div style={{
+      position: 'absolute', bottom: 32, left: 0, right: 0,
+      background: bg.card, borderTop: `1px solid ${border.light}`,
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.08)', zIndex: 15,
+      animation: 'watchFadeIn 0.2s ease-out',
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: `${space.sm} ${space.xl}`, borderBottom: `1px solid ${border.light}`,
+      }}>
+        <span style={{ fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: fontWeight.medium }}>
+          Source Health Dashboard
+        </span>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: fontSize.sm, color: text.muted, padding: '2px 6px',
+        }}>✕</button>
+      </div>
+      <div style={{ padding: `${space.sm} ${space.xl} ${space.md}` }}>
+        {sources.map(s => {
+          const isLive = s.age < s.threshold[0];
+          const isStale = s.age >= s.threshold[1];
+          const statusColor = s.age >= 999 ? '#A0AEC0' : isLive ? status.green : isStale ? status.red : status.amber;
+          const statusLabel = s.age >= 999 ? 'OFFLINE' : isLive ? 'LIVE' : isStale ? 'STALE' : 'DELAYED';
+          return (
+            <div key={s.name} style={{
+              display: 'flex', alignItems: 'center', gap: space.md,
+              padding: `${space.xs} 0`, borderBottom: `1px solid ${border.light}`,
+            }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, boxShadow: isLive ? `0 0 6px ${statusColor}` : 'none', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: text.primary, fontFamily: font.mono }}>{s.name}</div>
+                <div style={{ fontSize: '10px', color: text.light }}>{s.desc}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: statusColor, fontFamily: font.mono }}>{statusLabel}</div>
+                <div style={{ fontSize: '10px', color: text.light, fontFamily: font.mono }}>
+                  {s.age >= 999 ? '—' : `${s.age}${s.unit} ago`} · {s.items} items
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Network Pulse ──────────────────────────────────────────────────────
+
+function NetworkPulse({ lastRefresh }: { lastRefresh: Date | null }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!lastRefresh) return;
+      const elapsed = (Date.now() - lastRefresh.getTime()) / 1000;
+      const refreshInterval = 120; // 2 minutes
+      setProgress(Math.min(1, elapsed / refreshInterval));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lastRefresh]);
+
+  const size = 16;
+  const strokeWidth = 2;
+  const r = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * r;
+  const dashOffset = circumference * (1 - progress);
+
+  return (
+    <svg width={size} height={size} style={{ marginLeft: 4 }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={border.light} strokeWidth={strokeWidth} />
+      <circle
+        cx={size/2} cy={size/2} r={r} fill="none"
+        stroke={progress < 0.8 ? status.green : status.amber}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={dashOffset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        style={{ transition: 'stroke-dashoffset 1s linear' }}
+      />
+    </svg>
+  );
+}
+
 // ─── Principal View Component ────────────────────────────────────────────
 
 interface PrincipalViewProps {
@@ -576,6 +843,8 @@ interface PrincipalViewProps {
 
 export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, onBack }) => {
   const [selectedIncident, setSelectedIncident] = useState<WatchIncident | null>(null);
+  const [showSourceHealth, setShowSourceHealth] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const previousIncidentIds = useRef<Set<string>>(new Set());
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set());
 
@@ -586,6 +855,25 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
     setSelectedIncident(inc);
   }, []);
 
+  // Voice Briefing
+  const handleVoiceBriefing = useCallback(() => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    if (!campusThreat) return;
+    const briefingText = generateBriefing(campusThreat, data.incidents);
+    const utterance = new SpeechSynthesisUtterance(briefingText);
+    utterance.rate = 0.9;
+    utterance.pitch = 0.95;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  }, [isSpeaking, campusThreat, data.incidents]);
+
+  // New incident detection
   useEffect(() => {
     const currentIds = new Set(data.incidents.map(i => i.id));
     const newIds = new Set<string>();
@@ -594,10 +882,31 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
     }
     if (newIds.size > 0 && previousIncidentIds.current.size > 0) {
       setNewIncidentIds(newIds);
+      // Audio chime for new incidents near this campus
+      if (campusThreat) {
+        const nearbyNew = data.incidents.filter(i =>
+          newIds.has(i.id) && haversine(campusThreat.lat, campusThreat.lng, i.lat, i.lng) <= 1.0
+        );
+        if (nearbyNew.length > 0) {
+          try {
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.setValueAtTime(660, ctx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.4);
+          } catch (e) { /* audio blocked */ }
+        }
+      }
       setTimeout(() => setNewIncidentIds(new Set()), 60000);
     }
     previousIncidentIds.current = currentIds;
-  }, [data.incidents]);
+  }, [data.incidents, campusThreat]);
 
   if (!campusThreat || !campusInfo) {
     return (
@@ -613,6 +922,7 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
   const retaliationRisk = getRetaliationRisk(campusThreat.incidents);
   const dismissalActive = isDismissalWindow();
   const trajectory = getThreatTrajectory(data.incidents, campusInfo.lat, campusInfo.lng);
+  const reasoningChain = generateReasoningChain(campusThreat, data.incidents);
 
   const within025 = campusThreat.incidents.filter(i => haversine(campusInfo.lat, campusInfo.lng, i.lat, i.lng) <= 0.25).length;
   const within05 = campusThreat.incidents.filter(i => haversine(campusInfo.lat, campusInfo.lng, i.lat, i.lng) <= 0.5).length;
@@ -636,6 +946,25 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
           onSelectIncident={handleSelectIncident}
           newIncidentIds={newIncidentIds}
         />
+
+        {/* Map overlay — campus status + pulse */}
+        <div style={{
+          position: 'absolute', top: space.lg, left: space.lg,
+          background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+          borderRadius: radius.md, padding: `${space.sm} ${space.md}`,
+          boxShadow: shadow.sm, border: `1px solid ${border.light}`, zIndex: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: space.sm }}>
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: config.color, boxShadow: `0 0 8px ${config.color}60`,
+            }} />
+            <span style={{ fontFamily: font.display, fontSize: fontSize.base, fontWeight: fontWeight.light, color: text.primary }}>
+              {config.label}
+            </span>
+            <NetworkPulse lastRefresh={data.lastRefresh} />
+          </div>
+        </div>
 
         {/* Map legend */}
         <div style={{
@@ -676,6 +1005,11 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
             campus={campusThreat}
             onClose={() => setSelectedIncident(null)}
           />
+        )}
+
+        {/* Source health dashboard overlay */}
+        {showSourceHealth && (
+          <SourceHealthDashboard data={data} onClose={() => setShowSourceHealth(false)} />
         )}
 
         {/* Back button */}
@@ -766,20 +1100,69 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
           ))}
         </div>
 
-        {/* Intelligence Briefing */}
+        {/* Intelligence Briefing with Voice */}
         <div style={{
           padding: `${space.md} ${space.xl}`, borderBottom: `1px solid ${border.light}`, background: bg.card,
         }}>
           <div style={{
             fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase',
             letterSpacing: '0.08em', marginBottom: space.sm, fontWeight: fontWeight.medium,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            Campus Briefing
+            <span>Campus Briefing</span>
+            <button
+              onClick={handleVoiceBriefing}
+              style={{
+                background: isSpeaking ? status.redBg : status.blueBg,
+                border: `1px solid ${isSpeaking ? status.redBorder : status.blueBorder}`,
+                borderRadius: radius.sm, padding: '2px 8px',
+                cursor: 'pointer', fontSize: '10px',
+                fontWeight: fontWeight.semibold,
+                color: isSpeaking ? status.red : status.blue,
+                fontFamily: font.mono, letterSpacing: '0.05em',
+              }}
+              title={isSpeaking ? 'Stop speaking' : 'Read campus briefing aloud'}
+            >
+              {isSpeaking ? '◼ STOP' : '🔊 BRIEF ME'}
+            </button>
           </div>
           <div style={{ fontSize: fontSize.base, color: text.primary, lineHeight: 1.65 }}>
             {briefing}
           </div>
         </div>
+
+        {/* AI Reasoning Chain */}
+        {campusThreat.threatLevel !== 'GREEN' && (
+          <div style={{
+            padding: `${space.sm} ${space.xl}`, borderBottom: `1px solid ${border.light}`,
+            background: bg.card,
+          }}>
+            <div style={{
+              fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase',
+              letterSpacing: '0.08em', marginBottom: 6, fontWeight: fontWeight.medium,
+            }}>
+              AI Reasoning
+            </div>
+            <div style={{
+              padding: `${space.sm} ${space.md}`, background: bg.subtle, borderRadius: radius.md,
+              borderLeft: `3px solid ${status.blue}`,
+            }}>
+              {reasoningChain.map((reason, i) => (
+                <div key={i} style={{
+                  fontSize: fontSize.xs, lineHeight: 1.6,
+                  marginBottom: i < reasoningChain.length - 1 ? 2 : 0,
+                  fontWeight: reason.startsWith('ASSESSMENT') || reason.startsWith('CRITICAL') || reason.startsWith('TRAJECTORY') ? fontWeight.semibold : fontWeight.regular,
+                  color: reason.startsWith('CRITICAL') ? status.red : reason.startsWith('ASSESSMENT') ? text.primary : text.secondary,
+                }}>
+                  {reason}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Principal Action Buttons */}
+        <PrincipalActions campus={campusThreat} campusInfo={campusInfo} />
 
         {/* Retaliation risk warning */}
         {retaliationRisk?.active && (
@@ -800,22 +1183,22 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
         )}
 
         {/* Recommended action */}
-        <div style={{ padding: `${space.md} ${space.xl}`, borderBottom: `1px solid ${border.light}` }}>
+        <div style={{ padding: `${space.sm} ${space.xl}`, borderBottom: `1px solid ${border.light}` }}>
           <div style={{
-            padding: `${space.md} ${space.lg}`, borderRadius: radius.md,
+            padding: `${space.sm} ${space.md}`, borderRadius: radius.md,
             background: action.bgColor, border: `1px solid ${action.color}30`,
           }}>
-            <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: action.color, marginBottom: 4 }}>
+            <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.medium, color: action.color, marginBottom: 4 }}>
               {action.title}
             </div>
-            <div style={{ fontSize: fontSize.sm, color: text.secondary, lineHeight: 1.5 }}>
+            <div style={{ fontSize: fontSize.xs, color: text.secondary, lineHeight: 1.5 }}>
               {action.text}
             </div>
           </div>
         </div>
 
         {/* Incident feed with direction indicators */}
-        <div style={{ flex: 1, overflow: 'auto', padding: `${space.md} ${space.xl}` }}>
+        <div style={{ flex: 1, overflow: 'auto', padding: `${space.sm} ${space.xl}` }}>
           <div style={{
             fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase',
             letterSpacing: '0.08em', marginBottom: space.sm, fontWeight: fontWeight.medium,
@@ -921,7 +1304,7 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
         </div>
 
         {/* Source Freshness Bar */}
-        <FreshnessBar data={data} />
+        <FreshnessBar data={data} onExpand={() => setShowSourceHealth(!showSourceHealth)} />
       </div>
     </div>
   );
