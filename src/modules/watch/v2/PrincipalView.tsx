@@ -26,10 +26,12 @@ import { THREAT_CONFIG, VIOLENT_CRIME_LABELS, CONFIDENCE_SCORE } from './types';
 import { CAMPUSES } from '../data/campuses';
 import { haversine, fmtAgo, bearing, compassLabel } from '../engine/geo';
 import { brand, bg, text, font, fontSize, fontWeight, border, shadow, radius, space, status } from '../../../core/theme';
+import { createGangBoundaryLayer, GANG_BOUNDARY_CSS } from './gangBoundaries';
 
 // ─── CSS Animations ──────────────────────────────────────────────────────
 
 const PULSE_CSS = `
+${GANG_BOUNDARY_CSS}
 @keyframes watchPulseRed {
   0%, 100% { box-shadow: 0 0 0 0 rgba(197, 48, 48, 0.5); }
   50% { box-shadow: 0 0 0 8px rgba(197, 48, 48, 0); }
@@ -395,15 +397,17 @@ function IncidentDetail({ incident, campus, onClose }: {
 
 // ─── Campus Map (Living Map) ─────────────────────────────────────────────
 
-function CampusMap({ campus, incidents, onSelectIncident, newIncidentIds }: {
+function CampusMap({ campus, incidents, onSelectIncident, newIncidentIds, showGangBoundaries }: {
   campus: CampusThreat;
   incidents: WatchIncident[];
   onSelectIncident: (inc: WatchIncident) => void;
   newIncidentIds: Set<string>;
+  showGangBoundaries: boolean;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const gangLayerRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -533,12 +537,27 @@ function CampusMap({ campus, incidents, onSelectIncident, newIncidentIds }: {
     return () => {};
   }, [campus, incidents, newIncidentIds, onSelectIncident]);
 
+  // Gang boundary layer toggle
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (showGangBoundaries && !gangLayerRef.current) {
+      gangLayerRef.current = createGangBoundaryLayer(map);
+      gangLayerRef.current.addTo(map);
+    } else if (!showGangBoundaries && gangLayerRef.current) {
+      gangLayerRef.current.remove();
+      gangLayerRef.current = null;
+    }
+  }, [showGangBoundaries]);
+
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         layerGroupRef.current = null;
+        gangLayerRef.current = null;
       }
     };
   }, []);
@@ -847,6 +866,7 @@ interface PrincipalViewProps {
 export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, onBack }) => {
   const [selectedIncident, setSelectedIncident] = useState<WatchIncident | null>(null);
   const [showSourceHealth, setShowSourceHealth] = useState(false);
+  const [showGangBoundaries, setShowGangBoundaries] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const previousIncidentIds = useRef<Set<string>>(new Set());
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set());
@@ -867,13 +887,41 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
     }
     if (!campusThreat) return;
     const briefingText = generateBriefing(campusThreat, data.incidents);
-    const utterance = new SpeechSynthesisUtterance(briefingText);
-    utterance.rate = 0.9;
-    utterance.pitch = 0.95;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+
+    // Prefer a calm, soft female voice
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(v =>
+      v.name.includes('Samantha') || v.name.includes('Victoria') ||
+      v.name.includes('Karen') || v.name.includes('Moira') ||
+      v.name.includes('Tessa') || v.name.includes('Google US English Female') ||
+      v.name.includes('Microsoft Zira') || v.name.includes('Microsoft Jenny') ||
+      v.name.includes('Google UK English Female')
+    ) || voices.find(v =>
+      v.name.toLowerCase().includes('female') ||
+      v.name.includes('Fiona') || v.name.includes('Ava') || v.name.includes('Allison')
+    ) || null;
+
+    // Split into sentences for natural pacing
+    const sentences = briefingText.split(/(?<=[.!?])\s+/).filter(Boolean);
     setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    sentences.forEach((sentence, i) => {
+      const utterance = new SpeechSynthesisUtterance(sentence);
+      utterance.rate = 0.88;
+      utterance.pitch = 1.05;
+      utterance.volume = 0.85;
+      if (femaleVoice) utterance.voice = femaleVoice;
+      if (i === sentences.length - 1) {
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+      }
+      if (i > 0) {
+        const pause = new SpeechSynthesisUtterance('');
+        pause.volume = 0;
+        if (femaleVoice) pause.voice = femaleVoice;
+        window.speechSynthesis.speak(pause);
+      }
+      window.speechSynthesis.speak(utterance);
+    });
   }, [isSpeaking, campusThreat, data.incidents]);
 
   // New incident detection
@@ -910,6 +958,20 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
     }
     previousIncidentIds.current = currentIds;
   }, [data.incidents, campusThreat]);
+
+  // Show loading state while data is being fetched
+  if (data.isLoading) {
+    return (
+      <div style={{ display: 'flex', height: '100%', background: bg.app, fontFamily: font.body, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+        <div style={{
+          width: 12, height: 12, borderRadius: '50%',
+          background: brand.gold, animation: 'pulse 1.5s ease-in-out infinite',
+        }} />
+        <div style={{ color: text.muted, fontSize: fontSize.sm, fontFamily: font.display }}>Loading safety intelligence...</div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } }`}</style>
+      </div>
+    );
+  }
 
   if (!campusThreat || !campusInfo) {
     return (
@@ -948,6 +1010,7 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
           incidents={data.incidents}
           onSelectIncident={handleSelectIncident}
           newIncidentIds={newIncidentIds}
+          showGangBoundaries={showGangBoundaries}
         />
 
         {/* Map overlay — campus status + pulse */}
@@ -986,6 +1049,30 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
               Campus
             </span>
           </div>
+        </div>
+
+        {/* Gang Boundary Toggle */}
+        <div
+          onClick={() => setShowGangBoundaries(!showGangBoundaries)}
+          style={{
+            position: 'absolute', bottom: space.lg, right: space.lg,
+            background: showGangBoundaries ? 'rgba(43,95,138,0.9)' : 'rgba(255,255,255,0.92)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: radius.md, padding: `${space.xs} ${space.md}`,
+            boxShadow: shadow.sm, border: `1px solid ${showGangBoundaries ? '#2B5F8A' : border.light}`,
+            zIndex: 10, cursor: 'pointer',
+            fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
+            fontFamily: font.mono, letterSpacing: '0.03em',
+            color: showGangBoundaries ? '#fff' : text.secondary,
+            transition: 'all 0.2s ease',
+            display: 'flex', alignItems: 'center', gap: 6,
+            userSelect: 'none',
+          }}
+          title="Toggle CPD 2024 Gang Territory Boundaries"
+        >
+          <span style={{ fontSize: '13px' }}>{showGangBoundaries ? '\u25fc' : '\u25fb'}</span>
+          GANG TERRITORIES
+          <span style={{ fontSize: '9px', opacity: 0.7 }}>CPD 2024</span>
         </div>
 
         {data.isRefreshing && (

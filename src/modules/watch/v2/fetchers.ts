@@ -490,7 +490,7 @@ export async function fetchScannerActivity(): Promise<{
     const res = await fetch(`/api/openmhz-proxy?since=${since}`);
     if (!res.ok) {
       updateSourceStatus('SCANNER', false, 0, Date.now() - start, `HTTP ${res.status}`);
-      return { incidents: [], totalCalls: 0, spikeZones: [] };
+      return { incidents: [], totalCalls: 0, spikeZones: [], rawCalls: [] };
     }
 
     const data: unknown = await res.json();

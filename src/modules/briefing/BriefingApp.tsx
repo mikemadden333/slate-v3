@@ -20,6 +20,9 @@ import {
   bg, text as textColor, brand, border, status as statusColor, font, fontSize, fontWeight,
   shadow, radius, transition, modules as modColors,
 } from '../../core/theme';
+import { useWatchSummary } from '../watch/v2/useWatchSummary';
+import { THREAT_CONFIG } from '../watch/v2/types';
+import type { ThreatLevel } from '../watch/v2/types';
 
 // ─── Section Component ───────────────────────────────────────────────────
 
@@ -510,6 +513,162 @@ function EmergencyBrief() {
   );
 }
 
+// ─── Safety Intelligence (Watch) ─────────────────────────────────────────
+
+function SafetyIntelligenceBrief() {
+  const watch = useWatchSummary();
+  const net = useNetwork();
+
+  if (watch.isLoading) {
+    return (
+      <BriefSection icon="◎" title="Safety Intelligence" accent={modColors.watch}>
+        <p style={{ margin: 0, color: textColor.muted, fontStyle: 'italic' }}>Loading real-time safety data...</p>
+      </BriefSection>
+    );
+  }
+
+  const threatConfig = THREAT_CONFIG[watch.overallThreat];
+  const hasIncidents = watch.totalActiveIncidents > 0;
+  const priority = watch.campusesRed > 0 ? 'critical' as const
+    : watch.campusesElevated > 0 ? 'elevated' as const
+    : 'normal' as const;
+
+  // Build incident type summary string
+  const typeEntries = Object.entries(watch.incidentsByType).sort((a, b) => b[1] - a[1]);
+  const typeStr = typeEntries.map(([type, count]) => `${count} ${type.toLowerCase()}${count > 1 ? 's' : ''}`).join(', ');
+
+  return (
+    <BriefSection icon="◎" title="Safety Intelligence" accent={modColors.watch} priority={priority}>
+      <p style={{ margin: '0 0 12px' }}>
+        Network threat level:{' '}
+        <M v={threatConfig.label.toUpperCase()} c={threatConfig.color} />.{' '}
+        {hasIncidents
+          ? <><M v={watch.totalActiveIncidents.toString()} c={watch.totalActiveIncidents > 5 ? statusColor.red : statusColor.amber} /> active violent crime incident{watch.totalActiveIncidents !== 1 ? 's' : ''} detected within 1 mile of {net.name} campuses in the last 6 hours.</>
+          : <>No violent crime incidents detected within 1 mile of any campus in the last 6 hours.</>
+        }
+      </p>
+
+      {hasIncidents && (
+        <>
+          <p style={{ margin: '0 0 12px' }}>
+            <strong>Incident Breakdown:</strong> {typeStr}.{' '}
+            <M v={watch.campusesElevated.toString()} c={watch.campusesElevated > 0 ? statusColor.amber : statusColor.green} /> of {net.campusCount} campuses at elevated status or above.
+            {watch.campusesRed > 0 && <> <strong style={{ color: statusColor.red }}>{watch.campusesRed} campus{watch.campusesRed > 1 ? 'es' : ''} at RED alert.</strong></>}
+          </p>
+
+          {/* Campus Threat Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: 8,
+            margin: '12px 0',
+            padding: 12,
+            background: bg.subtle,
+            borderRadius: radius.md,
+          }}>
+            {watch.campusThreats.map(ct => {
+              const cfg = THREAT_CONFIG[ct.threatLevel];
+              return (
+                <div key={ct.campusId} style={{ textAlign: 'center', padding: '6px 4px' }}>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: cfg.color, margin: '0 auto 4px',
+                    boxShadow: ct.threatLevel !== 'GREEN' ? `0 0 6px ${cfg.color}40` : 'none',
+                  }} />
+                  <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: textColor.secondary }}>{ct.campusShort}</div>
+                  <div style={{ fontSize: '9px', color: cfg.color, fontWeight: fontWeight.bold }}>{cfg.label.toUpperCase()}</div>
+                  {ct.incidentCount > 0 && (
+                    <div style={{ fontSize: '9px', color: textColor.light }}>{ct.incidentCount} inc · {ct.nearestDistance?.toFixed(2)}mi</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <p style={{ margin: '0 0 12px' }}>
+        <strong>Data Confidence:</strong>{' '}
+        <M v={watch.reportedCount.toString()} /> single-source (REPORTED),{' '}
+        <M v={watch.corroboratedCount.toString()} c={watch.corroboratedCount > 0 ? statusColor.amber : textColor.primary} /> multi-source (CORROBORATED),{' '}
+        <M v={watch.confirmedCount.toString()} c={watch.confirmedCount > 0 ? statusColor.green : textColor.primary} /> CPD-confirmed.
+        {watch.corroboratedCount + watch.confirmedCount > 0
+          ? <> Multi-source corroboration is active — confidence levels are elevated.</>
+          : <> All current intelligence is single-source. Corroboration pending.</>
+        }
+      </p>
+
+      <p style={{ margin: 0 }}>
+        <strong>Source Status:</strong>{' '}
+        Citizen {watch.citizenOnline ? '●' : '○'}{' '}
+        Scanner {watch.scannerOnline ? `● (${watch.scannerCallCount} calls)` : '○'}{' '}
+        News {watch.newsOnline ? '●' : '○'}{' '}
+        CPD {watch.cpdOnline ? '●' : '○'}.{' '}
+        {watch.nearestIncidentDistance !== null && watch.nearestIncidentCampus && (
+          <>Nearest incident: <M v={`${watch.nearestIncidentDistance.toFixed(2)} mi`} c={watch.nearestIncidentDistance <= 0.25 ? statusColor.red : watch.nearestIncidentDistance <= 0.5 ? statusColor.amber : textColor.primary} /> from {watch.nearestIncidentCampus}.</>
+        )}
+        {watch.lastUpdated && <> Data as of {watch.lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}.</>
+        }
+      </p>
+    </BriefSection>
+  );
+}
+
+// ─── Campus Safety Brief (Principal View) ────────────────────────────────
+
+function CampusSafetyBrief({ campusId }: { campusId: number }) {
+  const watch = useWatchSummary();
+
+  if (watch.isLoading) {
+    return (
+      <BriefSection icon="◎" title="Campus Safety" accent={modColors.watch}>
+        <p style={{ margin: 0, color: textColor.muted, fontStyle: 'italic' }}>Loading safety data...</p>
+      </BriefSection>
+    );
+  }
+
+  const campusThreat = watch.campusThreats.find(ct => ct.campusId === campusId);
+  if (!campusThreat) return null;
+
+  const cfg = THREAT_CONFIG[campusThreat.threatLevel];
+  const priority = campusThreat.threatLevel === 'RED' ? 'critical' as const
+    : campusThreat.threatLevel !== 'GREEN' ? 'elevated' as const
+    : 'normal' as const;
+
+  return (
+    <BriefSection icon="◎" title="Campus Safety Intelligence" accent={modColors.watch} priority={priority}>
+      <p style={{ margin: '0 0 12px' }}>
+        Campus threat level:{' '}
+        <M v={cfg.label.toUpperCase()} c={cfg.color} />.{' '}
+        {campusThreat.incidentCount > 0
+          ? <><M v={campusThreat.incidentCount.toString()} c={statusColor.amber} /> violent crime incident{campusThreat.incidentCount !== 1 ? 's' : ''} within 1 mile in the last 6 hours.</>
+          : <>No violent crime incidents detected within 1 mile in the last 6 hours.</>
+        }
+      </p>
+      {campusThreat.nearestIncident && campusThreat.nearestDistance !== null && (
+        <p style={{ margin: '0 0 12px' }}>
+          <strong>Nearest Incident:</strong> {campusThreat.nearestIncident.title} —{' '}
+          <M v={`${campusThreat.nearestDistance.toFixed(2)} mi`} c={campusThreat.nearestDistance <= 0.25 ? statusColor.red : statusColor.amber} /> away.{' '}
+          Confidence: <M v={campusThreat.nearestIncident.confidence} c={
+            campusThreat.nearestIncident.confidence === 'CONFIRMED' ? statusColor.green
+            : campusThreat.nearestIncident.confidence === 'CORROBORATED' ? statusColor.amber
+            : textColor.primary
+          } />.{' '}
+          Reported {campusThreat.nearestIncident.ageMinutes < 60
+            ? `${campusThreat.nearestIncident.ageMinutes} minutes ago`
+            : `${Math.round(campusThreat.nearestIncident.ageMinutes / 60)} hours ago`
+          }.
+        </p>
+      )}
+      <p style={{ margin: 0 }}>
+        Network status: <M v={THREAT_CONFIG[watch.overallThreat].label.toUpperCase()} c={THREAT_CONFIG[watch.overallThreat].color} />.{' '}
+        <M v={watch.campusesElevated.toString()} /> of 10 campuses elevated network-wide.{' '}
+        {watch.lastUpdated && <>Live data as of {watch.lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}.</>}
+      </p>
+    </BriefSection>
+  );
+}
+
 // ─── Facilities Intelligence ─────────────────────────────────────────────
 
 function FacilitiesBrief() {
@@ -724,6 +883,8 @@ function PrincipalBriefing() {
         </p>
       </BriefSection>
 
+      <CampusSafetyBrief campusId={campus.campusId ?? (netCampus?.id ?? 1)} />
+
       <BriefSection icon="◉" title="Admissions Pipeline" accent={modColors.scholar}>
         <p style={{ margin: 0 }}>
           Applications: <M v={fmtNum(campus.applied)} /> · Accepted: <M v={fmtNum(campus.accepted)} /> · Yield: <M v={fmtPct(campus.yield)} />.
@@ -767,6 +928,7 @@ export default function BriefingApp() {
 
       <BriefTimestamp />
       <EmergencyBrief />
+      <SafetyIntelligenceBrief />
       <ExecutiveSummary />
       <FinancialBrief />
       <EnrollmentBrief />

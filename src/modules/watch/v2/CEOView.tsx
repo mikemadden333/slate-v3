@@ -35,10 +35,12 @@ import { THREAT_CONFIG, VIOLENT_CRIME_LABELS, CONFIDENCE_SCORE } from './types';
 import { brand, bg, text, font, fontSize, fontWeight, border, shadow, radius, space, status, modules } from '../../../core/theme';
 import { fmtAgo, haversine, bearing, compassLabel } from '../engine/geo';
 import { CAMPUSES } from '../data/campuses';
+import { createGangBoundaryLayer, GANG_BOUNDARY_CSS } from './gangBoundaries';
 
 // ─── CSS Animations ─────────────────────────────────────────────────────
 
 const PULSE_CSS = `
+${GANG_BOUNDARY_CSS}
 @keyframes watchPulseRed {
   0%, 100% { box-shadow: 0 0 0 0 rgba(197, 48, 48, 0.5); }
   50% { box-shadow: 0 0 0 8px rgba(197, 48, 48, 0); }
@@ -220,19 +222,47 @@ function generateAIReasoning(ct: CampusThreat, incidents: WatchIncident[]): stri
 function speakBriefing(text: string) {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.92;
-  utterance.pitch = 0.95;
-  utterance.volume = 0.9;
-  // Prefer a calm, authoritative voice
+
+  // Split into sentences and add natural pauses
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+
+  // Prefer a calm, soft female voice
   const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.name.includes('Samantha') || v.name.includes('Karen') ||
-    v.name.includes('Daniel') || v.name.includes('Google US English') ||
-    v.name.includes('Microsoft David') || v.name.includes('Alex')
+  const femalePreferred = voices.find(v =>
+    v.name.includes('Samantha') || // macOS — natural female
+    v.name.includes('Victoria') || // macOS — female
+    v.name.includes('Karen') ||    // macOS — Australian female
+    v.name.includes('Moira') ||    // macOS — Irish female
+    v.name.includes('Tessa') ||    // macOS — South African female
+    v.name.includes('Google US English Female') ||
+    v.name.includes('Microsoft Zira') || // Windows — female
+    v.name.includes('Microsoft Jenny') || // Windows 11 — natural female
+    v.name.includes('Google UK English Female')
   );
-  if (preferred) utterance.voice = preferred;
-  window.speechSynthesis.speak(utterance);
+  // Fallback: any female-sounding voice
+  const fallbackFemale = !femalePreferred ? voices.find(v =>
+    v.name.toLowerCase().includes('female') ||
+    v.name.includes('Fiona') || v.name.includes('Veena') ||
+    v.name.includes('Ava') || v.name.includes('Allison')
+  ) : null;
+  const selectedVoice = femalePreferred || fallbackFemale || null;
+
+  sentences.forEach((sentence, i) => {
+    const utterance = new SpeechSynthesisUtterance(sentence);
+    utterance.rate = 0.88;  // Slightly slower for clarity
+    utterance.pitch = 1.05; // Slightly higher for softer tone
+    utterance.volume = 0.85;
+    if (selectedVoice) utterance.voice = selectedVoice;
+
+    // Add a brief pause between sentences
+    if (i > 0) {
+      const pause = new SpeechSynthesisUtterance('');
+      pause.volume = 0;
+      if (selectedVoice) pause.voice = selectedVoice;
+      window.speechSynthesis.speak(pause);
+    }
+    window.speechSynthesis.speak(utterance);
+  });
 }
 
 // ─── SMS Alert ──────────────────────────────────────────────────────────
@@ -1019,7 +1049,7 @@ function NetworkPulse({ lastRefresh }: { lastRefresh: Date | null }) {
 
 // ─── Living Map Component (Leaflet) ──────────────────────────────────────
 
-function WatchMap({ campusThreats, incidents, selectedCampus, onSelectCampus, onSelectIncident, newIncidentIds, demoIncident }: {
+function WatchMap({ campusThreats, incidents, selectedCampus, onSelectCampus, onSelectIncident, newIncidentIds, demoIncident, showGangBoundaries }: {
   campusThreats: CampusThreat[];
   incidents: WatchIncident[];
   selectedCampus: number | null;
@@ -1027,10 +1057,12 @@ function WatchMap({ campusThreats, incidents, selectedCampus, onSelectCampus, on
   onSelectIncident: (inc: WatchIncident) => void;
   newIncidentIds: Set<string>;
   demoIncident: WatchIncident | null;
+  showGangBoundaries: boolean;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const gangLayerRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -1057,8 +1089,23 @@ function WatchMap({ campusThreats, incidents, selectedCampus, onSelectCampus, on
       map.remove();
       mapInstanceRef.current = null;
       layerGroupRef.current = null;
+      gangLayerRef.current = null;
     };
   }, []);
+
+  // Gang boundary layer toggle
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (showGangBoundaries && !gangLayerRef.current) {
+      gangLayerRef.current = createGangBoundaryLayer(map);
+      gangLayerRef.current.addTo(map);
+    } else if (!showGangBoundaries && gangLayerRef.current) {
+      gangLayerRef.current.remove();
+      gangLayerRef.current = null;
+    }
+  }, [showGangBoundaries]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -1341,6 +1388,7 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
   const [showSMSConfig, setShowSMSConfig] = useState(false);
   const [showSourceHealth, setShowSourceHealth] = useState(false);
   const [showScannerLog, setShowScannerLog] = useState(false);
+  const [showGangBoundaries, setShowGangBoundaries] = useState(false);
   const [smsStatus, setSmsStatus] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -1555,6 +1603,7 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
           onSelectIncident={handleSelectIncident}
           newIncidentIds={newIncidentIds}
           demoIncident={demoIncident}
+          showGangBoundaries={showGangBoundaries}
         />
 
         {/* Map overlay — network status */}
@@ -1640,6 +1689,30 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
             SMS ACTIVE ✓
           </div>
         )}
+
+        {/* Gang Boundary Toggle */}
+        <div
+          onClick={() => setShowGangBoundaries(!showGangBoundaries)}
+          style={{
+            position: 'absolute', bottom: space.lg, right: space.lg,
+            background: showGangBoundaries ? 'rgba(43,95,138,0.9)' : 'rgba(255,255,255,0.92)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: radius.md, padding: `${space.xs} ${space.md}`,
+            boxShadow: shadow.sm, border: `1px solid ${showGangBoundaries ? '#2B5F8A' : border.light}`,
+            zIndex: 10, cursor: 'pointer',
+            fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
+            fontFamily: font.mono, letterSpacing: '0.03em',
+            color: showGangBoundaries ? '#fff' : text.secondary,
+            transition: 'all 0.2s ease',
+            display: 'flex', alignItems: 'center', gap: 6,
+            userSelect: 'none',
+          }}
+          title="Toggle CPD 2024 Gang Territory Boundaries"
+        >
+          <span style={{ fontSize: '13px' }}>{showGangBoundaries ? '◼' : '◻'}</span>
+          GANG TERRITORIES
+          <span style={{ fontSize: '9px', opacity: 0.7 }}>CPD 2024</span>
+        </div>
 
         {/* Refreshing bar */}
         {data.isRefreshing && (

@@ -17,6 +17,8 @@ import { bg, text, brand, border, status, font, fontSize, fontWeight, shadow, ra
 import { useDataStore, useEnrollment, useFinancials, useStaff, useRisks, useFundraising, useCompliance, useFacilities, useCivic, useRole, useNetwork, useEmergencies } from '../../data/DataStore';
 import { fmt, fmtFull, fmtPct, fmtDscr, fmtNum, fmtCompact, fmtDate, fmtRelative, fmtVariance, fmtDaysOut } from '../../core/formatters';
 import { AI_CONFIG } from '../../core/constants';
+import { useWatchSummary } from '../watch/v2/useWatchSummary';
+import { THREAT_CONFIG } from '../watch/v2/types';
 
 interface DashboardProps {
   onNavigate: (moduleId: string) => void;
@@ -158,6 +160,7 @@ function CEODashboard({ onNavigate }: { onNavigate: (id: string) => void }) {
   const civic = useCivic();
   const network = useNetwork();
   const { activeEvents } = useEmergencies();
+  const watch = useWatchSummary();
 
   const [aiInsight, setAiInsight] = useState('');
   const [aiLoading, setAiLoading] = useState(true);
@@ -231,6 +234,77 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
 
       {/* GOLDEN THREAD: Emergency Banner */}
       <EmergencyBanner onNavigate={onNavigate} />
+
+      {/* Watch Safety Intelligence Card */}
+      {!watch.isLoading && (
+        <div style={{ marginBottom: 24 }}>
+          <Card accent={moduleColors.watch} hover onClick={() => onNavigate('watch')}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: THREAT_CONFIG[watch.overallThreat].color,
+                  boxShadow: watch.overallThreat !== 'GREEN' ? `0 0 8px ${THREAT_CONFIG[watch.overallThreat].color}60` : 'none',
+                  animation: watch.overallThreat === 'RED' ? 'pulse 2s ease-in-out infinite' : 'none',
+                }} />
+                <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  Safety Intelligence · Live
+                </span>
+              </div>
+              <StatusBadge
+                label={THREAT_CONFIG[watch.overallThreat].label.toUpperCase()}
+                variant={watch.overallThreat === 'RED' ? 'red' : watch.overallThreat === 'GREEN' ? 'green' : 'amber'}
+                size="sm"
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: fontSize.xs, color: text.light }}>Active Incidents</div>
+                <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: watch.totalActiveIncidents > 0 ? status.amber : text.primary }}>
+                  {watch.totalActiveIncidents}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: fontSize.xs, color: text.light }}>Campuses Elevated</div>
+                <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: watch.campusesElevated > 0 ? status.amber : status.green }}>
+                  {watch.campusesElevated} / 10
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: fontSize.xs, color: text.light }}>Corroborated</div>
+                <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: watch.corroboratedCount > 0 ? status.amber : text.primary }}>
+                  {watch.corroboratedCount + watch.confirmedCount}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: fontSize.xs, color: text.light }}>Nearest Threat</div>
+                <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: watch.nearestIncidentDistance !== null && watch.nearestIncidentDistance <= 0.25 ? status.red : watch.nearestIncidentDistance !== null && watch.nearestIncidentDistance <= 0.5 ? status.amber : text.primary }}>
+                  {watch.nearestIncidentDistance !== null ? `${watch.nearestIncidentDistance.toFixed(2)} mi` : '—'}
+                </div>
+                {watch.nearestIncidentCampus && (
+                  <div style={{ fontSize: fontSize.xs, color: text.light }}>{watch.nearestIncidentCampus}</div>
+                )}
+              </div>
+            </div>
+            {/* Campus threat dots */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 8, borderTop: `1px solid ${border.light}` }}>
+              {watch.campusThreats.map(ct => {
+                const cfg = THREAT_CONFIG[ct.threatLevel];
+                return (
+                  <div key={ct.campusId} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '9px', color: text.light }}>{ct.campusShort}</span>
+                  </div>
+                );
+              })}
+              <div style={{ flex: 1 }} />
+              <span style={{ fontSize: fontSize.xs, color: text.light }}>
+                {watch.lastUpdated ? watch.lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'}
+              </span>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* AI Morning Briefing */}
       <div style={{ marginBottom: 28 }}>
@@ -399,6 +473,8 @@ function PrincipalDashboard({ onNavigate }: { onNavigate: (id: string) => void }
   const campusStaff = staff.byCampus.find(c => c.campusId === selectedCampusId);
   const campusWOs = facilities.workOrders.filter(w => w.campus === campus?.short);
   const campusEmergencies = activeEvents.filter(e => e.campusId === selectedCampusId);
+  const watch = useWatchSummary();
+  const campusThreat = watch.campusThreats.find(ct => ct.campusId === selectedCampusId);
 
   if (!campus || !campusEnrollment) {
     return <EmptyState icon="◈" title="Select a Campus" description="Choose a campus from the sidebar to view its dashboard." />;
@@ -432,6 +508,51 @@ function PrincipalDashboard({ onNavigate }: { onNavigate: (id: string) => void }
             </div>
           ))}
           <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+        </div>
+      )}
+
+      {/* Watch Campus Safety Card */}
+      {!watch.isLoading && campusThreat && (
+        <div style={{ marginBottom: 20 }}>
+          <Card accent={moduleColors.watch} hover onClick={() => onNavigate('watch')}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: THREAT_CONFIG[campusThreat.threatLevel].color,
+                  boxShadow: campusThreat.threatLevel !== 'GREEN' ? `0 0 8px ${THREAT_CONFIG[campusThreat.threatLevel].color}60` : 'none',
+                }} />
+                <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  Campus Safety · Live
+                </span>
+              </div>
+              <StatusBadge
+                label={THREAT_CONFIG[campusThreat.threatLevel].label.toUpperCase()}
+                variant={campusThreat.threatLevel === 'RED' ? 'red' : campusThreat.threatLevel === 'GREEN' ? 'green' : 'amber'}
+                size="sm"
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: fontSize.xs, color: text.light }}>Incidents (1 mi)</div>
+                <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: campusThreat.incidentCount > 0 ? status.amber : text.primary }}>
+                  {campusThreat.incidentCount}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: fontSize.xs, color: text.light }}>Nearest Threat</div>
+                <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: campusThreat.nearestDistance !== null && campusThreat.nearestDistance <= 0.25 ? status.red : campusThreat.nearestDistance !== null && campusThreat.nearestDistance <= 0.5 ? status.amber : text.primary }}>
+                  {campusThreat.nearestDistance !== null ? `${campusThreat.nearestDistance.toFixed(2)} mi` : '—'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: fontSize.xs, color: text.light }}>Network Status</div>
+                <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: THREAT_CONFIG[watch.overallThreat].color }}>
+                  {THREAT_CONFIG[watch.overallThreat].label}
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 
