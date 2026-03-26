@@ -6,13 +6,12 @@
  * pen traces the path of each letter in sequence: S... l... a... t... e...
  * Then the fill materializes behind the strokes. Then the gold period settles.
  *
- * v3.4 — MEA Brand Guide v1.0 — Deep Navy + Warm Gold + Cormorant Garamond + Jost
- * - Camera aperture iris that opens to reveal the glass surface
- * - 6 overlapping blades that rotate and spread apart
- * - Reflected "Slate." mirrored below (like text on a glass table)
- * - "Start with the Facts" glows bright white for emphasis
- * - Breathing ambient light pulse
- * - Frosted glass surface effect
+ * v3.5 — Camera Aperture Iris
+ * - True 6-blade camera aperture with overlapping curved blades
+ * - Blades rotate and retract like a real lens iris mechanism
+ * - Warm light leak bleeds through the center as blades begin to separate
+ * - Subtle metallic sheen on blade edges
+ * - The world behind the iris is revealed organically
  *
  * Design: restraint, motion, story. Sharp, classy, modern.
  */
@@ -37,14 +36,24 @@ const LETTERS = [
 const UPEM = 1000;
 const TOTAL_WIDTH = 2325;
 
-// ─── Aperture Iris — Smooth Camera Lens ──────────────────────────────────
+// ─── Aperture Iris — True Camera Lens with 6 Curved Blades ──────────────
 function ApertureIris({ open }: { open: boolean }) {
-  const BLADE_COUNT = 8;
-  const blades = useMemo(() =>
-    Array.from({ length: BLADE_COUNT }, (_, i) => ({
-      id: i,
-      angle: (360 / BLADE_COUNT) * i,
-    })), []);
+  // Generate 6 blade paths — each is a curved leaf shape positioned around center
+  // Real camera irises have overlapping blades that rotate on pivot points
+  const BLADE_COUNT = 6;
+  const CX = 500;
+  const CY = 500;
+  const R = 520; // blade reach radius
+
+  const bladeData = useMemo(() =>
+    Array.from({ length: BLADE_COUNT }, (_, i) => {
+      const angle = (360 / BLADE_COUNT) * i;
+      const rad = (angle * Math.PI) / 180;
+      // Each blade pivots from a point on the outer ring
+      const pivotX = CX + R * 0.85 * Math.cos(rad);
+      const pivotY = CY + R * 0.85 * Math.sin(rad);
+      return { id: i, angle, pivotX, pivotY };
+    }), []);
 
   return (
     <div style={{
@@ -53,66 +62,136 @@ function ApertureIris({ open }: { open: boolean }) {
       overflow: 'hidden',
     }}>
       <style>{`
-        @keyframes irisOpen {
-          0% { clip-path: inset(0% round 0%); opacity: 1; }
-          70% { clip-path: inset(0% round 50%); opacity: 0.8; }
-          100% { clip-path: inset(-10% round 50%); opacity: 0; }
-        }
-        @keyframes lensBladeOpen {
+        @keyframes irisBladeOpen {
           0% {
             transform: rotate(var(--blade-angle)) translateX(0px);
             opacity: 1;
           }
-          50% {
-            transform: rotate(calc(var(--blade-angle) + 8deg)) translateX(40px);
-            opacity: 0.8;
+          40% {
+            transform: rotate(calc(var(--blade-angle) + 15deg)) translateX(60px);
+            opacity: 1;
           }
           100% {
-            transform: rotate(calc(var(--blade-angle) + 12deg)) translateX(520px);
+            transform: rotate(calc(var(--blade-angle) + 25deg)) translateX(600px);
             opacity: 0;
           }
         }
+        @keyframes lightLeak {
+          0% { opacity: 0; transform: scale(0.01); }
+          20% { opacity: 0.7; transform: scale(0.08); }
+          50% { opacity: 0.4; transform: scale(0.3); }
+          80% { opacity: 0.15; transform: scale(0.8); }
+          100% { opacity: 0; transform: scale(1.5); }
+        }
+        @keyframes irisVignetteFade {
+          0% { opacity: 1; }
+          60% { opacity: 0.4; }
+          100% { opacity: 0; }
+        }
       `}</style>
-      <div style={{
-        position: 'absolute', inset: 0,
-        animation: open ? 'irisOpen 2.2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards' : 'none',
-      }}>
+
+      {/* Light leak — warm light bleeding through as blades begin to separate */}
+      {open && (
+        <div style={{
+          position: 'absolute', width: 800, height: 800,
+          top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(201,165,78,0.35) 0%, rgba(201,165,78,0.15) 20%, rgba(255,245,220,0.06) 40%, transparent 65%)`,
+          animation: 'lightLeak 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) 0.3s forwards',
+          zIndex: 5,
+        }} />
+      )}
+
+      {/* The iris mechanism */}
+      <div style={{ position: 'absolute', inset: 0 }}>
         <svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
           <defs>
-            <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="transparent" />
-              <stop offset="30%" stopColor="transparent" />
-              <stop offset="50%" stopColor={BG_BASE} stopOpacity="0.6" />
-              <stop offset="70%" stopColor={BG_BASE} />
-              <stop offset="100%" stopColor={BG_BASE} />
-            </radialGradient>
+            {/* Metallic gradient for blade surface */}
+            <linearGradient id="bladeMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#0D1520" />
+              <stop offset="25%" stopColor="#141E2E" />
+              <stop offset="50%" stopColor="#1A2840" />
+              <stop offset="75%" stopColor="#0F1925" />
+              <stop offset="100%" stopColor="#0A1220" />
+            </linearGradient>
+            {/* Subtle edge highlight */}
+            <linearGradient id="bladeEdge" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
+              <stop offset="50%" stopColor="rgba(255,255,255,0.03)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
+            </linearGradient>
           </defs>
-          {/* Smooth overlapping curved blades — like a real camera iris */}
-          {blades.map(blade => (
+
+          {/* Outer ring — the lens barrel */}
+          <circle cx="500" cy="500" r="498" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="4"
+            style={{
+              opacity: open ? 0 : 1,
+              transition: 'opacity 1.5s ease 0.5s',
+            }} />
+
+          {/* 6 overlapping curved blades */}
+          {bladeData.map((blade) => (
             <g key={blade.id} style={{
-              transformOrigin: '500px 500px',
+              transformOrigin: `${blade.pivotX}px ${blade.pivotY}px`,
               ['--blade-angle' as string]: `${blade.angle}deg`,
               animation: open
-                ? `lensBladeOpen 2s cubic-bezier(0.25, 0.1, 0.25, 1) ${blade.id * 0.06}s forwards`
+                ? `irisBladeOpen 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) ${blade.id * 0.05}s forwards`
                 : 'none',
               transform: `rotate(${blade.angle}deg)`,
             } as React.CSSProperties}>
-              {/* Main blade — soft curved leaf shape */}
-              <ellipse cx="500" cy="340" rx="260" ry="200"
-                fill={BG_BASE}
-                stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"
-                style={{ filter: 'blur(0.5px)' }} />
-              {/* Subtle highlight edge — mimics light catching the blade edge */}
-              <ellipse cx="500" cy="345" rx="255" ry="195"
+              {/* Main blade body — curved leaf with slight asymmetry */}
+              <path
+                d={`M ${CX} ${CY - 30}
+                    Q ${CX + 180} ${CY - 200}, ${CX + 40} ${CY - 420}
+                    Q ${CX - 20} ${CY - 480}, ${CX - 80} ${CY - 420}
+                    Q ${CX - 200} ${CY - 220}, ${CX} ${CY - 30} Z`}
+                fill="url(#bladeMetal)"
+              />
+              {/* Blade edge highlight — thin line catching light */}
+              <path
+                d={`M ${CX} ${CY - 30}
+                    Q ${CX + 180} ${CY - 200}, ${CX + 40} ${CY - 420}`}
                 fill="none"
-                stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth="1"
+              />
+              {/* Inner edge — the aperture opening edge, slightly brighter */}
+              <path
+                d={`M ${CX} ${CY - 30}
+                    Q ${CX - 200} ${CY - 220}, ${CX - 80} ${CY - 420}`}
+                fill="none"
+                stroke="rgba(255,255,255,0.04)"
+                strokeWidth="0.8"
+              />
+              {/* Subtle surface texture — machined metal look */}
+              <path
+                d={`M ${CX} ${CY - 30}
+                    Q ${CX + 180} ${CY - 200}, ${CX + 40} ${CY - 420}
+                    Q ${CX - 20} ${CY - 480}, ${CX - 80} ${CY - 420}
+                    Q ${CX - 200} ${CY - 220}, ${CX} ${CY - 30} Z`}
+                fill="url(#bladeEdge)"
+                opacity="0.3"
+              />
             </g>
           ))}
-          {/* Soft vignette overlay */}
-          <circle cx="500" cy="500" r="500" fill="url(#irisGrad)"
-            style={{ opacity: open ? 0 : 1, transition: 'opacity 1.5s ease 0.3s' }} />
+
+          {/* Center — the tiny aperture opening before blades move */}
+          <circle cx="500" cy="500" r="3" fill="rgba(201,165,78,0.2)"
+            style={{
+              opacity: open ? 0 : 0.6,
+              transition: 'opacity 0.5s ease',
+              filter: 'blur(1px)',
+            }} />
         </svg>
       </div>
+
+      {/* Vignette that fades with the iris */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: `radial-gradient(circle at 50% 50%, transparent 20%, ${BG_BASE} 70%)`,
+        animation: open ? 'irisVignetteFade 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) 0.2s forwards' : 'none',
+        pointerEvents: 'none',
+      }} />
     </div>
   );
 }
@@ -401,16 +480,16 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
 
   useEffect(() => {
     const debug = window.location.search.includes('debug');
-    const IRIS_DELAY = 400;
-    const IRIS_DURATION = 1600;
-    const DRAW_START = IRIS_DELAY + IRIS_DURATION + 200;
+    const IRIS_DELAY = 600;      // Moment of stillness before the iris begins
+    const IRIS_DURATION = 2000;  // Slower, more cinematic iris opening
+    const DRAW_START = IRIS_DELAY + IRIS_DURATION + 400;
     const LETTER_GAP = 450;
 
     const timers = [
       setTimeout(() => setIrisOpen(true), IRIS_DELAY),
-      setTimeout(() => { setPhase('splash'); setAmbientActive(true); }, IRIS_DELAY + 600),
-      setTimeout(() => setOrbVisible(true), IRIS_DELAY + 800),
-      setTimeout(() => setParticlesActive(true), IRIS_DELAY + 1000),
+      setTimeout(() => { setPhase('splash'); setAmbientActive(true); }, IRIS_DELAY + 800),
+      setTimeout(() => setOrbVisible(true), IRIS_DELAY + 1000),
+      setTimeout(() => setParticlesActive(true), IRIS_DELAY + 1200),
       setTimeout(() => setBadgeVisible(true), DRAW_START - 300),
       setTimeout(() => setDrawPhase(1), DRAW_START),
       setTimeout(() => setDrawPhase(2), DRAW_START + LETTER_GAP),

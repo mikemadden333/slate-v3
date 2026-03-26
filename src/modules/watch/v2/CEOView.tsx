@@ -1415,6 +1415,7 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
   const [showScannerLog, setShowScannerLog] = useState(false);
   const [showGangBoundaries, setShowGangBoundaries] = useState(false);
   const [smsStatus, setSmsStatus] = useState<string | null>(null);
+  const [smsNotifications, setSmsNotifications] = useState<Array<{ id: number; message: string; phase: number; visible: boolean }>>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleSelectCampus = useCallback((id: number | null) => {
@@ -1472,13 +1473,18 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
           setNewIncidentIds(prev => new Set([...prev, inc.id]));
           playAlertChime();
 
-          // Send SMS Phase 1
+          // Send SMS Phase 1 — in-app notification + real SMS if configured
           const phone = sessionStorage.getItem('slate_demo_phone');
+          const smsMsg1 = `🔴 SLATE ALERT: Shooting reported near Englewood (${inc.distanceToCampus?.toFixed(2)} mi). Confidence: REPORTED (70%). Source: Citizen. Monitoring for corroboration.`;
+          // Always show in-app notification
+          const notif1 = { id: Date.now(), message: smsMsg1, phase: 1, visible: true };
+          setSmsNotifications(prev => [...prev, notif1]);
+          setTimeout(() => setSmsNotifications(prev => prev.map(n => n.id === notif1.id ? { ...n, visible: false } : n)), 12000);
+          setTimeout(() => setSmsNotifications(prev => prev.filter(n => n.id !== notif1.id)), 13000);
+          // Also try real SMS
           if (phone) {
-            sendSMSAlert(
-              `🔴 SLATE ALERT: Shooting reported near Englewood (${inc.distanceToCampus?.toFixed(2)} mi). Confidence: REPORTED (70%). Source: Citizen. Monitoring for corroboration. — Slate Watch`
-            ).then(r => {
-              setSmsStatus(r.success ? 'SMS sent ✓' : `SMS failed: ${r.error}`);
+            sendSMSAlert(smsMsg1 + ' — Slate Watch').then(r => {
+              setSmsStatus(r.success ? 'SMS sent ✓' : null);
               setTimeout(() => setSmsStatus(null), 5000);
             });
           }
@@ -1493,10 +1499,13 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
             } : null);
             setDemoPhase(2);
 
+            const smsMsg2 = `🟡 SLATE UPDATE: Scanner corroborated shooting near Englewood. Confidence now 85% (CORROBORATED). Multiple sources confirming.`;
+            const notif2 = { id: Date.now(), message: smsMsg2, phase: 2, visible: true };
+            setSmsNotifications(prev => [...prev, notif2]);
+            setTimeout(() => setSmsNotifications(prev => prev.map(n => n.id === notif2.id ? { ...n, visible: false } : n)), 12000);
+            setTimeout(() => setSmsNotifications(prev => prev.filter(n => n.id !== notif2.id)), 13000);
             if (phone) {
-              sendSMSAlert(
-                `🟡 SLATE UPDATE: Scanner corroborated shooting near Englewood. Confidence now 85% (CORROBORATED). Multiple sources confirming. — Slate Watch`
-              );
+              sendSMSAlert(smsMsg2 + ' — Slate Watch');
             }
           }, 8000);
 
@@ -1511,10 +1520,13 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
             setDemoPhase(3);
             playAlertChime();
 
+            const smsMsg3 = `🟢 SLATE CONFIRMED: CPD confirmed shooting near Englewood. Confidence 95%. Recommended: Enhanced security posture. All sources aligned.`;
+            const notif3 = { id: Date.now(), message: smsMsg3, phase: 3, visible: true };
+            setSmsNotifications(prev => [...prev, notif3]);
+            setTimeout(() => setSmsNotifications(prev => prev.map(n => n.id === notif3.id ? { ...n, visible: false } : n)), 12000);
+            setTimeout(() => setSmsNotifications(prev => prev.filter(n => n.id !== notif3.id)), 13000);
             if (phone) {
-              sendSMSAlert(
-                `🟢 SLATE CONFIRMED: CPD confirmed shooting near Englewood. Confidence 95%. Recommended: Enhanced security posture. All sources aligned. — Slate Watch`
-              );
+              sendSMSAlert(smsMsg3 + ' — Slate Watch');
             }
           }, 16000);
 
@@ -1614,6 +1626,57 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
 
       {/* SMS Config Modal */}
       {showSMSConfig && <SMSConfigPanel onClose={() => setShowSMSConfig(false)} />}
+
+      {/* In-App SMS Notification Overlay */}
+      <style>{`
+        @keyframes smsSlideIn {
+          from { transform: translateY(-100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes smsSlideOut {
+          from { transform: translateY(0); opacity: 1; }
+          to { transform: translateY(-100%); opacity: 0; }
+        }
+      `}</style>
+      {smsNotifications.length > 0 && (
+        <div style={{
+          position: 'fixed', top: 16, right: 24, zIndex: 9999,
+          display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 380,
+        }}>
+          {smsNotifications.map(notif => (
+            <div key={notif.id} style={{
+              background: 'rgba(10, 22, 40, 0.95)', backdropFilter: 'blur(20px)',
+              borderRadius: '14px', padding: '14px 18px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)',
+              animation: notif.visible ? 'smsSlideIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards' : 'smsSlideOut 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards',
+              display: 'flex', gap: 12, alignItems: 'flex-start',
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                background: notif.phase === 1 ? 'rgba(197,48,48,0.2)' : notif.phase === 2 ? 'rgba(201,165,78,0.2)' : 'rgba(56,161,105,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16,
+              }}>
+                {notif.phase === 1 ? '🔴' : notif.phase === 2 ? '🟡' : '🟢'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: font.mono, fontSize: '10px', letterSpacing: '0.08em',
+                  color: 'rgba(240,242,245,0.5)', marginBottom: 4, textTransform: 'uppercase' as const,
+                }}>
+                  Slate Watch Alert · Now
+                </div>
+                <div style={{
+                  fontFamily: font.body, fontSize: '12px', lineHeight: 1.5,
+                  color: 'rgba(240,242,245,0.9)',
+                }}>
+                  {notif.message}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* LEFT: Map (58%) */}
       <div style={{
