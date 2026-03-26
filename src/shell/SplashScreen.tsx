@@ -36,160 +36,114 @@ const LETTERS = [
 const UPEM = 1000;
 const TOTAL_WIDTH = 2325;
 
-// ─── Aperture Iris — True Camera Lens with 6 Curved Blades ──────────────
+// ─── Aperture Iris — Circular Diaphragm with Light Leak ──────────────
+// A dark overlay with a circular opening that expands from a pinhole.
+// Warm golden light bleeds through the tiny opening before it widens.
+// Think: looking through a camera viewfinder as the aperture opens.
 function ApertureIris({ open }: { open: boolean }) {
-  // Generate 6 blade paths — each is a curved leaf shape positioned around center
-  // Real camera irises have overlapping blades that rotate on pivot points
-  const BLADE_COUNT = 6;
-  const CX = 500;
-  const CY = 500;
-  const R = 520; // blade reach radius
+  const [clipSize, setClipSize] = useState(0.3); // starts as tiny pinhole (0.3%)
 
-  const bladeData = useMemo(() =>
-    Array.from({ length: BLADE_COUNT }, (_, i) => {
-      const angle = (360 / BLADE_COUNT) * i;
-      const rad = (angle * Math.PI) / 180;
-      // Each blade pivots from a point on the outer ring
-      const pivotX = CX + R * 0.85 * Math.cos(rad);
-      const pivotY = CY + R * 0.85 * Math.sin(rad);
-      return { id: i, angle, pivotX, pivotY };
-    }), []);
+  useEffect(() => {
+    if (!open) return;
+    // Animate the clip circle expanding — smooth eased steps
+    const steps = [
+      { delay: 0, size: 0.8 },      // first hint of opening
+      { delay: 200, size: 2 },       // small circle — light leaks here
+      { delay: 600, size: 6 },       // noticeable opening
+      { delay: 1000, size: 15 },     // content becoming visible
+      { delay: 1400, size: 35 },     // wide open
+      { delay: 1800, size: 60 },     // almost fully open
+      { delay: 2200, size: 85 },     // fully revealed
+    ];
+    const timers = steps.map(s => setTimeout(() => setClipSize(s.size), s.delay));
+    return () => timers.forEach(clearTimeout);
+  }, [open]);
+
+  // After fully open, fade out the entire overlay
+  const fullyOpen = clipSize >= 85;
 
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
       overflow: 'hidden',
     }}>
       <style>{`
-        @keyframes irisBladeOpen {
-          0% {
-            transform: rotate(var(--blade-angle)) translateX(0px);
-            opacity: 1;
-          }
-          40% {
-            transform: rotate(calc(var(--blade-angle) + 15deg)) translateX(60px);
-            opacity: 1;
-          }
-          100% {
-            transform: rotate(calc(var(--blade-angle) + 25deg)) translateX(600px);
-            opacity: 0;
-          }
+        @keyframes apertureGlow {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+          30% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          70% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.5); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(3); }
         }
-        @keyframes lightLeak {
-          0% { opacity: 0; transform: scale(0.01); }
-          20% { opacity: 0.7; transform: scale(0.08); }
-          50% { opacity: 0.4; transform: scale(0.3); }
-          80% { opacity: 0.15; transform: scale(0.8); }
-          100% { opacity: 0; transform: scale(1.5); }
-        }
-        @keyframes irisVignetteFade {
-          0% { opacity: 1; }
-          60% { opacity: 0.4; }
-          100% { opacity: 0; }
+        @keyframes apertureRingPulse {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          40% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
         }
       `}</style>
 
-      {/* Light leak — warm light bleeding through as blades begin to separate */}
-      {open && (
+      {/* The dark shutter — circular hole expanding from center */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: BG_BASE,
+        clipPath: `circle(${clipSize}% at 50% 48%)`,
+        transition: clipSize <= 0.3
+          ? 'none'
+          : `clip-path 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)`,
+        // Invert: we want the OUTSIDE to be dark, hole to be transparent
+        // So we use a mask instead
+        opacity: 0, // hidden — we use the inverted version below
+      }} />
+
+      {/* Inverted: dark everywhere EXCEPT the circular opening */}
+      <div style={{
+        position: 'absolute', inset: '-10%',
+        width: '120%', height: '120%',
+        background: BG_BASE,
+        maskImage: `radial-gradient(circle ${clipSize}vmax at 50% 48%, transparent 0%, transparent 99%, black 100%)`,
+        WebkitMaskImage: `radial-gradient(circle ${clipSize}vmax at 50% 48%, transparent 0%, transparent 99%, black 100%)`,
+        transition: clipSize <= 0.3
+          ? 'none'
+          : `mask-image 0.8s cubic-bezier(0.25, 0.1, 0.25, 1), -webkit-mask-image 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)`,
+        opacity: fullyOpen ? 0 : 1,
+        transitionProperty: fullyOpen ? 'opacity' : undefined,
+        transitionDuration: fullyOpen ? '0.8s' : undefined,
+      }} />
+
+      {/* Warm light leak at the center — visible when aperture is tiny */}
+      {open && !fullyOpen && (
         <div style={{
-          position: 'absolute', width: 800, height: 800,
-          top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          position: 'absolute',
+          top: '48%', left: '50%',
+          width: 200, height: 200,
           borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(201,165,78,0.35) 0%, rgba(201,165,78,0.15) 20%, rgba(255,245,220,0.06) 40%, transparent 65%)`,
-          animation: 'lightLeak 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) 0.3s forwards',
+          background: `radial-gradient(circle, rgba(201,165,78,0.4) 0%, rgba(201,165,78,0.15) 30%, rgba(255,245,220,0.05) 60%, transparent 80%)`,
+          animation: 'apertureGlow 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards',
           zIndex: 5,
         }} />
       )}
 
-      {/* The iris mechanism */}
-      <div style={{ position: 'absolute', inset: 0 }}>
-        <svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            {/* Metallic gradient for blade surface */}
-            <linearGradient id="bladeMetal" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#0D1520" />
-              <stop offset="25%" stopColor="#141E2E" />
-              <stop offset="50%" stopColor="#1A2840" />
-              <stop offset="75%" stopColor="#0F1925" />
-              <stop offset="100%" stopColor="#0A1220" />
-            </linearGradient>
-            {/* Subtle edge highlight */}
-            <linearGradient id="bladeEdge" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
-              <stop offset="50%" stopColor="rgba(255,255,255,0.03)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
-            </linearGradient>
-          </defs>
+      {/* Subtle ring at the edge of the opening — like a lens barrel edge */}
+      {open && clipSize > 2 && clipSize < 60 && (
+        <div style={{
+          position: 'absolute',
+          top: '48%', left: '50%',
+          width: `${clipSize * 2.2}vmax`, height: `${clipSize * 2.2}vmax`,
+          borderRadius: '50%',
+          border: '1px solid rgba(255,255,255,0.04)',
+          boxShadow: 'inset 0 0 30px rgba(201,165,78,0.03), 0 0 60px rgba(201,165,78,0.02)',
+          transform: 'translate(-50%, -50%)',
+          transition: 'all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          opacity: clipSize > 40 ? 0 : 0.6,
+          pointerEvents: 'none',
+        }} />
+      )}
 
-          {/* Outer ring — the lens barrel */}
-          <circle cx="500" cy="500" r="498" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="4"
-            style={{
-              opacity: open ? 0 : 1,
-              transition: 'opacity 1.5s ease 0.5s',
-            }} />
-
-          {/* 6 overlapping curved blades */}
-          {bladeData.map((blade) => (
-            <g key={blade.id} style={{
-              transformOrigin: `${blade.pivotX}px ${blade.pivotY}px`,
-              ['--blade-angle' as string]: `${blade.angle}deg`,
-              animation: open
-                ? `irisBladeOpen 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) ${blade.id * 0.05}s forwards`
-                : 'none',
-              transform: `rotate(${blade.angle}deg)`,
-            } as React.CSSProperties}>
-              {/* Main blade body — curved leaf with slight asymmetry */}
-              <path
-                d={`M ${CX} ${CY - 30}
-                    Q ${CX + 180} ${CY - 200}, ${CX + 40} ${CY - 420}
-                    Q ${CX - 20} ${CY - 480}, ${CX - 80} ${CY - 420}
-                    Q ${CX - 200} ${CY - 220}, ${CX} ${CY - 30} Z`}
-                fill="url(#bladeMetal)"
-              />
-              {/* Blade edge highlight — thin line catching light */}
-              <path
-                d={`M ${CX} ${CY - 30}
-                    Q ${CX + 180} ${CY - 200}, ${CX + 40} ${CY - 420}`}
-                fill="none"
-                stroke="rgba(255,255,255,0.06)"
-                strokeWidth="1"
-              />
-              {/* Inner edge — the aperture opening edge, slightly brighter */}
-              <path
-                d={`M ${CX} ${CY - 30}
-                    Q ${CX - 200} ${CY - 220}, ${CX - 80} ${CY - 420}`}
-                fill="none"
-                stroke="rgba(255,255,255,0.04)"
-                strokeWidth="0.8"
-              />
-              {/* Subtle surface texture — machined metal look */}
-              <path
-                d={`M ${CX} ${CY - 30}
-                    Q ${CX + 180} ${CY - 200}, ${CX + 40} ${CY - 420}
-                    Q ${CX - 20} ${CY - 480}, ${CX - 80} ${CY - 420}
-                    Q ${CX - 200} ${CY - 220}, ${CX} ${CY - 30} Z`}
-                fill="url(#bladeEdge)"
-                opacity="0.3"
-              />
-            </g>
-          ))}
-
-          {/* Center — the tiny aperture opening before blades move */}
-          <circle cx="500" cy="500" r="3" fill="rgba(201,165,78,0.2)"
-            style={{
-              opacity: open ? 0 : 0.6,
-              transition: 'opacity 0.5s ease',
-              filter: 'blur(1px)',
-            }} />
-        </svg>
-      </div>
-
-      {/* Vignette that fades with the iris */}
+      {/* Very subtle vignette that persists briefly after opening */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: `radial-gradient(circle at 50% 50%, transparent 20%, ${BG_BASE} 70%)`,
-        animation: open ? 'irisVignetteFade 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) 0.2s forwards' : 'none',
+        background: `radial-gradient(ellipse at 50% 48%, transparent 40%, rgba(10,22,40,0.3) 80%, rgba(10,22,40,0.5) 100%)`,
+        opacity: fullyOpen ? 0 : 0.8,
+        transition: 'opacity 1.5s ease',
         pointerEvents: 'none',
       }} />
     </div>
