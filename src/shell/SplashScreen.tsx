@@ -36,115 +36,59 @@ const LETTERS = [
 const UPEM = 1000;
 const TOTAL_WIDTH = 2325;
 
-// ─── Aperture Iris — Circular Diaphragm with Light Leak ──────────────
-// A dark overlay with a circular opening that expands from a pinhole.
-// Warm golden light bleeds through the tiny opening before it widens.
-// Think: looking through a camera viewfinder as the aperture opens.
+// ─── Aperture Iris — Shutter Slit ─────────────────────────────────────
+// Two dark panels (top and bottom) that part like a horizontal shutter.
+// A hair-thin line of light appears at the seam, then the panels
+// slide apart to reveal the scene. No effects, no glow. Just geometry.
 function ApertureIris({ open }: { open: boolean }) {
-  const [clipSize, setClipSize] = useState(0.3); // starts as tiny pinhole (0.3%)
-
-  useEffect(() => {
-    if (!open) return;
-    // Animate the clip circle expanding — smooth eased steps
-    const steps = [
-      { delay: 0, size: 0.8 },      // first hint of opening
-      { delay: 200, size: 2 },       // small circle — light leaks here
-      { delay: 600, size: 6 },       // noticeable opening
-      { delay: 1000, size: 15 },     // content becoming visible
-      { delay: 1400, size: 35 },     // wide open
-      { delay: 1800, size: 60 },     // almost fully open
-      { delay: 2200, size: 85 },     // fully revealed
-    ];
-    const timers = steps.map(s => setTimeout(() => setClipSize(s.size), s.delay));
-    return () => timers.forEach(clearTimeout);
-  }, [open]);
-
-  // After fully open, fade out the entire overlay
-  const fullyOpen = clipSize >= 85;
-
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
       overflow: 'hidden',
     }}>
-      <style>{`
-        @keyframes apertureGlow {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-          30% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          70% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.5); }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(3); }
-        }
-        @keyframes apertureRingPulse {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-          40% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
-        }
-      `}</style>
-
-      {/* The dark shutter — circular hole expanding from center */}
+      {/* Top shutter panel */}
       <div style={{
-        position: 'absolute', inset: 0,
+        position: 'absolute', top: 0, left: 0, right: 0,
+        height: '50%',
         background: BG_BASE,
-        clipPath: `circle(${clipSize}% at 50% 48%)`,
-        transition: clipSize <= 0.3
-          ? 'none'
-          : `clip-path 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)`,
-        // Invert: we want the OUTSIDE to be dark, hole to be transparent
-        // So we use a mask instead
-        opacity: 0, // hidden — we use the inverted version below
-      }} />
+        transform: open ? 'translateY(-102%)' : 'translateY(0)',
+        transition: open
+          ? 'transform 2s cubic-bezier(0.16, 1, 0.3, 1)'
+          : 'none',
+      }}>
+        {/* Bottom edge — faint machined line */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: '10%', right: '10%',
+          height: 1,
+          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.04) 70%, transparent 100%)',
+        }} />
+      </div>
 
-      {/* Inverted: dark everywhere EXCEPT the circular opening */}
+      {/* Bottom shutter panel */}
       <div style={{
-        position: 'absolute', inset: '-10%',
-        width: '120%', height: '120%',
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: '50%',
         background: BG_BASE,
-        maskImage: `radial-gradient(circle ${clipSize}vmax at 50% 48%, transparent 0%, transparent 99%, black 100%)`,
-        WebkitMaskImage: `radial-gradient(circle ${clipSize}vmax at 50% 48%, transparent 0%, transparent 99%, black 100%)`,
-        transition: clipSize <= 0.3
-          ? 'none'
-          : `mask-image 0.8s cubic-bezier(0.25, 0.1, 0.25, 1), -webkit-mask-image 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)`,
-        opacity: fullyOpen ? 0 : 1,
-        transitionProperty: fullyOpen ? 'opacity' : undefined,
-        transitionDuration: fullyOpen ? '0.8s' : undefined,
-      }} />
-
-      {/* Warm light leak at the center — visible when aperture is tiny */}
-      {open && !fullyOpen && (
+        transform: open ? 'translateY(102%)' : 'translateY(0)',
+        transition: open
+          ? 'transform 2s cubic-bezier(0.16, 1, 0.3, 1)'
+          : 'none',
+      }}>
+        {/* Top edge — faint machined line */}
         <div style={{
-          position: 'absolute',
-          top: '48%', left: '50%',
-          width: 200, height: 200,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(201,165,78,0.4) 0%, rgba(201,165,78,0.15) 30%, rgba(255,245,220,0.05) 60%, transparent 80%)`,
-          animation: 'apertureGlow 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards',
-          zIndex: 5,
+          position: 'absolute', top: 0, left: '10%', right: '10%',
+          height: 1,
+          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.04) 70%, transparent 100%)',
         }} />
-      )}
+      </div>
 
-      {/* Subtle ring at the edge of the opening — like a lens barrel edge */}
-      {open && clipSize > 2 && clipSize < 60 && (
-        <div style={{
-          position: 'absolute',
-          top: '48%', left: '50%',
-          width: `${clipSize * 2.2}vmax`, height: `${clipSize * 2.2}vmax`,
-          borderRadius: '50%',
-          border: '1px solid rgba(255,255,255,0.04)',
-          boxShadow: 'inset 0 0 30px rgba(201,165,78,0.03), 0 0 60px rgba(201,165,78,0.02)',
-          transform: 'translate(-50%, -50%)',
-          transition: 'all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)',
-          opacity: clipSize > 40 ? 0 : 0.6,
-          pointerEvents: 'none',
-        }} />
-      )}
-
-      {/* Very subtle vignette that persists briefly after opening */}
+      {/* Center seam — a whisper of warm light at the split point */}
       <div style={{
-        position: 'absolute', inset: 0,
-        background: `radial-gradient(ellipse at 50% 48%, transparent 40%, rgba(10,22,40,0.3) 80%, rgba(10,22,40,0.5) 100%)`,
-        opacity: fullyOpen ? 0 : 0.8,
-        transition: 'opacity 1.5s ease',
-        pointerEvents: 'none',
+        position: 'absolute', top: '50%', left: '15%', right: '15%',
+        height: 1, marginTop: -0.5,
+        background: `linear-gradient(90deg, transparent 0%, rgba(201,165,78,0.12) 25%, rgba(201,165,78,0.2) 50%, rgba(201,165,78,0.12) 75%, transparent 100%)`,
+        opacity: open ? 0 : 1,
+        transition: open ? 'opacity 0.6s ease 0.3s' : 'none',
       }} />
     </div>
   );
