@@ -613,6 +613,26 @@ function SourceHealthDashboard({ data, onClose }: { data: WatchDataState; onClos
 
 function ScannerCallLog({ calls, spikeZones, onClose }: { calls: ScannerRawCall[]; spikeZones: string[]; onClose: () => void }) {
   const sorted = [...calls].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handlePlay = (callId: string, audioUrl: string) => {
+    if (playingId === callId) {
+      // Stop current
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      setPlayingId(null);
+      return;
+    }
+    // Stop previous
+    if (audioRef.current) { audioRef.current.pause(); }
+    const audio = new Audio(audioUrl);
+    audio.volume = 0.7;
+    audio.onended = () => { setPlayingId(null); audioRef.current = null; };
+    audio.onerror = () => { setPlayingId(null); audioRef.current = null; };
+    audio.play().catch(() => { setPlayingId(null); });
+    audioRef.current = audio;
+    setPlayingId(callId);
+  };
 
   return (
     <div style={{
@@ -696,18 +716,23 @@ function ScannerCallLog({ calls, spikeZones, onClose }: { calls: ScannerRawCall[
             </span>
             <span>
               {call.audioUrl ? (
-                <a
-                  href={call.audioUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={(e) => { e.stopPropagation(); handlePlay(call.id, call.audioUrl!); }}
                   style={{
-                    color: brand.accent, textDecoration: 'none',
-                    fontSize: '10px', fontWeight: fontWeight.medium,
+                    background: playingId === call.id ? status.redBg : 'rgba(183,145,69,0.1)',
+                    border: `1px solid ${playingId === call.id ? status.red : 'rgba(183,145,69,0.3)'}`,
+                    borderRadius: radius.sm,
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    color: playingId === call.id ? status.red : brand.accent,
+                    fontSize: '10px', fontWeight: fontWeight.semibold,
+                    fontFamily: font.mono,
+                    transition: 'all 0.15s ease',
+                    display: 'flex', alignItems: 'center', gap: 3,
                   }}
-                  onClick={(e) => e.stopPropagation()}
                 >
-                  ▶ PLAY
-                </a>
+                  {playingId === call.id ? '■ STOP' : '▶ PLAY'}
+                </button>
               ) : (
                 <span style={{ color: text.light }}>—</span>
               )}
@@ -1694,12 +1719,12 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
         <div
           onClick={() => setShowGangBoundaries(!showGangBoundaries)}
           style={{
-            position: 'absolute', bottom: space.lg, right: space.lg,
-            background: showGangBoundaries ? 'rgba(43,95,138,0.9)' : 'rgba(255,255,255,0.92)',
+            position: 'absolute', top: space.lg, right: 200,
+            background: showGangBoundaries ? 'rgba(43,95,138,0.95)' : 'rgba(255,255,255,0.95)',
             backdropFilter: 'blur(8px)',
             borderRadius: radius.md, padding: `${space.xs} ${space.md}`,
-            boxShadow: shadow.sm, border: `1px solid ${showGangBoundaries ? '#2B5F8A' : border.light}`,
-            zIndex: 10, cursor: 'pointer',
+            boxShadow: shadow.md, border: `1px solid ${showGangBoundaries ? '#2B5F8A' : border.light}`,
+            zIndex: 1000, cursor: 'pointer',
             fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
             fontFamily: font.mono, letterSpacing: '0.03em',
             color: showGangBoundaries ? '#fff' : text.secondary,
@@ -1709,10 +1734,32 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
           }}
           title="Toggle CPD 2024 Gang Territory Boundaries"
         >
-          <span style={{ fontSize: '13px' }}>{showGangBoundaries ? '◼' : '◻'}</span>
+          <span style={{ fontSize: '13px' }}>{showGangBoundaries ? '\u25fc' : '\u25fb'}</span>
           GANG TERRITORIES
           <span style={{ fontSize: '9px', opacity: 0.7 }}>CPD 2024</span>
         </div>
+
+        {/* Gang Legend (when active) */}
+        {showGangBoundaries && (
+          <div style={{
+            position: 'absolute', top: 56, right: 200,
+            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+            borderRadius: radius.md, padding: `${space.xs} ${space.sm}`,
+            boxShadow: shadow.sm, border: `1px solid ${border.light}`,
+            zIndex: 1000, fontSize: '10px', fontFamily: font.mono,
+            display: 'flex', gap: 10, color: text.secondary,
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#8B2252', opacity: 0.7 }} /> People
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#2B5F8A', opacity: 0.7 }} /> Folk
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#5A6A7E', opacity: 0.7 }} /> Other
+            </span>
+          </div>
+        )}
 
         {/* Refreshing bar */}
         {data.isRefreshing && (

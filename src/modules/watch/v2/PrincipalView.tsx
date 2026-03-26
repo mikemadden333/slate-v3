@@ -1055,12 +1055,12 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
         <div
           onClick={() => setShowGangBoundaries(!showGangBoundaries)}
           style={{
-            position: 'absolute', bottom: space.lg, right: space.lg,
-            background: showGangBoundaries ? 'rgba(43,95,138,0.9)' : 'rgba(255,255,255,0.92)',
+            position: 'absolute', top: space.lg, right: 180,
+            background: showGangBoundaries ? 'rgba(43,95,138,0.95)' : 'rgba(255,255,255,0.95)',
             backdropFilter: 'blur(8px)',
             borderRadius: radius.md, padding: `${space.xs} ${space.md}`,
-            boxShadow: shadow.sm, border: `1px solid ${showGangBoundaries ? '#2B5F8A' : border.light}`,
-            zIndex: 10, cursor: 'pointer',
+            boxShadow: shadow.md, border: `1px solid ${showGangBoundaries ? '#2B5F8A' : border.light}`,
+            zIndex: 1000, cursor: 'pointer',
             fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
             fontFamily: font.mono, letterSpacing: '0.03em',
             color: showGangBoundaries ? '#fff' : text.secondary,
@@ -1074,6 +1074,28 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
           GANG TERRITORIES
           <span style={{ fontSize: '9px', opacity: 0.7 }}>CPD 2024</span>
         </div>
+
+        {/* Gang Legend */}
+        {showGangBoundaries && (
+          <div style={{
+            position: 'absolute', top: 56, right: 180,
+            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+            borderRadius: radius.md, padding: `${space.xs} ${space.sm}`,
+            boxShadow: shadow.sm, border: `1px solid ${border.light}`,
+            zIndex: 1000, fontSize: '10px', fontFamily: font.mono,
+            display: 'flex', gap: 10, color: text.secondary,
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#8B2252', opacity: 0.7 }} /> People
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#2B5F8A', opacity: 0.7 }} /> Folk
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#5A6A7E', opacity: 0.7 }} /> Other
+            </span>
+          </div>
+        )}
 
         {data.isRefreshing && (
           <div style={{
