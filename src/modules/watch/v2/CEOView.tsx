@@ -30,7 +30,7 @@ import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { WatchDataState } from './useWatchData';
-import type { WatchIncident, CampusThreat, ThreatLevel } from './types';
+import type { WatchIncident, CampusThreat, ThreatLevel, ScannerRawCall } from './types';
 import { THREAT_CONFIG, VIOLENT_CRIME_LABELS, CONFIDENCE_SCORE } from './types';
 import { brand, bg, text, font, fontSize, fontWeight, border, shadow, radius, space, status, modules } from '../../../core/theme';
 import { fmtAgo, haversine, bearing, compassLabel } from '../engine/geo';
@@ -450,7 +450,7 @@ function generateIntelligenceNarrative(data: WatchDataState): string {
 
 // ─── Source Freshness Bar ────────────────────────────────────────────────
 
-function FreshnessBar({ data, onExpand }: { data: WatchDataState; onExpand: () => void }) {
+function FreshnessBar({ data, onExpand, onScannerClick }: { data: WatchDataState; onExpand: () => void; onScannerClick?: () => void }) {
   const net = data.networkStatus;
   if (!net) return null;
 
@@ -481,7 +481,12 @@ function FreshnessBar({ data, onExpand }: { data: WatchDataState; onExpand: () =
           <div key={s.name} style={{
             flex: 1, display: 'flex', alignItems: 'center', gap: 4,
             padding: '3px 6px', borderRadius: radius.sm,
-          }}>
+            cursor: s.name === 'SCANNER' ? 'pointer' : 'default',
+            background: s.name === 'SCANNER' ? 'rgba(255,255,255,0.03)' : 'transparent',
+          }}
+          onClick={s.name === 'SCANNER' && onScannerClick ? (e) => { e.stopPropagation(); onScannerClick(); } : undefined}
+          title={s.name === 'SCANNER' ? 'Click to view scanner call log' : undefined}
+          >
             <div style={{
               width: 6, height: 6, borderRadius: '50%', background: color,
               boxShadow: isLive ? `0 0 4px ${color}` : 'none',
@@ -490,13 +495,13 @@ function FreshnessBar({ data, onExpand }: { data: WatchDataState; onExpand: () =
               fontSize: fontSize.xs, fontFamily: font.mono, color: text.muted,
               fontWeight: fontWeight.medium,
             }}>
-              {s.name}
+              {s.name}{s.name === 'SCANNER' ? ` (${data.scannerTotalCalls})` : ''}
             </span>
             <span style={{
               fontSize: fontSize.xs, fontFamily: font.mono, color,
               fontWeight: fontWeight.medium, marginLeft: 'auto',
             }}>
-              {ageStr}
+              {ageStr}{s.name === 'SCANNER' ? ' ▸' : ''}
             </span>
           </div>
         );
@@ -570,6 +575,125 @@ function SourceHealthDashboard({ data, onClose }: { data: WatchDataState; onClos
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Scanner Call Log (clickable from freshness bar) ────────────────────
+
+function ScannerCallLog({ calls, spikeZones, onClose }: { calls: ScannerRawCall[]; spikeZones: string[]; onClose: () => void }) {
+  const sorted = [...calls].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return (
+    <div style={{
+      padding: `${space.lg} ${space.xl}`, background: bg.card,
+      borderTop: `1px solid ${border.light}`,
+      animation: 'watchFadeIn 0.2s ease-out',
+      maxHeight: 360, overflowY: 'auto',
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: space.md,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            fontSize: fontSize.xs, fontWeight: fontWeight.semibold,
+            color: text.muted, textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>
+            CPD Scanner Call Log
+          </div>
+          <span style={{
+            fontSize: '10px', fontFamily: font.mono, color: text.light,
+            background: bg.subtle, padding: '2px 6px', borderRadius: radius.sm,
+          }}>
+            {sorted.length} calls · Last 2 hours
+          </span>
+          {spikeZones.length > 0 && (
+            <span style={{
+              fontSize: '10px', fontFamily: font.mono, color: status.red,
+              background: status.redBg, padding: '2px 6px', borderRadius: radius.sm,
+              fontWeight: fontWeight.semibold,
+            }}>
+              ⚠ SPIKE: {spikeZones.join(', ')}
+            </span>
+          )}
+        </div>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: fontSize.sm, color: text.muted, padding: '2px 6px',
+        }}>✕</button>
+      </div>
+
+      {/* Column headers */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '100px 1fr 70px 70px 80px',
+        gap: 8, padding: '6px 0',
+        borderBottom: `1px solid ${border.light}`,
+        fontSize: '10px', fontWeight: fontWeight.semibold,
+        color: text.muted, textTransform: 'uppercase', letterSpacing: '0.06em',
+      }}>
+        <span>Time</span>
+        <span>Zone / Talkgroup</span>
+        <span>Duration</span>
+        <span>Freq</span>
+        <span>Audio</span>
+      </div>
+
+      {/* Call rows */}
+      {sorted.map((call, i) => {
+        const age = (Date.now() - new Date(call.timestamp).getTime()) / 60000;
+        const isRecent = age < 15;
+        const timeStr = new Date(call.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        return (
+          <div key={call.id} style={{
+            display: 'grid', gridTemplateColumns: '100px 1fr 70px 70px 80px',
+            gap: 8, padding: '5px 0',
+            borderBottom: i < sorted.length - 1 ? `1px solid ${border.light}` : 'none',
+            fontSize: fontSize.xs, fontFamily: font.mono,
+            color: isRecent ? text.primary : text.muted,
+            background: isRecent ? 'rgba(47, 133, 90, 0.04)' : 'transparent',
+          }}>
+            <span style={{ color: isRecent ? status.green : text.muted }}>
+              {timeStr}
+            </span>
+            <span style={{ fontFamily: font.primary, color: text.secondary }}>
+              {call.zoneName}
+            </span>
+            <span>{call.duration > 0 ? `${call.duration}s` : '—'}</span>
+            <span style={{ color: text.light }}>
+              {call.frequency > 0 ? `${(call.frequency / 1000000).toFixed(1)}M` : '—'}
+            </span>
+            <span>
+              {call.audioUrl ? (
+                <a
+                  href={call.audioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: brand.accent, textDecoration: 'none',
+                    fontSize: '10px', fontWeight: fontWeight.medium,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  ▶ PLAY
+                </a>
+              ) : (
+                <span style={{ color: text.light }}>—</span>
+              )}
+            </span>
+          </div>
+        );
+      })}
+
+      {sorted.length === 0 && (
+        <div style={{
+          padding: space.xl, textAlign: 'center',
+          fontSize: fontSize.sm, color: text.muted,
+        }}>
+          No scanner calls received in the last 2 hours
+        </div>
+      )}
     </div>
   );
 }
@@ -1216,6 +1340,7 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
   const [demoPhase, setDemoPhase] = useState(0);
   const [showSMSConfig, setShowSMSConfig] = useState(false);
   const [showSourceHealth, setShowSourceHealth] = useState(false);
+  const [showScannerLog, setShowScannerLog] = useState(false);
   const [smsStatus, setSmsStatus] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -1833,8 +1958,13 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
           <SourceHealthDashboard data={data} onClose={() => setShowSourceHealth(false)} />
         )}
 
+        {/* Scanner Call Log (expandable) */}
+        {showScannerLog && (
+          <ScannerCallLog calls={data.scannerRawCalls} spikeZones={data.scannerSpikeZones} onClose={() => setShowScannerLog(false)} />
+        )}
+
         {/* Source Freshness Bar */}
-        <FreshnessBar data={data} onExpand={() => setShowSourceHealth(!showSourceHealth)} />
+        <FreshnessBar data={data} onExpand={() => setShowSourceHealth(!showSourceHealth)} onScannerClick={() => setShowScannerLog(!showScannerLog)} />
       </div>
     </div>
   );

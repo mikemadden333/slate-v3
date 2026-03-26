@@ -121,6 +121,20 @@ export interface ScannerTranscript {
   confidence: ConfidenceLevel;
 }
 
+// ─── Scanner Raw Call (for call log display) ─────────────────────────────
+
+export interface ScannerRawCall {
+  id: string;
+  timestamp: string;          // ISO 8601
+  talkgroupNum: number;
+  zoneName: string;           // Mapped zone name or 'Unknown'
+  duration: number;           // seconds
+  audioUrl: string | null;
+  frequency: number;
+  transcript?: string;        // If transcribed
+  isViolent?: boolean;        // If classified
+}
+
 // ─── Network Summary ──────────────────────────────────────────────────────
 
 export interface NetworkStatus {

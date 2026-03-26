@@ -7,7 +7,7 @@
  *       Scanner transcription pipeline via Whisper proxy.
  */
 
-import type { WatchIncident, DataSource, SourceStatus, ViolentCrimeType } from './types';
+import type { WatchIncident, DataSource, SourceStatus, ViolentCrimeType, ScannerRawCall } from './types';
 import { CONFIDENCE_SCORE } from './types';
 import { classifyCitizenTitle, classifyCPDIncident, classifyNewsHeadline, classifyViolentCrime } from './classifier';
 import { CAMPUSES } from '../data/campuses';
@@ -481,6 +481,7 @@ export async function fetchScannerActivity(): Promise<{
   incidents: WatchIncident[];
   totalCalls: number;
   spikeZones: string[];
+  rawCalls: ScannerRawCall[];
 }> {
   const start = Date.now();
 
@@ -587,14 +588,37 @@ export async function fetchScannerActivity(): Promise<{
       }
     }
 
+    // Build raw call metadata for the call log
+    const CPD_ZONES_ALL: Record<number, string> = {
+      1: 'Zone 1 — Central', 2: 'Zone 2 — Wentworth', 3: 'Zone 3 — Grand Crossing',
+      4: 'Zone 4 — Loop', 5: 'Zone 5 — Far South', 6: 'Zone 6 — Englewood',
+      7: 'Zone 7 — Lawndale', 8: 'Zone 8 — South Chicago', 9: 'Zone 9 — Deering',
+      10: 'Zone 10 — West Side', 11: 'Zone 11 — Harrison', 12: 'Zone 12 — Near West',
+      13: 'Zone 13 — Wood', 14: 'Zone 14 — Shakespeare', 15: 'Zone 15 — Austin',
+    };
+
+    const parsedRawCalls: ScannerRawCall[] = rawCalls.slice(0, 50).map((raw: any, i: number) => {
+      const c = raw as Record<string, unknown>;
+      const tgId = Number(c.talkgroupNum ?? c.talkgroup_num ?? 0);
+      return {
+        id: String(c._id ?? `call_${i}`),
+        timestamp: c.time ? new Date(c.time as string).toISOString() : new Date().toISOString(),
+        talkgroupNum: tgId,
+        zoneName: CPD_ZONES_ALL[tgId] || `Talkgroup ${tgId}`,
+        duration: Number(c.len ?? c.duration ?? 0),
+        audioUrl: (c.url as string) || null,
+        frequency: Number(c.freq ?? 0),
+      };
+    });
+
     updateSourceStatus('SCANNER', true, rawCalls.length, Date.now() - start);
     console.log(`Watch v2 Scanner: ${rawCalls.length} calls, ${spikeZones.length} spike zones, ${scannerIncidents.length} transcribed incidents`);
 
-    return { incidents: scannerIncidents, totalCalls: rawCalls.length, spikeZones };
+    return { incidents: scannerIncidents, totalCalls: rawCalls.length, spikeZones, rawCalls: parsedRawCalls };
   } catch (err) {
     updateSourceStatus('SCANNER', false, 0, Date.now() - start, String(err));
     console.error('Watch v2 Scanner fetch error:', err);
-    return { incidents: [], totalCalls: 0, spikeZones: [] };
+    return { incidents: [], totalCalls: 0, spikeZones: [], rawCalls: [] };
   }
 }
 

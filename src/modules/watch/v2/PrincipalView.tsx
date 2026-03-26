@@ -317,16 +317,19 @@ function IncidentDetail({ incident, campus, onClose }: {
             padding: space.md, background: bg.subtle, borderRadius: radius.md,
             borderLeft: `3px solid ${status.blue}`,
           }}>
-            {generateReasoningChain(campus, [incident]).map((reason, i) => (
-              <div key={i} style={{
-                fontSize: fontSize.sm, lineHeight: 1.6,
-                  marginBottom: i < reasoningChain.length - 1 ? 2 : 0,
+            {(() => {
+              const reasons = generateReasoningChain(campus, [incident]);
+              return reasons.map((reason, i) => (
+                <div key={i} style={{
+                  fontSize: fontSize.sm, lineHeight: 1.6,
+                  marginBottom: i < reasons.length - 1 ? 2 : 0,
                   fontWeight: reason.startsWith('ASSESSMENT') || reason.startsWith('CRITICAL') ? fontWeight.semibold : fontWeight.regular,
                   color: reason.startsWith('CRITICAL') ? status.red : reason.startsWith('ASSESSMENT') ? text.primary : text.secondary,
-              }}>
-                {reason}
-              </div>
-            ))}
+                }}>
+                  {reason}
+                </div>
+              ));
+            })()}
           </div>
         </div>
 

@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { WatchIncident, CampusThreat, NetworkStatus, SourceStatus } from './types';
+import type { WatchIncident, CampusThreat, NetworkStatus, SourceStatus, ScannerRawCall } from './types';
 import { fetchCitizenIncidents, fetchCPDIncidents, fetchNewsIncidents, fetchScannerActivity, fetchWeather, getSourceStatuses } from './fetchers';
 import { fuseIncidents, assessCampusThreats, computeNetworkStatus } from './fusion';
 
@@ -21,6 +21,7 @@ export interface WatchDataState {
   // Scanner metadata
   scannerTotalCalls: number;
   scannerSpikeZones: string[];
+  scannerRawCalls: ScannerRawCall[];
 
   // UI state
   isLoading: boolean;
@@ -39,6 +40,7 @@ export function useWatchData(): WatchDataState {
   const [sourceStatuses, setSourceStatuses] = useState<SourceStatus[]>([]);
   const [scannerTotalCalls, setScannerTotalCalls] = useState(0);
   const [scannerSpikeZones, setScannerSpikeZones] = useState<string[]>([]);
+  const [scannerRawCalls, setScannerRawCalls] = useState<ScannerRawCall[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -81,6 +83,7 @@ export function useWatchData(): WatchDataState {
       setSourceStatuses(getSourceStatuses());
       setScannerTotalCalls(scanner.totalCalls);
       setScannerSpikeZones(scanner.spikeZones);
+      setScannerRawCalls(scanner.rawCalls);
       setLastRefresh(new Date());
 
       console.log(`Watch v2 refresh complete: ${fused.length} fused incidents, ${threats.filter(t => t.threatLevel !== 'GREEN').length} campuses elevated`);
@@ -111,6 +114,7 @@ export function useWatchData(): WatchDataState {
     sourceStatuses,
     scannerTotalCalls,
     scannerSpikeZones,
+    scannerRawCalls,
     isLoading,
     isRefreshing,
     lastRefresh,
