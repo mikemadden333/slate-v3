@@ -12,6 +12,7 @@ import { CONFIDENCE_SCORE } from './types';
 import { classifyCitizenTitle, classifyCPDIncident, classifyNewsHeadline, classifyViolentCrime } from './classifier';
 import { CAMPUSES } from '../data/campuses';
 import { haversine } from '../engine/geo';
+import type { Incident } from '../engine/types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -662,5 +663,50 @@ export async function fetchWeather(): Promise<{
     return { tempF: temp, condition, isRiskElevating };
   } catch {
     return { tempF: 65, condition: 'Unknown', isRiskElevating: false };
+  }
+}
+
+// ─── HOMICIDE FETCHER (for Contagion Model) ───────────────────────────────
+/**
+ * Fetch CPD homicides for the Papachristos 125-day contagion model.
+ * Returns engine Incident[] format (not WatchIncident[]) for use with buildContagionZones.
+ * Uses a bounding box around Noble campuses to minimize payload.
+ */
+export async function fetchHomicidesForContagion(): Promise<Incident[]> {
+  const start = Date.now();
+  try {
+    const since = new Date(Date.now() - 125 * 24 * 3600000).toISOString().slice(0, 19);
+    const params = new URLSearchParams({
+      '$where': `date > '${since}' AND primary_type = 'HOMICIDE' AND latitude > 41.65 AND latitude < 41.97 AND longitude > -87.82 AND longitude < -87.57`,
+      '$order': 'date DESC',
+      '$limit': '500',
+      '$select': 'id,date,primary_type,block,latitude,longitude,description',
+    });
+    const res = await fetch(`https://data.cityofchicago.org/resource/ijzp-q8t2.json?${params}`);
+    if (!res.ok) {
+      console.warn(`Contagion homicide fetch failed: ${res.status}`);
+      return [];
+    }
+    const rows = await res.json() as Array<Record<string, string>>;
+    const incidents: Incident[] = [];
+    for (const row of rows) {
+      const lat = parseFloat(row.latitude);
+      const lng = parseFloat(row.longitude);
+      if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) continue;
+      incidents.push({
+        id: `cpd-homicide-${row.id ?? row.case_number ?? Math.random()}`,
+        date: row.date ?? new Date().toISOString(),
+        type: 'HOMICIDE',
+        block: row.block ?? '',
+        lat, lng,
+        description: row.description ?? 'HOMICIDE',
+        source: 'CPD',
+      });
+    }
+    console.log(`Contagion: ${incidents.length} homicides in last 125 days (${Date.now() - start}ms)`);
+    return incidents;
+  } catch (err) {
+    console.warn('Contagion homicide fetch error:', err);
+    return [];
   }
 }

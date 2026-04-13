@@ -11,7 +11,7 @@ import { PRESENTATION_SNAPSHOT } from './data/defaults/presentationSnapshot';
 import SlateShell from './shell/SlateShell';
 import Dashboard from './modules/dashboard/Dashboard';
 import DataHub from './data/DataHub';
-import WatchAppV2 from './modules/watch/v2/WatchAppV2';
+import WatchAppV3 from './modules/watch/v3/WatchAppV3';
 import LedgerApp from './modules/ledger/LedgerApp';
 import ScholarApp from './modules/scholar/ScholarApp';
 import BriefingApp from './modules/briefing/BriefingApp';
@@ -103,7 +103,7 @@ function AppContent() {
       case 'datahub':
         return <DataHub />;
       case 'watch':
-        return <WatchAppV2 />;
+        return <WatchAppV3 />;
       case 'ledger':
         return <LedgerApp />;
       case 'scholar':
