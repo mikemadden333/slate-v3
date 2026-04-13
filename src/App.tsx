@@ -3,7 +3,7 @@
  * Root component: DataStore provider + Shell + Module router.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SplashScreen from './shell/SplashScreen';
 import { DataStoreProvider, useDataStore } from './data/DataStore';
 import { PresentationModeProvider, usePresentationMode } from './core/PresentationMode';
@@ -75,8 +75,14 @@ function ModulePlaceholder({ moduleId }: { moduleId: string }) {
 function PresentationModeSync() {
   const { isPresentationMode } = usePresentationMode();
   const { dispatch } = useDataStore();
+  const isMounted = useRef(false);
 
   useEffect(() => {
+    // Skip the initial render — only fire when the user actually toggles
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
     if (isPresentationMode) {
       dispatch({ type: 'SET_STORE', payload: PRESENTATION_SNAPSHOT });
     } else {
