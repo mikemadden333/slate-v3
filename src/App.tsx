@@ -3,9 +3,11 @@
  * Root component: DataStore provider + Shell + Module router.
  */
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import SplashScreen from './shell/SplashScreen';
-import { DataStoreProvider } from './data/DataStore';
+import { DataStoreProvider, useDataStore } from './data/DataStore';
+import { PresentationModeProvider, usePresentationMode } from './core/PresentationMode';
+import { PRESENTATION_SNAPSHOT } from './data/defaults/presentationSnapshot';
 import SlateShell from './shell/SlateShell';
 import Dashboard from './modules/dashboard/Dashboard';
 import DataHub from './data/DataHub';
@@ -67,6 +69,24 @@ function ModulePlaceholder({ moduleId }: { moduleId: string }) {
   );
 }
 
+// ─── Presentation Mode Sync ───────────────────────────────────────────────
+// When Presentation Mode is toggled on, inject the curated snapshot.
+// When toggled off, reset to the live demo defaults.
+function PresentationModeSync() {
+  const { isPresentationMode } = usePresentationMode();
+  const { dispatch } = useDataStore();
+
+  useEffect(() => {
+    if (isPresentationMode) {
+      dispatch({ type: 'SET_STORE', payload: PRESENTATION_SNAPSHOT });
+    } else {
+      dispatch({ type: 'RESET_TO_DEMO' });
+    }
+  }, [isPresentationMode, dispatch]);
+
+  return null;
+}
+
 function AppContent() {
   const [activeModule, setActiveModule] = useState('dashboard');
 
@@ -104,9 +124,12 @@ function AppContent() {
   }
 
   return (
-    <SlateShell activeModule={activeModule} onNavigate={setActiveModule}>
-      {renderModule()}
-    </SlateShell>
+    <>
+      <PresentationModeSync />
+      <SlateShell activeModule={activeModule} onNavigate={setActiveModule}>
+        {renderModule()}
+      </SlateShell>
+    </>
   );
 }
 
@@ -118,8 +141,10 @@ export default function App() {
   }
 
   return (
-    <DataStoreProvider>
-      <AppContent />
-    </DataStoreProvider>
+    <PresentationModeProvider>
+      <DataStoreProvider>
+        <AppContent />
+      </DataStoreProvider>
+    </PresentationModeProvider>
   );
 }

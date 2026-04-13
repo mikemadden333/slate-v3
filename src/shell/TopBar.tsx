@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { MODULES } from '../core/constants';
 import { bg, text, brand, border, font, fontSize, fontWeight, shadow, radius, transition } from '../core/theme';
 import { useNetwork, useRole, useEmergencies } from '../data/DataStore';
+import { usePresentationMode } from '../core/PresentationMode';
 
 interface TopBarProps {
   activeModule: string;
@@ -18,6 +19,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
   const network = useNetwork();
   const { role, selectedCampusId } = useRole();
   const { activeEvents } = useEmergencies();
+  const { isPresentationMode, togglePresentationMode } = usePresentationMode();
   const mod = MODULES.find(m => m.id === activeModule);
   const campus = role === 'principal' ? network.campuses.find(c => c.id === selectedCampusId) : null;
 
@@ -121,8 +123,26 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
         </div>
       </div>
 
-      {/* Right: Ask Slate + Role badge */}
+      {/* Right: DEMO badge + Role badge + Ask Slate */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {isPresentationMode && (
+          <button
+            onClick={togglePresentationMode}
+            title="Presentation Mode active — click to exit (or Ctrl+Shift+P)"
+            style={{
+              padding: '3px 10px', borderRadius: radius.full,
+              background: 'rgba(201,165,78,0.18)',
+              border: '1px solid rgba(201,165,78,0.55)',
+              fontSize: fontSize.xs, fontWeight: fontWeight.bold,
+              color: brand.gold, textTransform: 'uppercase', letterSpacing: '1.5px',
+              fontFamily: font.body, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}
+          >
+            <span style={{ fontSize: 7, color: brand.gold }}>●</span>
+            DEMO
+          </button>
+        )}
         <div style={{
           padding: '5px 14px', borderRadius: radius.full,
           background: `${brand.gold}15`,
