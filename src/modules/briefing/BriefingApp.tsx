@@ -928,8 +928,8 @@ export default function BriefingApp() {
 
       <BriefTimestamp />
       <EmergencyBrief />
-      <SafetyIntelligenceBrief />
       <ExecutiveSummary />
+      <SafetyIntelligenceBrief />
       <FinancialBrief />
       <EnrollmentBrief />
       <RiskBrief />
