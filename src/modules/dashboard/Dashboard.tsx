@@ -170,6 +170,8 @@ function CEODashboard({ onNavigate }: { onNavigate: (id: string) => void }) {
     generateBriefing();
   }, [activeEvents.length]);
 
+  const timeOfDay = (() => { const h = new Date().getHours(); return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening'; })();
+
   async function generateBriefing() {
     setAiLoading(true);
     try {
@@ -184,10 +186,10 @@ function CEODashboard({ onNavigate }: { onNavigate: (id: string) => void }) {
         body: JSON.stringify({
           model: AI_CONFIG.model,
           max_tokens: 1024,
-          system: `${AI_CONFIG.systemPrompt}\n\nGenerate a concise morning intelligence briefing (3-4 paragraphs) for the CEO of ${network.name}. ${activeEvents.length > 0 ? 'CRITICAL: There are active facility emergencies. Your briefing MUST lead with the emergency situation, its operational impact, and recommended actions. Then cover other priorities.' : 'Focus on what demands attention TODAY.'} Be direct, specific, and connect data points across domains. Use the Slate voice: authoritative, warm, no fluff.`,
+          system: `${AI_CONFIG.systemPrompt}\n\nGenerate a concise ${timeOfDay} intelligence briefing (3-4 paragraphs) for the CEO of ${network.name}. ${activeEvents.length > 0 ? 'CRITICAL: There are active facility emergencies. Your briefing MUST lead with the emergency situation, its operational impact, and recommended actions. Then cover other priorities.' : 'Focus on what demands attention TODAY.'} Begin with 'Good ${timeOfDay}.' Be direct, specific, and connect data points across domains. Use the Slate voice: authoritative, warm, no fluff.`,
           messages: [{
             role: 'user',
-            content: `Generate my morning briefing based on this data:${emergencyContext}
+            content: `Generate my ${timeOfDay} briefing based on this data:${emergencyContext}
 ENROLLMENT: ${fmtNum(enrollment.networkTotal)} students (target: ${fmtNum(enrollment.targetEnrollment)}, gap: ${fmtNum(enrollment.targetEnrollment - enrollment.networkTotal)})
 FINANCIALS: Revenue ${fmt(financials.ytdSummary.revActual * 1_000_000)} vs budget ${fmt(financials.ytdSummary.revBudget * 1_000_000)} | Expenses ${fmt(financials.ytdSummary.expActual * 1_000_000)} vs budget ${fmt(financials.ytdSummary.expBudget * 1_000_000)} | DSCR: ${fmtDscr(financials.ytdSummary.dscr)} | Days Cash: ${financials.ytdSummary.daysCash}
 STAFF: ${staff.vacancies} vacancies out of ${staff.totalPositions} positions
