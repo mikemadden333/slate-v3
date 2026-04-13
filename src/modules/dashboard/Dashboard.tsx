@@ -235,6 +235,11 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
       {/* GOLDEN THREAD: Emergency Banner */}
       <EmergencyBanner onNavigate={onNavigate} />
 
+      {/* AI Morning Briefing */}
+      <div style={{ marginBottom: 28 }}>
+        <AIInsight content={aiInsight} loading={aiLoading} label={`${(() => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; })()} Intelligence Briefing`} />
+      </div>
+
       {/* Watch Safety Intelligence Card */}
       {!watch.isLoading && (
         <div style={{ marginBottom: 24 }}>
@@ -305,11 +310,6 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
           </Card>
         </div>
       )}
-
-      {/* AI Morning Briefing */}
-      <div style={{ marginBottom: 28 }}>
-        <AIInsight content={aiInsight} loading={aiLoading} label={`${(() => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; })()} Intelligence Briefing`} />
-      </div>
 
       {/* Critical KPIs — The Big Four */}
       <Section title="Vital Signs">
