@@ -1,36 +1,31 @@
 /**
- * Slate v3 — Splash Screen v8 "The Reveal"
+ * Slate v3 — Splash Screen v9 "Signal"
  *
- * Design concept: A camera aperture opens slowly in the dark,
- * revealing the deep navy world behind it. The wordmark materializes.
- * Gold flecks fall gently from the period. A gold rule draws itself.
- * Then stillness. Then the disclaimer card rises.
+ * Design principle: authoritative minimalism.
+ * One gesture. One wordmark. Stillness.
  *
- * Timeline:
- *   0.0s  — Black void
- *   0.6s  — Thin gold ring appears
- *   1.0s  — Aperture begins opening (2.5s duration)
- *   2.0s  — Navy background fades in behind aperture
- *   3.2s  — "Slate." wordmark materializes
- *   3.8s  — Gold flecks begin falling from period
- *   4.6s  — Gold rule draws left to right
- *   5.4s  — Tagline + subtitle fade in
- *   8.0s  — Disclaimer card rises
+ * Sequence:
+ *   0.0s  Pure deep navy void
+ *   0.8s  Single hairline gold ring expands from center (sonar pulse)
+ *   2.2s  "Slate." materializes — opacity 0→1, very slight upward drift
+ *   3.4s  Gold rule draws left→right
+ *   4.5s  Tagline fades in
+ *   5.0s  Subtitle fades in
+ *   5.6s  Footer fades in
+ *   7.5s  Disclaimer card rises
+ *  14.0s  Auto-advance (fallback)
  */
+
 import React, { useEffect, useRef, useState } from 'react';
 
-interface SplashScreenProps {
+interface Props {
   onComplete: () => void;
 }
 
-// ─── Aperture Canvas ──────────────────────────────────────────────────────────
-// 12 precision blades rotate open from closed (overlapping) to open (spread)
-// Rendered on canvas for smooth 60fps animation
-function ApertureCanvas({ phase }: { phase: 'closed' | 'opening' | 'open' | 'fading' }) {
+// ─── Sonar Canvas ─────────────────────────────────────────────────────────────
+
+function SonarCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const progressRef = useRef(0);
-  const animRef = useRef<number>(0);
-  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -38,612 +33,326 @@ function ApertureCanvas({ phase }: { phase: 'closed' | 'opening' | 'open' | 'fad
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    canvas.width = W;
-    canvas.height = H;
+    let animId: number;
+    let startTime: number | null = null;
 
-    const cx = W / 2;
-    const cy = H / 2;
-    const BLADES = 12;
-    const OUTER_R = Math.min(W, H) * 0.22;
-    const INNER_R = OUTER_R * 0.06;
-    const BLADE_WIDTH_ANGLE = (Math.PI * 2) / BLADES * 0.72; // overlap factor
+    // Two pulses: primary at 0.8s, faint echo at 1.8s
+    const pulses = [
+      { delay: 800,  maxR: 0.68, alpha: 0.50, width: 0.7, duration: 2400 },
+      { delay: 1800, maxR: 0.50, alpha: 0.18, width: 0.4, duration: 1800 },
+    ];
 
-    function easeInOutCubic(t: number): number {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    }
+    const resize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
 
-    function drawFrame(progress: number, globalAlpha: number) {
-      ctx.clearRect(0, 0, W, H);
-      ctx.globalAlpha = globalAlpha;
+    const draw = (ts: number) => {
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
 
-      // Outer ring — always visible when aperture is visible
-      ctx.beginPath();
-      ctx.arc(cx, cy, OUTER_R, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(212,175,55,${0.18 * globalAlpha})`;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Inner ring
-      ctx.beginPath();
-      ctx.arc(cx, cy, INNER_R, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(212,175,55,${0.35 * globalAlpha})`;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
+      const cx = canvas.width  / 2;
+      const cy = canvas.height / 2;
+      const maxDim = Math.max(canvas.width, canvas.height);
 
-      // Center dot
-      ctx.beginPath();
-      ctx.arc(cx, cy, 2, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(212,175,55,${0.6 * globalAlpha})`;
-      ctx.fill();
+      for (const p of pulses) {
+        const t = elapsed - p.delay;
+        if (t < 0) continue;
 
-      // Blades — each is a thin trapezoid radiating from inner ring to outer ring
-      // At progress=0: blades overlap (closed aperture, dark center)
-      // At progress=1: blades spread open (open aperture, clear center)
-      const openAngle = (Math.PI * 2) / BLADES; // fully open: each blade at its own slot
-      const closedAngle = 0; // fully closed: all blades at same angle (stacked)
+        const progress = Math.min(t / p.duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+        const r = eased * (maxDim * p.maxR);
 
-      for (let i = 0; i < BLADES; i++) {
-        const baseAngle = (i / BLADES) * Math.PI * 2;
-        // Each blade rotates from its closed position to its open position
-        const closedOffset = 0;
-        const openOffset = openAngle * 0.5; // rotate half a slot open
-        const currentOffset = closedOffset + (openOffset - closedOffset) * progress;
-        const bladeAngle = baseAngle + currentOffset;
+        const fadeIn  = Math.min(t / 300, 1);
+        const fadeOut = 1 - Math.pow(progress, 1.6);
+        const alpha   = p.alpha * fadeIn * fadeOut;
 
-        // Blade shape: thin arc segment from inner to outer radius
-        const halfW = BLADE_WIDTH_ANGLE * (1 - progress * 0.3); // blades thin as they open
+        if (alpha <= 0.004) continue;
 
         ctx.beginPath();
-        // Inner arc
-        ctx.arc(cx, cy, INNER_R + 2, bladeAngle - halfW * 0.3, bladeAngle + halfW * 0.3);
-        // Outer arc (reverse)
-        ctx.arc(cx, cy, OUTER_R - 2, bladeAngle + halfW, bladeAngle - halfW, true);
-        ctx.closePath();
-
-        // Blade fill — very subtle gold gradient
-        const grad = ctx.createRadialGradient(cx, cy, INNER_R, cx, cy, OUTER_R);
-        grad.addColorStop(0, `rgba(212,175,55,${0.08 * globalAlpha})`);
-        grad.addColorStop(0.5, `rgba(180,150,40,${0.12 * globalAlpha})`);
-        grad.addColorStop(1, `rgba(212,175,55,${0.04 * globalAlpha})`);
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // Blade edge — hairline gold stroke
-        ctx.strokeStyle = `rgba(212,175,55,${0.55 * globalAlpha})`;
-        ctx.lineWidth = 0.7;
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(201, 168, 76, ${alpha})`;
+        ctx.lineWidth   = p.width;
         ctx.stroke();
       }
 
-      ctx.globalAlpha = 1;
-    }
-
-    let targetProgress = 0;
-    let targetAlpha = 0;
-
-    if (phase === 'closed') {
-      targetProgress = 0;
-      targetAlpha = 0.15;
-    } else if (phase === 'opening') {
-      // Animate from 0 to 1 over 2500ms
-      startTimeRef.current = null;
-      const DURATION = 2500;
-
-      function animate(ts: number) {
-        if (!startTimeRef.current) startTimeRef.current = ts;
-        const elapsed = ts - startTimeRef.current;
-        const t = Math.min(elapsed / DURATION, 1);
-        const p = easeInOutCubic(t);
-        progressRef.current = p;
-        drawFrame(p, 1.0);
-        if (t < 1) {
-          animRef.current = requestAnimationFrame(animate);
-        } else {
-          progressRef.current = 1;
-        }
+      if (elapsed < 5500) {
+        animId = requestAnimationFrame(draw);
       }
-      animRef.current = requestAnimationFrame(animate);
-      return () => cancelAnimationFrame(animRef.current);
-    } else if (phase === 'open') {
-      drawFrame(1, 1.0);
-    } else if (phase === 'fading') {
-      // Fade out over 800ms
-      startTimeRef.current = null;
-      const DURATION = 800;
-      const startP = progressRef.current;
+    };
 
-      function fadeOut(ts: number) {
-        if (!startTimeRef.current) startTimeRef.current = ts;
-        const elapsed = ts - startTimeRef.current;
-        const t = Math.min(elapsed / DURATION, 1);
-        const alpha = 1 - easeInOutCubic(t);
-        drawFrame(startP, alpha);
-        if (t < 1) {
-          animRef.current = requestAnimationFrame(fadeOut);
-        } else {
-          ctx.clearRect(0, 0, W, H);
-        }
-      }
-      animRef.current = requestAnimationFrame(fadeOut);
-      return () => cancelAnimationFrame(animRef.current);
-    }
-
-    if (phase !== 'opening' && phase !== 'fading') {
-      drawFrame(targetProgress, targetAlpha);
-    }
-
-    return () => cancelAnimationFrame(animRef.current);
-  }, [phase]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 5,
-        pointerEvents: 'none',
-      }}
-    />
-  );
-}
-
-// ─── Gold Fleck Canvas ────────────────────────────────────────────────────────
-// Tiny elongated teardrops fall gently from the period position
-function GoldFleckCanvas({ active, periodX, periodY }: {
-  active: boolean;
-  periodX: number;
-  periodY: number;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
-  const flecksRef = useRef<Array<{
-    x: number; y: number; vy: number; vx: number;
-    size: number; alpha: number; maxAlpha: number;
-    rotation: number; rotV: number; born: number;
-  }>>([]);
-
-  useEffect(() => {
-    if (!active) {
-      cancelAnimationFrame(animRef.current);
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    canvas.width = W;
-    canvas.height = H;
-
-    let lastSpawn = 0;
-    const SPAWN_INTERVAL = 280; // ms between new flecks
-    let startTime: number | null = null;
-
-    function spawnFleck(now: number) {
-      flecksRef.current.push({
-        x: periodX + (Math.random() - 0.5) * 8,
-        y: periodY + 10,
-        vy: 0.4 + Math.random() * 0.5,
-        vx: (Math.random() - 0.5) * 0.25,
-        size: 1.8 + Math.random() * 2.2,
-        alpha: 0,
-        maxAlpha: 0.55 + Math.random() * 0.3,
-        rotation: Math.random() * Math.PI * 2,
-        rotV: (Math.random() - 0.5) * 0.015,
-        born: now,
-      });
-    }
-
-    function drawFleck(f: typeof flecksRef.current[0]) {
-      ctx.save();
-      ctx.translate(f.x, f.y);
-      ctx.rotate(f.rotation);
-      ctx.globalAlpha = f.alpha;
-
-      // Elongated teardrop / fleck shape
-      ctx.beginPath();
-      ctx.ellipse(0, 0, f.size * 0.38, f.size, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#D4AF37';
-      ctx.fill();
-
-      // Subtle inner highlight
-      ctx.beginPath();
-      ctx.ellipse(0, -f.size * 0.2, f.size * 0.15, f.size * 0.35, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,240,180,0.5)';
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    function animate(ts: number) {
-      if (!startTime) startTime = ts;
-      ctx.clearRect(0, 0, W, H);
-
-      // Spawn new fleck
-      if (ts - lastSpawn > SPAWN_INTERVAL) {
-        spawnFleck(ts);
-        lastSpawn = ts;
-      }
-
-      // Update and draw
-      flecksRef.current = flecksRef.current.filter(f => f.alpha > 0.01 || ts - f.born < 200);
-
-      for (const f of flecksRef.current) {
-        const age = ts - f.born;
-        // Fade in over 300ms, then fade out starting at 1800ms
-        if (age < 300) {
-          f.alpha = (age / 300) * f.maxAlpha;
-        } else if (age > 1800) {
-          f.alpha = Math.max(0, f.maxAlpha * (1 - (age - 1800) / 800));
-        }
-
-        f.x += f.vx;
-        f.y += f.vy;
-        f.rotation += f.rotV;
-        f.vy += 0.008; // very gentle gravity
-
-        drawFleck(f);
-      }
-
-      animRef.current = requestAnimationFrame(animate);
-    }
-
-    animRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [active, periodX, periodY]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 20,
-        pointerEvents: 'none',
-      }}
-    />
-  );
-}
-
-// ─── Animated Gold Rule ───────────────────────────────────────────────────────
-function AnimatedRule({ visible }: { visible: boolean }) {
-  return (
-    <div style={{
-      width: '100%',
-      maxWidth: 420,
-      height: 1,
-      margin: '32px 0 28px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0,
-        height: '100%',
-        width: '100%',
-        background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.6) 50%, transparent 100%)',
-        transform: visible ? 'scaleX(1)' : 'scaleX(0)',
-        transformOrigin: 'left center',
-        transition: visible ? 'transform 1.1s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-        transitionDelay: visible ? '0.1s' : '0s',
-      }} />
-    </div>
-  );
-}
-
-// ─── Disclaimer Card ──────────────────────────────────────────────────────────
-function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () => void }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 50,
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(32px)',
-      transition: 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.34,1.4,0.64,1)',
-      pointerEvents: visible ? 'auto' : 'none',
-      background: visible ? 'rgba(4,8,18,0.85)' : 'transparent',
-      backdropFilter: visible ? 'blur(20px)' : 'none',
-    }}>
-      <div style={{
-        background: 'linear-gradient(160deg, rgba(18,28,52,0.98) 0%, rgba(10,16,32,0.99) 100%)',
-        backdropFilter: 'blur(32px)',
-        border: '1px solid rgba(212,175,55,0.2)',
-        borderRadius: 20,
-        padding: '44px 48px',
-        maxWidth: 500,
-        width: '90%',
-        boxShadow: [
-          '0 60px 140px rgba(0,0,0,0.75)',
-          '0 0 0 1px rgba(255,255,255,0.03) inset',
-          '0 1px 0 rgba(212,175,55,0.12) inset',
-        ].join(', '),
-      }}>
-        {/* Logo + label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 9,
-            background: 'linear-gradient(135deg, #D4AF37 0%, #A8880A 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 15, fontWeight: 800, color: '#0A1220',
-            fontFamily: 'Playfair Display, serif',
-            boxShadow: '0 2px 16px rgba(212,175,55,0.4)',
-            flexShrink: 0,
-          }}>S</div>
-          <span style={{
-            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.16em',
-            color: 'rgba(212,175,55,0.7)', fontFamily: 'Inter, sans-serif',
-            textTransform: 'uppercase' as const,
-          }}>IMPORTANT NOTICE</span>
-        </div>
-
-        <p style={{
-          fontSize: 14.5, lineHeight: 1.8, color: 'rgba(255,255,255,0.8)',
-          fontFamily: 'Inter, sans-serif', marginBottom: 14, fontWeight: 400,
-        }}>
-          This platform contains <strong style={{ color: '#fff', fontWeight: 600 }}>confidential financial, operational, and student data</strong> for authorized users only.
-        </p>
-        <p style={{
-          fontSize: 14, lineHeight: 1.8, color: 'rgba(255,255,255,0.48)',
-          fontFamily: 'Inter, sans-serif', marginBottom: 34, fontWeight: 400,
-        }}>
-          All data shown is <strong style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>simulated demo data</strong> for demonstration purposes only.
-        </p>
-
-        <button
-          onClick={onEnter}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={{
-            width: '100%', padding: '15px 24px',
-            background: hovered
-              ? 'linear-gradient(135deg, #E8C84A 0%, #C9A020 100%)'
-              : 'linear-gradient(135deg, #D4AF37 0%, #B08A0A 100%)',
-            border: 'none', borderRadius: 11,
-            fontSize: 13.5, fontWeight: 700, letterSpacing: '0.07em',
-            color: '#080E1C', fontFamily: 'Inter, sans-serif',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: hovered
-              ? '0 20px 50px rgba(212,175,55,0.5)'
-              : '0 8px 28px rgba(212,175,55,0.3)',
-            transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
-            letterSpacing: '0.06em' as any,
-          }}
-        >
-          I Understand — Enter Slate
-        </button>
-
-        <div style={{
-          marginTop: 20, textAlign: 'center' as const,
-          fontSize: 10.5, color: 'rgba(255,255,255,0.18)',
-          fontFamily: 'Inter, sans-serif', letterSpacing: '0.05em',
-          textTransform: 'uppercase' as const,
-        }}>
-          Madden Education Advisory · Confidential · Not for distribution
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Splash ──────────────────────────────────────────────────────────────
-export default function SplashScreen({ onComplete }: SplashScreenProps) {
-  // Phase states
-  const [bgVisible, setBgVisible] = useState(false);
-  const [aperturePhase, setAperturePhase] = useState<'closed' | 'opening' | 'open' | 'fading'>('closed');
-  const [wordmarkVisible, setWordmarkVisible] = useState(false);
-  const [flecksActive, setFlecksActive] = useState(false);
-  const [ruleVisible, setRuleVisible] = useState(false);
-  const [taglineVisible, setTaglineVisible] = useState(false);
-  const [footerVisible, setFooterVisible] = useState(false);
-  const [cardVisible, setCardVisible] = useState(false);
-
-  // Period position for flecks — measured after wordmark renders
-  const periodRef = useRef<HTMLSpanElement>(null);
-  const [periodPos, setPeriodPos] = useState({ x: window.innerWidth / 2, y: window.innerHeight * 0.42 });
-
-  useEffect(() => {
-    // 0.0s — black void (initial state)
-    // 0.6s — aperture appears (closed)
-    const t1 = setTimeout(() => setAperturePhase('closed'), 600);
-    // 1.0s — navy bg begins fading in
-    const t2 = setTimeout(() => setBgVisible(true), 1000);
-    // 1.2s — aperture begins opening (takes 2.5s)
-    const t3 = setTimeout(() => setAperturePhase('opening'), 1200);
-    // 3.2s — wordmark materializes
-    const t4 = setTimeout(() => setWordmarkVisible(true), 3200);
-    // 3.8s — gold flecks begin
-    const t5 = setTimeout(() => {
-      // Measure period position
-      if (periodRef.current) {
-        const rect = periodRef.current.getBoundingClientRect();
-        setPeriodPos({ x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.7 });
-      }
-      setFlecksActive(true);
-    }, 3800);
-    // 4.6s — aperture fades out
-    const t6 = setTimeout(() => setAperturePhase('fading'), 4600);
-    // 4.8s — rule draws
-    const t7 = setTimeout(() => setRuleVisible(true), 4800);
-    // 5.6s — tagline fades in
-    const t8 = setTimeout(() => setTaglineVisible(true), 5600);
-    // 6.2s — footer fades in
-    const t9 = setTimeout(() => setFooterVisible(true), 6200);
-    // 8.2s — disclaimer card rises
-    const t10 = setTimeout(() => setCardVisible(true), 8200);
-
+    animId = requestAnimationFrame(draw);
     return () => {
-      [t1,t2,t3,t4,t5,t6,t7,t8,t9,t10].forEach(clearTimeout);
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
     };
   }, []);
 
-  const handleEnter = () => {
-    setCardVisible(false);
-    setFlecksActive(false);
-    setWordmarkVisible(false);
-    setBgVisible(false);
-    setTimeout(onComplete, 500);
-  };
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+      }}
+    />
+  );
+}
+
+// ─── Gold Rule ────────────────────────────────────────────────────────────────
+
+function GoldRule({ visible }: { visible: boolean }) {
+  return (
+    <div
+      style={{
+        width: visible ? 300 : 0,
+        height: 1,
+        background: 'linear-gradient(90deg, transparent 0%, #C9A84C 25%, #C9A84C 75%, transparent 100%)',
+        opacity: visible ? 0.65 : 0,
+        transition: visible
+          ? 'width 0.95s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+          : 'none',
+        margin: '0 auto',
+      }}
+    />
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function SplashScreen({ onComplete }: Props) {
+  const [showWordmark,   setShowWordmark]   = useState(false);
+  const [showRule,       setShowRule]       = useState(false);
+  const [showTagline,    setShowTagline]    = useState(false);
+  const [showSubtitle,   setShowSubtitle]   = useState(false);
+  const [showFooter,     setShowFooter]     = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setShowWordmark(true),   2200),
+      setTimeout(() => setShowRule(true),        3400),
+      setTimeout(() => setShowTagline(true),     4500),
+      setTimeout(() => setShowSubtitle(true),    5000),
+      setTimeout(() => setShowFooter(true),      5600),
+      setTimeout(() => setShowDisclaimer(true),  7500),
+      setTimeout(() => onComplete(),            14000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [onComplete]);
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      overflow: 'hidden',
-      background: '#030810',
-    }}>
-      {/* Deep navy background — fades in as aperture opens */}
-      <div style={{
+    <div
+      onClick={onComplete}
+      style={{
         position: 'fixed',
         inset: 0,
-        background: 'radial-gradient(ellipse 100% 80% at 50% 40%, #0d1b36 0%, #080f1e 50%, #040a14 100%)',
-        opacity: bgVisible ? 1 : 0,
-        transition: 'opacity 1.8s ease',
-        zIndex: 1,
-      }} />
-
-      {/* Aperture */}
-      <ApertureCanvas phase={aperturePhase} />
-
-      {/* Gold flecks */}
-      <GoldFleckCanvas
-        active={flecksActive}
-        periodX={periodPos.x}
-        periodY={periodPos.y}
-      />
-
-      {/* Main content */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
+        background: 'radial-gradient(ellipse 110% 90% at 50% 42%, #0d1b35 0%, #080f1e 50%, #040a14 100%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '60px 48px',
-        zIndex: 10,
-      }}>
-        {/* Top spacer */}
-        <div />
+        justifyContent: 'center',
+        cursor: 'default',
+        overflow: 'hidden',
+        userSelect: 'none',
+      }}
+    >
+      {/* Sonar pulse */}
+      <SonarCanvas />
 
-        {/* Center — Brand Block */}
-        <div style={{
+      {/* Center content */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 10,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          opacity: wordmarkVisible ? 1 : 0,
-          transform: wordmarkVisible ? 'translateY(0)' : 'translateY(10px)',
-          transition: 'opacity 1.4s ease, transform 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}>
-          {/* Wordmark */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            marginBottom: 0,
-          }}>
-            <span style={{
-              fontFamily: 'Playfair Display, serif',
-              fontWeight: 900,
-              fontSize: 'clamp(72px, 10vw, 120px)',
-              color: '#F2EDE4',
-              letterSpacing: '-0.025em',
+          textAlign: 'center',
+        }}
+      >
+        {/* Wordmark */}
+        <div
+          style={{
+            opacity:    showWordmark ? 1 : 0,
+            transform:  showWordmark ? 'translateY(0)' : 'translateY(8px)',
+            transition: 'opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            marginBottom: 22,
+            lineHeight: 1,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: '"Playfair Display", "Georgia", serif',
+              fontSize: 'clamp(68px, 8.5vw, 104px)',
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: '#F5F0E8',
               lineHeight: 1,
-            }}>
-              Slate
-            </span>
-            <span
-              ref={periodRef}
-              style={{
-                fontFamily: 'Playfair Display, serif',
-                fontWeight: 900,
-                fontSize: 'clamp(72px, 10vw, 120px)',
-                color: '#D4AF37',
-                lineHeight: 1,
-                textShadow: '0 0 30px rgba(212,175,55,0.5), 0 0 60px rgba(212,175,55,0.2)',
-              }}
-            >
-              .
-            </span>
-          </div>
-
-          {/* Animated gold rule */}
-          <AnimatedRule visible={ruleVisible} />
-
-          {/* Tagline */}
-          <div style={{
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '0.26em',
-            color: 'rgba(212,175,55,0.55)',
-            textTransform: 'uppercase' as const,
-            fontFamily: 'Inter, sans-serif',
-            marginBottom: 16,
-            opacity: taglineVisible ? 1 : 0,
-            transform: taglineVisible ? 'translateY(0)' : 'translateY(8px)',
-            transition: 'opacity 1.0s ease, transform 1.0s ease',
-          }}>
-            CLARITY IN COMPLEXITY · INTELLIGENCE IN MOTION
-          </div>
-
-          {/* Subtitle */}
-          <div style={{
-            fontSize: 18,
-            fontWeight: 300,
-            color: 'rgba(255,255,255,0.32)',
-            letterSpacing: '0.02em',
-            fontFamily: 'Inter, sans-serif',
-            fontStyle: 'italic' as const,
-            opacity: taglineVisible ? 1 : 0,
-            transform: taglineVisible ? 'translateY(0)' : 'translateY(8px)',
-            transition: 'opacity 1.0s ease 0.2s, transform 1.0s ease 0.2s',
-          }}>
-            The operating system for school system leaders
-          </div>
+            }}
+          >
+            Slate
+          </span>
+          <span
+            style={{
+              fontFamily: '"Playfair Display", "Georgia", serif',
+              fontSize: 'clamp(68px, 8.5vw, 104px)',
+              fontWeight: 700,
+              color: '#C9A84C',
+              lineHeight: 1,
+            }}
+          >
+            .
+          </span>
         </div>
 
-        {/* Bottom — Footer */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-          opacity: footerVisible ? 1 : 0,
-          transition: 'opacity 1.2s ease',
-        }}>
-          <div style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: '0.22em',
-            color: 'rgba(255,255,255,0.22)',
-            textTransform: 'uppercase' as const,
-            fontFamily: 'Inter, sans-serif',
-          }}>
-            MADDEN EDUCATION ADVISORY
-          </div>
-          <div style={{
-            fontSize: 9.5,
-            letterSpacing: '0.1em',
-            color: 'rgba(255,255,255,0.1)',
-            textTransform: 'uppercase' as const,
-            fontFamily: 'Inter, sans-serif',
-          }}>
-            PROPRIETARY &amp; CONFIDENTIAL · ALL RIGHTS RESERVED · 2026
-          </div>
+        {/* Gold rule */}
+        <div style={{ marginBottom: 26 }}>
+          <GoldRule visible={showRule} />
+        </div>
+
+        {/* Tagline */}
+        <div
+          style={{
+            opacity:    showTagline ? 1 : 0,
+            transform:  showTagline ? 'translateY(0)' : 'translateY(5px)',
+            transition: 'opacity 0.9s ease, transform 0.9s ease',
+            fontFamily: '"Inter", "Helvetica Neue", sans-serif',
+            fontSize: 'clamp(10px, 1.05vw, 12px)',
+            fontWeight: 500,
+            letterSpacing: '0.24em',
+            color: '#C9A84C',
+            textTransform: 'uppercase',
+            marginBottom: 16,
+          }}
+        >
+          Clarity in Complexity&nbsp;&nbsp;·&nbsp;&nbsp;Intelligence in Motion
+        </div>
+
+        {/* Subtitle */}
+        <div
+          style={{
+            opacity:    showSubtitle ? 1 : 0,
+            transform:  showSubtitle ? 'translateY(0)' : 'translateY(5px)',
+            transition: 'opacity 0.9s ease, transform 0.9s ease',
+            fontFamily: '"Playfair Display", "Georgia", serif',
+            fontStyle: 'italic',
+            fontSize: 'clamp(14px, 1.4vw, 17px)',
+            fontWeight: 400,
+            color: 'rgba(245, 240, 232, 0.50)',
+            letterSpacing: '0.01em',
+          }}
+        >
+          The operating system for school system leaders
         </div>
       </div>
 
-      {/* Disclaimer Card */}
-      <DisclaimerCard visible={cardVisible} onEnter={handleEnter} />
+      {/* Footer */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 44,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          opacity:    showFooter ? 1 : 0,
+          transform:  showFooter ? 'translateY(0)' : 'translateY(5px)',
+          transition: 'opacity 0.9s ease, transform 0.9s ease',
+          zIndex: 10,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: '"Inter", "Helvetica Neue", sans-serif',
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: '0.30em',
+            color: 'rgba(201, 168, 76, 0.55)',
+            textTransform: 'uppercase',
+          }}
+        >
+          Madden Education Advisory
+        </div>
+      </div>
+
+      {/* Disclaimer card */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 96,
+          left: '50%',
+          transform: showDisclaimer
+            ? 'translateX(-50%) translateY(0)'
+            : 'translateX(-50%) translateY(18px)',
+          opacity:    showDisclaimer ? 1 : 0,
+          transition: 'opacity 0.8s ease, transform 0.8s ease',
+          zIndex: 20,
+          maxWidth: 500,
+          width: '88%',
+        }}
+      >
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.035)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(201, 168, 76, 0.16)',
+            borderRadius: 6,
+            padding: '14px 22px',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: '"Inter", "Helvetica Neue", sans-serif',
+              fontSize: 11,
+              color: 'rgba(245, 240, 232, 0.42)',
+              lineHeight: 1.65,
+              letterSpacing: '0.01em',
+            }}
+          >
+            <strong style={{ color: 'rgba(245, 240, 232, 0.62)', fontWeight: 600 }}>
+              Demonstration Platform
+            </strong>
+            {' '}— All data is synthetic and for illustrative purposes only.
+            This platform is confidential and intended solely for authorized preview.
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onComplete(); }}
+            style={{
+              marginTop: 14,
+              padding: '9px 34px',
+              background: 'transparent',
+              border: '1px solid rgba(201, 168, 76, 0.45)',
+              borderRadius: 3,
+              color: '#C9A84C',
+              fontFamily: '"Inter", "Helvetica Neue", sans-serif',
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.20em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'background 0.2s ease, border-color 0.2s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background    = 'rgba(201, 168, 76, 0.08)';
+              e.currentTarget.style.borderColor   = 'rgba(201, 168, 76, 0.75)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background    = 'transparent';
+              e.currentTarget.style.borderColor   = 'rgba(201, 168, 76, 0.45)';
+            }}
+          >
+            Enter Slate
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
