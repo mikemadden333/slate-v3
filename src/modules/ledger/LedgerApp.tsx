@@ -125,36 +125,90 @@ function Slider({ label, value, min, max, step, unit, color, onChange, descripti
   );
 }
 
-// ─── Gauge Component ──────────────────────────────────────────────────────
-function Gauge({ value, min, max, thresholds, label, format }: {
-  value: number; min: number; max: number;
-  thresholds: { danger: number; warning: number };
-  label: string; format: (n: number) => string;
+// ─── Covenant Summary Card ────────────────────────────────────────────────
+function CovenantCard({ name, shortName, description, actual, minimum, maximum, format, icon }: {
+  name: string; shortName: string; description: string;
+  actual: number; minimum: number; maximum: number;
+  format: (n: number) => string; icon: string;
 }) {
-  const pct = Math.min(Math.max((value - min) / (max - min), 0), 1);
-  const angle = -135 + pct * 270;
-  const color = value < thresholds.danger ? status.red : value < thresholds.warning ? status.amber : status.green;
-  const r = 40, cx = 50, cy = 55;
-  const arcPath = (startAngle: number, endAngle: number, color: string) => {
-    const toRad = (a: number) => (a - 90) * Math.PI / 180;
-    const x1 = cx + r * Math.cos(toRad(startAngle));
-    const y1 = cy + r * Math.sin(toRad(startAngle));
-    const x2 = cx + r * Math.cos(toRad(endAngle));
-    const y2 = cy + r * Math.sin(toRad(endAngle));
-    const large = Math.abs(endAngle - startAngle) > 180 ? 1 : 0;
-    return <path d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />;
-  };
+  const passing = actual >= minimum;
+  const cushionPct = ((actual - minimum) / minimum * 100);
+  // Progress bar: 0% = 0, threshold line at minimum/maximum ratio, fill = actual/maximum
+  const fillPct = Math.min(Math.max((actual / maximum) * 100, 0), 100);
+  const thresholdPct = Math.min((minimum / maximum) * 100, 100);
+  const barColor = !passing ? status.red : cushionPct < 50 ? status.amber : status.green;
+  const bgColor = !passing ? 'rgba(239,68,68,0.06)' : cushionPct < 50 ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)';
+  const borderColor = !passing ? 'rgba(239,68,68,0.25)' : cushionPct < 50 ? 'rgba(245,158,11,0.25)' : 'rgba(16,185,129,0.25)';
+
   return (
-    <div style={{ textAlign: 'center' }}>
-      <svg viewBox="0 0 100 80" style={{ width: 100, height: 80 }}>
-        {arcPath(-135, 135, `${color}20`)}
-        {arcPath(-135, -135 + pct * 270, color)}
-        <line x1={cx} y1={cy} x2={cx + (r - 10) * Math.cos((angle - 90) * Math.PI / 180)} y2={cy + (r - 10) * Math.sin((angle - 90) * Math.PI / 180)}
-          stroke={color} strokeWidth={2} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={4} fill={color} />
-        <text x={cx} y={cy + 18} textAnchor="middle" fontSize={11} fontWeight="700" fill={color} fontFamily="JetBrains Mono, monospace">{format(value)}</text>
-        <text x={cx} y={cy + 28} textAnchor="middle" fontSize={7} fill="#9CA3AF" fontFamily="Inter, sans-serif" textTransform="uppercase">{label}</text>
-      </svg>
+    <div style={{
+      background: bgColor,
+      border: `1px solid ${borderColor}`,
+      borderRadius: 14, padding: '20px 22px',
+      display: 'flex', flexDirection: 'column', gap: 12,
+    }}>
+      {/* Header row: icon + name + status badge */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: `${barColor}18`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '18px', flexShrink: 0,
+          }}>{icon}</div>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: text.primary, lineHeight: 1.2 }}>{shortName}</div>
+            <div style={{ fontSize: '11px', color: text.muted, marginTop: 2, lineHeight: 1.3 }}>{description}</div>
+          </div>
+        </div>
+        <div style={{
+          fontSize: '10px', fontWeight: 700, color: passing ? status.green : status.red,
+          background: passing ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+          border: `1px solid ${passing ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+          borderRadius: 6, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0,
+        }}>
+          {passing ? '✓ COMPLIANT' : '✗ VIOLATION'}
+        </div>
+      </div>
+
+      {/* Big value */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <div style={{ fontSize: '28px', fontWeight: 700, fontFamily: font.mono, color: barColor, lineHeight: 1 }}>
+          {format(actual)}
+        </div>
+        <div style={{ fontSize: '12px', color: text.muted }}>
+          {cushionPct >= 0 ? '+' : ''}{cushionPct.toFixed(0)}% above min
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div>
+        <div style={{
+          height: 6, borderRadius: 3,
+          background: `${barColor}20`,
+          position: 'relative', overflow: 'visible',
+        }}>
+          {/* Fill */}
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: `${fillPct}%`,
+            background: barColor,
+            borderRadius: 3,
+            transition: 'width 0.6s ease',
+          }} />
+          {/* Threshold marker */}
+          <div style={{
+            position: 'absolute', top: -3, bottom: -3,
+            left: `${thresholdPct}%`,
+            width: 2, background: `${barColor}80`,
+            borderRadius: 1,
+          }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+          <div style={{ fontSize: '10px', color: text.light }}>Min: {format(minimum)}</div>
+          <div style={{ fontSize: '10px', color: text.light }}>Max shown: {format(maximum)}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1106,28 +1160,43 @@ function CovenantsTab() {
 
   return (
     <div>
-      {/* Gauge Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.dscr} min={0} max={5} thresholds={{ danger: cov.dscrMinimum, warning: cov.dscrMinimum * 1.5 }} label="DSCR" format={fmtDscr} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {fmtDscr(cov.dscrMinimum)}</div>
-        </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.daysCash} min={0} max={250} thresholds={{ danger: cov.daysCashMinimum, warning: cov.daysCashMinimum * 1.5 }} label="Days Cash" format={(n) => `${n}d`} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.daysCashMinimum}d</div>
-        </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.currentRatio} min={0} max={3} thresholds={{ danger: cov.currentRatioMinimum, warning: cov.currentRatioMinimum * 1.5 }} label="Current Ratio" format={(n) => `${n.toFixed(2)}x`} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.currentRatioMinimum.toFixed(2)}x</div>
-        </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.netAssetRatio} min={0} max={40} thresholds={{ danger: cov.netAssetMinimum, warning: cov.netAssetMinimum * 1.5 }} label="Net Asset %" format={(n) => `${n.toFixed(1)}%`} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.netAssetMinimum.toFixed(1)}%</div>
-        </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={fin.budget.enrollmentC1} min={0} max={8000} thresholds={{ danger: cov.enrollmentMinimum, warning: cov.enrollmentMinimum * 1.1 }} label="Enrollment" format={(n) => n.toLocaleString()} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.enrollmentMinimum.toLocaleString()}</div>
-        </Card>
+      {/* Covenant Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>
+        <CovenantCard
+          name="Debt Service Coverage Ratio"
+          shortName="DSCR"
+          description="Net revenue available for debt service ÷ annual debt service"
+          actual={ytd.dscr} minimum={cov.dscrMinimum} maximum={5}
+          format={fmtDscr} icon="📊"
+        />
+        <CovenantCard
+          name="Days Cash on Hand"
+          shortName="Days Cash"
+          description="Unrestricted cash ÷ daily operating expenses"
+          actual={ytd.daysCash} minimum={cov.daysCashMinimum} maximum={300}
+          format={(n) => `${n}d`} icon="💰"
+        />
+        <CovenantCard
+          name="Current Ratio"
+          shortName="Current Ratio"
+          description="Current assets ÷ current liabilities"
+          actual={ytd.currentRatio} minimum={cov.currentRatioMinimum} maximum={5}
+          format={(n) => `${n.toFixed(2)}x`} icon="⚖️"
+        />
+        <CovenantCard
+          name="Net Asset Ratio"
+          shortName="Net Asset Ratio"
+          description="Unrestricted net assets as % of total expenses"
+          actual={ytd.netAssetRatio} minimum={cov.netAssetMinimum} maximum={100}
+          format={(n) => `${n.toFixed(1)}%`} icon="🏛️"
+        />
+        <CovenantCard
+          name="Minimum Enrollment"
+          shortName="Enrollment"
+          description="Total enrolled students across all campuses"
+          actual={fin.budget.enrollmentC1} minimum={cov.enrollmentMinimum} maximum={8000}
+          format={(n) => n.toLocaleString()} icon="🏫"
+        />
       </div>
 
       {/* Covenant Detail Rows */}
