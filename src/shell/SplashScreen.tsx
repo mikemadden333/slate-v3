@@ -88,7 +88,6 @@ function ApertureIris({ open }: { open: boolean }) {
         opacity: open ? 0 : 1,
         transition: open ? 'opacity 0.6s ease 0.3s' : 'none',
       }} />
-      </div>
     </div>
   );
 }
