@@ -477,20 +477,33 @@ Answer questions about benefits, PTO, retirement (CTPF and 401k), health insuran
     setLoading(true);
 
     try {
+      // OpenAI requires conversations to start with 'user' — strip the initial assistant welcome message
+      const apiMessages = newMessages
+        .filter((m, idx) => !(idx === 0 && m.role === 'assistant'))
+        .map(m => ({ role: m.role, content: m.content }));
+
       const response = await fetch('/api/anthropic-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 600,
+          max_tokens: 800,
           system: systemPrompt,
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: apiMessages,
         }),
       });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('Roster People AI error:', response.status, errText);
+        throw new Error(`API ${response.status}`);
+      }
+
       const data = await response.json();
       const reply = data?.content?.[0]?.text || data?.choices?.[0]?.message?.content || 'I was unable to generate a response. Please try again.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-    } catch {
+    } catch (err) {
+      console.error('Roster AI catch:', err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please check your network and try again.' }]);
     } finally {
       setLoading(false);

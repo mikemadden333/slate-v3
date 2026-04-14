@@ -270,6 +270,7 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
                 <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: watch.totalActiveIncidents > 0 ? status.amber : text.primary }}>
                   {watch.totalActiveIncidents}
                 </div>
+                <div style={{ fontSize: '10px', color: text.muted, marginTop: 1 }}>Last 24 Hours</div>
               </div>
               <div>
                 <div style={{ fontSize: fontSize.xs, color: text.light }}>Campuses Elevated</div>
