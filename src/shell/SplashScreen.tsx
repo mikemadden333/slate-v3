@@ -1,18 +1,12 @@
 /**
- * Slate v3 — Splash Screen v10 "Restored"
+ * Slate v3 — Splash Screen v11 "Cinematic"
  *
- * Restores original text from reference screenshot:
- *   - Top pill: PLATFORM DESIGN SYSTEM — VERSION 3.0 — CONFIDENTIAL
- *   - Tagline: START WITH THE FACTS
- *   - Subtitle: Intelligence for School Systems
- *   - Footer: MADDEN EDUCATION ADVISORY + copyright line + social icons
- *
- * Visual enhancements:
- *   - Subtle SVG noise texture over gradient for multi-dimensional depth
- *   - Vignette edges for glass-like dimensionality
- *   - Glass pill (backdrop-filter) at top
- *   - Very subtle gold flecks (2-4 tiny dots) falling from the period
- *   - Sonar pulse reveal (kept from v9)
+ * - No "Enter Slate" button — auto-advances after a beat
+ * - Pill centered at top
+ * - SVG fractal noise texture restored for multi-dimensional depth
+ * - Gold flecks from period (kept — user likes them)
+ * - Sonar pulse reveal
+ * - Disclaimer fades in, then platform auto-opens after 2s beat
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -36,8 +30,8 @@ function SonarCanvas() {
     let startTime: number | null = null;
 
     const pulses = [
-      { delay: 800,  maxR: 0.68, alpha: 0.48, width: 0.7, duration: 2400 },
-      { delay: 1800, maxR: 0.50, alpha: 0.16, width: 0.4, duration: 1800 },
+      { delay: 700,  maxR: 0.70, alpha: 0.45, width: 0.7, duration: 2600 },
+      { delay: 1700, maxR: 0.52, alpha: 0.14, width: 0.4, duration: 2000 },
     ];
 
     const resize = () => {
@@ -73,7 +67,7 @@ function SonarCanvas() {
         ctx.stroke();
       }
 
-      if (elapsed < 5500) animId = requestAnimationFrame(draw);
+      if (elapsed < 6000) animId = requestAnimationFrame(draw);
     };
 
     animId = requestAnimationFrame(draw);
@@ -117,19 +111,19 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
       const el = periodRef.current;
       if (!el) return { x: canvas.width * 0.615, y: canvas.height * 0.50 };
       const rect = el.getBoundingClientRect();
-      return { x: rect.left + rect.width * 0.5, y: rect.top + rect.height * 0.72 };
+      return { x: rect.left + rect.width * 0.5, y: rect.top + rect.height * 0.75 };
     };
 
     const spawn = (now: number) => {
       const pos = getPeriodPos();
       flecks.push({
-        x: pos.x + (Math.random() - 0.5) * 3,
+        x: pos.x + (Math.random() - 0.5) * 4,
         y: pos.y,
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: 0.35 + Math.random() * 0.45,
-        size: 1.0 + Math.random() * 1.2,
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: 0.30 + Math.random() * 0.40,
+        size: 0.9 + Math.random() * 1.0,
         born: now,
-        maxAge: 2000 + Math.random() * 1000,
+        maxAge: 2200 + Math.random() * 1200,
       });
     };
 
@@ -137,8 +131,8 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
       if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Spawn a fleck every ~450ms — very sparse
-      if (now - lastSpawn > 420 + Math.random() * 120) {
+      // Spawn a fleck every ~480ms — very sparse, 2-3 visible at once
+      if (now - lastSpawn > 460 + Math.random() * 100) {
         spawn(now);
         lastSpawn = now;
       }
@@ -149,19 +143,18 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
         if (age > f.maxAge) { flecks.splice(i, 1); continue; }
 
         const t = age / f.maxAge;
-        // Fade in 0-15%, hold, fade out 65-100%
         const opacity = t < 0.15
-          ? (t / 0.15) * 0.50
+          ? (t / 0.15) * 0.45
           : t > 0.65
-            ? 0.50 * (1 - (t - 0.65) / 0.35)
-            : 0.50;
+            ? 0.45 * (1 - (t - 0.65) / 0.35)
+            : 0.45;
 
         f.x += f.vx;
         f.y += f.vy;
-        f.vy += 0.005; // gentle gravity
+        f.vy += 0.004;
 
         ctx.beginPath();
-        ctx.arc(f.x, f.y, f.size * 0.55, 0, Math.PI * 2);
+        ctx.arc(f.x, f.y, f.size * 0.5, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(201,168,76,${opacity})`;
         ctx.fill();
       }
@@ -170,7 +163,7 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
     };
 
     requestAnimationFrame(draw);
-    const stopTimer = setTimeout(() => { running = false; }, 20000);
+    const stopTimer = setTimeout(() => { running = false; }, 22000);
 
     return () => {
       running = false;
@@ -187,12 +180,12 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
 function GoldRule({ visible }: { visible: boolean }) {
   return (
     <div style={{
-      width: visible ? 280 : 0,
+      width: visible ? 260 : 0,
       height: 1,
-      background: 'linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.6) 20%, rgba(201,168,76,0.6) 80%, transparent 100%)',
+      background: 'linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.55) 20%, rgba(201,168,76,0.55) 80%, transparent 100%)',
       opacity: visible ? 1 : 0,
       transition: visible
-        ? 'width 0.95s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease'
+        ? 'width 1.0s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease'
         : 'none',
       margin: '0 auto',
     }} />
@@ -212,13 +205,15 @@ export default function SplashScreen({ onComplete }: Props) {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setShowWordmark(true),   2200),
-      setTimeout(() => setShowRule(true),        3400),
-      setTimeout(() => setShowTagline(true),     4500),
-      setTimeout(() => setShowSubtitle(true),    5000),
-      setTimeout(() => setShowFooter(true),      5600),
-      setTimeout(() => setShowDisclaimer(true),  7500),
-      setTimeout(() => onComplete(),            14000),
+      setTimeout(() => setShowWordmark(true),   2000),
+      setTimeout(() => setShowRule(true),        3200),
+      setTimeout(() => setShowTagline(true),     4200),
+      setTimeout(() => setShowSubtitle(true),    4700),
+      setTimeout(() => setShowFooter(true),      5300),
+      // Disclaimer fades in at 7s
+      setTimeout(() => setShowDisclaimer(true),  7000),
+      // Auto-advance 2.5s after disclaimer appears — no click needed
+      setTimeout(() => onComplete(),            9500),
     ];
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
@@ -240,26 +235,33 @@ export default function SplashScreen({ onComplete }: Props) {
         cursor: 'default', overflow: 'hidden', userSelect: 'none',
       }}
     >
-      {/* ── Noise texture — multi-dimensional depth ── */}
+      {/* ── Fractal noise texture — multi-dimensional depth ── */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
-        backgroundSize: '200px 200px',
-        opacity: 0.032,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+        backgroundSize: '220px 220px',
+        opacity: 0.038,
         mixBlendMode: 'overlay',
       }} />
 
       {/* ── Vignette — glass-like edge depth ── */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-        background: 'radial-gradient(ellipse 80% 70% at 50% 50%, transparent 35%, rgba(2,6,14,0.60) 100%)',
+        background: 'radial-gradient(ellipse 78% 68% at 50% 50%, transparent 30%, rgba(2,6,14,0.65) 100%)',
       }} />
 
-      {/* ── Subtle top-left highlight — dimensionality ── */}
+      {/* ── Top-left atmospheric highlight ── */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, width: '45%', height: '45%',
+        position: 'absolute', top: 0, left: 0, width: '50%', height: '50%',
         pointerEvents: 'none', zIndex: 1,
-        background: 'radial-gradient(ellipse at 20% 20%, rgba(30,60,110,0.18) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse at 18% 18%, rgba(28,56,105,0.20) 0%, transparent 68%)',
+      }} />
+
+      {/* ── Bottom-right counter-highlight ── */}
+      <div style={{
+        position: 'absolute', bottom: 0, right: 0, width: '40%', height: '40%',
+        pointerEvents: 'none', zIndex: 1,
+        background: 'radial-gradient(ellipse at 82% 82%, rgba(15,30,60,0.14) 0%, transparent 68%)',
       }} />
 
       {/* ── Sonar pulse ── */}
@@ -268,22 +270,28 @@ export default function SplashScreen({ onComplete }: Props) {
       {/* ── Gold flecks from period ── */}
       {showWordmark && <FleckCanvas periodRef={periodRef} />}
 
-      {/* ── Top pill ── */}
+      {/* ── Top pill — CENTERED ── */}
       <div style={{
-        position: 'absolute', top: 34, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 10, ...fade(showFooter),
+        position: 'absolute',
+        top: 34,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        zIndex: 10,
+        ...fade(showFooter),
       }}>
         <div style={{
-          padding: '7px 20px', borderRadius: 40,
-          border: '1px solid rgba(201,168,76,0.20)',
-          background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-          boxShadow: '0 1px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
+          padding: '7px 22px', borderRadius: 40,
+          border: '1px solid rgba(201,168,76,0.18)',
+          background: 'rgba(255,255,255,0.035)',
+          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 1px 16px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)',
         }}>
           <span style={{
             fontFamily: "'Inter', sans-serif",
-            fontSize: '9.5px', letterSpacing: '2.8px', fontWeight: 600,
-            color: 'rgba(201,168,76,0.65)', textTransform: 'uppercase',
+            fontSize: '9.5px', letterSpacing: '2.6px', fontWeight: 600,
+            color: 'rgba(201,168,76,0.60)', textTransform: 'uppercase',
           }}>
             PLATFORM DESIGN SYSTEM &nbsp;&mdash;&nbsp; VERSION 3.0 &nbsp;&mdash;&nbsp; CONFIDENTIAL
           </span>
@@ -324,7 +332,7 @@ export default function SplashScreen({ onComplete }: Props) {
           <GoldRule visible={showRule} />
         </div>
 
-        {/* Tagline — START WITH THE FACTS */}
+        {/* Tagline */}
         <div style={{
           ...fade(showTagline),
           fontFamily: '"Inter", "Helvetica Neue", sans-serif',
@@ -336,13 +344,13 @@ export default function SplashScreen({ onComplete }: Props) {
           START WITH THE FACTS
         </div>
 
-        {/* Subtitle — Intelligence for School Systems */}
+        {/* Subtitle */}
         <div style={{
           ...fade(showSubtitle, 100),
           fontFamily: '"Inter", "Helvetica Neue", sans-serif',
           fontSize: 'clamp(14px, 1.4vw, 17px)',
           fontWeight: 400, letterSpacing: '0.01em',
-          color: 'rgba(245,240,232,0.62)',
+          color: 'rgba(245,240,232,0.60)',
         }}>
           Intelligence for School Systems
         </div>
@@ -350,7 +358,7 @@ export default function SplashScreen({ onComplete }: Props) {
 
       {/* ── Footer ── */}
       <div style={{
-        position: 'absolute', bottom: 44,
+        position: 'absolute', bottom: 36,
         left: 0, right: 0, zIndex: 10,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', gap: 6,
@@ -359,29 +367,25 @@ export default function SplashScreen({ onComplete }: Props) {
         <div style={{
           fontFamily: '"Inter", sans-serif',
           fontSize: '10px', letterSpacing: '3.5px', fontWeight: 600,
-          color: 'rgba(245,240,232,0.50)', textTransform: 'uppercase',
+          color: 'rgba(245,240,232,0.48)', textTransform: 'uppercase',
         }}>
           MADDEN EDUCATION ADVISORY
         </div>
         <div style={{
           fontFamily: '"Inter", sans-serif',
           fontSize: '8.5px', letterSpacing: '1.8px', fontWeight: 400,
-          color: 'rgba(245,240,232,0.25)', textTransform: 'uppercase',
+          color: 'rgba(245,240,232,0.22)', textTransform: 'uppercase',
         }}>
           PROPRIETARY &amp; CONFIDENTIAL &nbsp;&middot;&nbsp; ALL RIGHTS RESERVED &nbsp;&middot;&nbsp; 2026
         </div>
-        {/* Social icons */}
-        <div style={{ display: 'flex', gap: 18, marginTop: 4, opacity: 0.32 }}>
-          {/* LinkedIn */}
+        <div style={{ display: 'flex', gap: 18, marginTop: 4, opacity: 0.28 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(245,240,232,0.9)">
             <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
             <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
           </svg>
-          {/* X / Twitter */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(245,240,232,0.9)">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
           </svg>
-          {/* Globe */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
@@ -389,58 +393,41 @@ export default function SplashScreen({ onComplete }: Props) {
         </div>
       </div>
 
-      {/* ── Disclaimer card ── */}
+      {/* ── Disclaimer — no button, just text, auto-advances ── */}
       <div style={{
-        position: 'absolute', bottom: 100,
-        left: '50%',
-        transform: showDisclaimer
-          ? 'translateX(-50%) translateY(0)'
-          : 'translateX(-50%) translateY(18px)',
-        opacity:    showDisclaimer ? 1 : 0,
-        transition: 'opacity 0.8s ease, transform 0.8s ease',
-        zIndex: 20, maxWidth: 500, width: '88%',
+        position: 'absolute',
+        bottom: 140,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        zIndex: 20,
       }}>
         <div style={{
-          background: 'rgba(255,255,255,0.035)',
-          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(201,168,76,0.16)',
-          borderRadius: 6, padding: '14px 22px', textAlign: 'center',
+          maxWidth: 480,
+          width: '88%',
+          transform: showDisclaimer ? 'translateY(0)' : 'translateY(14px)',
+          opacity: showDisclaimer ? 1 : 0,
+          transition: 'opacity 0.8s ease, transform 0.8s ease',
         }}>
           <div style={{
-            fontFamily: '"Inter", sans-serif',
-            fontSize: 11, color: 'rgba(245,240,232,0.42)',
-            lineHeight: 1.65, letterSpacing: '0.01em',
+            background: 'rgba(255,255,255,0.028)',
+            backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+            border: '1px solid rgba(201,168,76,0.13)',
+            borderRadius: 5, padding: '13px 22px', textAlign: 'center',
           }}>
-            <strong style={{ color: 'rgba(245,240,232,0.62)', fontWeight: 600 }}>
-              Demonstration Platform
-            </strong>
-            {' '}— All data is synthetic and for illustrative purposes only.
-            This platform is confidential and intended solely for authorized preview.
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onComplete(); }}
-            style={{
-              marginTop: 14, padding: '9px 34px',
-              background: 'transparent',
-              border: '1px solid rgba(201,168,76,0.45)',
-              borderRadius: 3, color: '#C9A84C',
+            <div style={{
               fontFamily: '"Inter", sans-serif',
-              fontSize: 10, fontWeight: 600,
-              letterSpacing: '0.20em', textTransform: 'uppercase',
-              cursor: 'pointer',
-              transition: 'background 0.2s ease, border-color 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background  = 'rgba(201,168,76,0.08)';
-              e.currentTarget.style.borderColor = 'rgba(201,168,76,0.75)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background  = 'transparent';
-              e.currentTarget.style.borderColor = 'rgba(201,168,76,0.45)';
-            }}
-          >
-            Enter Slate
-          </button>
+              fontSize: 10.5, color: 'rgba(245,240,232,0.38)',
+              lineHeight: 1.65, letterSpacing: '0.01em',
+            }}>
+              <strong style={{ color: 'rgba(245,240,232,0.55)', fontWeight: 600 }}>
+                Demonstration Platform
+              </strong>
+              {' '}— All data is synthetic and for illustrative purposes only.
+              This platform is confidential and intended solely for authorized preview.
+            </div>
+          </div>
         </div>
       </div>
     </div>
