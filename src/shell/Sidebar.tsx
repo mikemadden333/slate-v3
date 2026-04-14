@@ -43,7 +43,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
       width: collapsed ? 72 : 240,
       minWidth: collapsed ? 72 : 240,
       height: '100vh',
-      background: bg.sidebar,
+      background: 'linear-gradient(180deg, #0f1e3a 0%, #090f1e 60%, #060c18 100%)',
       borderRight: `1px solid ${SHELL.border}`,
       display: 'flex',
       flexDirection: 'column',

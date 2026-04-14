@@ -51,7 +51,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
     <div style={{
       height: 60,
       minHeight: 60,
-      background: bg.header,
+      background: '#0d1a30',
       borderBottom: `1px solid ${SHELL.border}`,
       display: 'flex',
       alignItems: 'center',

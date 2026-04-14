@@ -14,7 +14,8 @@
  * white cards on cool canvas, 16px radius, hairline borders.
  */
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { useFinancials, useEnrollment, useNetwork, useRole } from '../../data/DataStore';
+import { useFinancials, useEnrollment, useNetwork, useRole, useRisks } from '../../data/DataStore';
+import { generateBoardDeckPDF, type BoardDeckData } from './generateBoardDeckPDF';
 import { useSlateAI } from '../../core/useSlateAI';
 import { Card, KPICard, ModuleHeader, Section, AIInsight, StatusBadge, EmptyState } from '../../components/Card';
 import { fmt, fmtNum, fmtPct, fmtDscr, fmtFull, fmtCompact } from '../../core/formatters';
@@ -446,6 +447,9 @@ function BriefingTab() {
 // ═══════════════════════════════════════════════════════════════════════════
 function BoardDeckTab() {
   const fin = useFinancials();
+  const enr = useEnrollment();
+  const network = useNetwork();
+  const risks = useRisks();
   const [selectedDeck, setSelectedDeck] = useState<'finance-committee' | 'full-board' | 'audit-committee' | 'investment-committee'>('finance-committee');
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
@@ -559,10 +563,62 @@ function BoardDeckTab() {
     table: chart.secondary, list: text.muted, narrative: modColors.briefing, action: status.amber,
   };
 
+  const buildPDFData = useCallback((): BoardDeckData => {
+    const cov = fin.covenants;
+    return {
+      networkName: network.name,
+      deckTitle: selectedDeckData.title,
+      deckSubtitle: selectedDeckData.subtitle,
+      generatedDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      monthsElapsed,
+      ytdRevActual,
+      ytdRevBudget: bud.totalRevenue,
+      ytdExpActual,
+      ytdExpBudget: bud.totalExpenses,
+      ytdSurplus,
+      dscr: ytd.dscr,
+      currentRatio: ytd.currentRatio,
+      netAssets: ytd.netAssetRatio,
+      daysCash: ytd.daysCash,
+      enrollment: enr.networkTotal,
+      enrollmentTarget: enr.targetEnrollment,
+      perPupilRevenue: network.revenuePerPupil,
+      covenants: [
+        { name: 'Debt Service Coverage Ratio (DSCR)', actual: ytd.dscr, threshold: cov.dscrMinimum, status: ytd.dscr >= cov.dscrMinimum ? 'pass' : 'fail', unit: 'x' },
+        { name: 'Days Cash on Hand', actual: ytd.daysCash, threshold: cov.daysCashMinimum, status: ytd.daysCash >= cov.daysCashMinimum ? 'pass' : 'fail', unit: ' days' },
+        { name: 'Current Ratio', actual: ytd.currentRatio, threshold: cov.currentRatioMinimum, status: ytd.currentRatio >= cov.currentRatioMinimum ? 'pass' : 'fail', unit: 'x' },
+        { name: 'Net Asset Ratio', actual: ytd.netAssetRatio, threshold: cov.netAssetMinimum, status: ytd.netAssetRatio >= cov.netAssetMinimum ? 'pass' : 'fail', unit: '%' },
+        { name: 'Minimum Enrollment', actual: enr.networkTotal, threshold: cov.enrollmentMinimum, status: enr.networkTotal >= cov.enrollmentMinimum ? 'pass' : 'fail', unit: ' students' },
+      ],
+      topRisks: risks.register.slice(0, 5).map(r => ({
+        name: r.name,
+        score: r.adjustedScore ?? r.rawScore,
+        trend: r.trend,
+        owner: r.owner,
+      })),
+      scenarios: [
+        { name: 'Optimistic', fy27Rev: fin.scenarios.optimistic[0]?.totalRevenue ?? 0, fy27Exp: fin.scenarios.optimistic[0]?.totalExpenses ?? 0, fy27Surplus: fin.scenarios.optimistic[0]?.netSurplus ?? 0 },
+        { name: 'Reasonable', fy27Rev: fin.scenarios.reasonable[0]?.totalRevenue ?? 0, fy27Exp: fin.scenarios.reasonable[0]?.totalExpenses ?? 0, fy27Surplus: fin.scenarios.reasonable[0]?.netSurplus ?? 0 },
+        { name: 'Pessimistic', fy27Rev: fin.scenarios.pessimistic[0]?.totalRevenue ?? 0, fy27Exp: fin.scenarios.pessimistic[0]?.totalExpenses ?? 0, fy27Surplus: fin.scenarios.pessimistic[0]?.netSurplus ?? 0 },
+      ],
+      historicalSurplus: fin.historical.map(h => ({ year: h.year, surplus: h.netSurplus })),
+      campuses: enr.byCampus.map(c => ({ name: c.campusName, enrolled: c.enrolled, capacity: c.capacity })),
+    };
+  }, [fin, enr, network, risks, selectedDeck, monthsElapsed, ytdRevActual, ytdExpActual, ytdSurplus, ytd, bud]);
+
   const handleGenerate = useCallback(() => {
     setGenerating(true);
-    setTimeout(() => { setGenerating(false); setGenerated(true); }, 2400);
-  }, []);
+    setTimeout(() => {
+      try {
+        const pdfData = buildPDFData();
+        generateBoardDeckPDF(pdfData, selectedDeck);
+      } catch (e) {
+        console.error('PDF generation error:', e);
+      }
+      setGenerating(false);
+      setGenerated(true);
+    }, 800);
+  }, [buildPDFData, selectedDeck]);
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
 
