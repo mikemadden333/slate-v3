@@ -99,7 +99,7 @@ export const modules = {
   dashboard: '#2563EB',
   briefing:  '#2563EB',
   watch:     '#E5484D',
-  signal:    '#7C3AED',
+  signal:    '#C9A84C',
   ledger:    '#17B26A',
   scholar:   '#2563EB',
   grounds:   '#F59E0B',

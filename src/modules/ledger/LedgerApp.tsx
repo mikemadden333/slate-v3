@@ -312,9 +312,20 @@ function BriefingTab() {
         {ai.loading ? (
           <div style={{ fontSize: fontSize.sm, color: text.muted, fontStyle: 'italic' }}>Analyzing financial position...</div>
         ) : (
-          <p style={{ fontSize: fontSize.md, color: text.secondary, lineHeight: 1.7, margin: 0, fontWeight: fontWeight.normal }}>
-            {ai.text || `Through ${monthsElapsed} months of FY26, the network is tracking $${Math.abs(revVariance).toFixed(1)}M ${revVariance >= 0 ? 'ahead of' : 'behind'} revenue budget with expenses ${expVariance <= 0 ? 'under' : 'over'} plan by $${Math.abs(expVariance).toFixed(1)}M, producing a YTD surplus of $${ytdSurplus.toFixed(1)}M. Days cash at ${ytd.daysCash} and DSCR at ${fmtDscr(ytd.dscr)} both exceed bond covenants with comfortable cushion. Key watch: Q3-Q4 philanthropy performance will determine whether the YTD advantage holds through year-end.`}
-          </p>
+          <div style={{ fontSize: fontSize.md, color: text.secondary, lineHeight: 1.7, fontWeight: fontWeight.normal }}>
+            {(() => {
+              const raw = ai.text || `Through ${monthsElapsed} months of FY26, the network is tracking $${Math.abs(revVariance).toFixed(1)}M ${revVariance >= 0 ? 'ahead of' : 'behind'} revenue budget with expenses ${expVariance <= 0 ? 'under' : 'over'} plan by $${Math.abs(expVariance).toFixed(1)}M, producing a YTD surplus of $${ytdSurplus.toFixed(1)}M. Days cash at ${ytd.daysCash} and DSCR at ${fmtDscr(ytd.dscr)} both exceed bond covenants with comfortable cushion. Key watch: Q3-Q4 philanthropy performance will determine whether the YTD advantage holds through year-end.`;
+              return raw.split(/\n\n+/).map((para, pi) => (
+                <p key={pi} style={{ margin: pi === 0 ? 0 : '12px 0 0 0' }}>
+                  {para.split(/(\*\*[^*]+\*\*)/).map((chunk, ci) =>
+                    chunk.startsWith('**') && chunk.endsWith('**')
+                      ? <strong key={ci} style={{ color: text.primary, fontWeight: fontWeight.semibold }}>{chunk.slice(2, -2)}</strong>
+                      : chunk
+                  )}
+                </p>
+              ));
+            })()}
+          </div>
         )}
       </div>
 

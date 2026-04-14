@@ -221,12 +221,16 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
 
   const formatText = (t: string) => {
     if (!t) return null;
-    const parts = t.split(/(\*\*[^*]+\*\*)/);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return React.createElement('strong', { key: i, style: { color: text.primary, fontWeight: fontWeight.medium } }, part.slice(2, -2));
-      }
-      return part;
+    const paragraphs = t.split(/\n\n+/);
+    return paragraphs.map((para, pi) => {
+      const chunks = para.split(/(\*\*[^*]+\*\*)/);
+      const rendered = chunks.map((chunk, ci) => {
+        if (chunk.startsWith('**') && chunk.endsWith('**')) {
+          return React.createElement('strong', { key: ci, style: { color: text.primary, fontWeight: fontWeight.semibold } }, chunk.slice(2, -2));
+        }
+        return chunk;
+      });
+      return React.createElement('p', { key: pi, style: { margin: pi === 0 ? 0 : '10px 0 0 0' } }, ...rendered);
     });
   };
 
