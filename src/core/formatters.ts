@@ -3,6 +3,15 @@
  * Every number, date, and currency formatter in one place.
  */
 
+/** Format a value already stored in millions: 5.3 → $5.3M, 0.8 → $800K */
+export function fmtM(n: number): string {
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}B`;
+  if (abs >= 1) return `${sign}$${abs.toFixed(1)}M`;
+  return `${sign}$${(abs * 1000).toFixed(0)}K`;
+}
+
 /** Format as dollar: $XXX.XM for millions, $X.XK for thousands */
 export function fmt(n: number): string {
   const abs = Math.abs(n);

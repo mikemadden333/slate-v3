@@ -1,7 +1,7 @@
 /**
  * Slate — TopBar
- * Dark slate shell: matches sidebar #1A2332.
- * 64px height, module title + timestamp + AI status + Ask Slate.
+ * Deep navy shell: matches sidebar #0B1629.
+ * 60px height, module title + timestamp + AI status + Ask Slate.
  */
 import React, { useState, useEffect } from 'react';
 import { MODULES } from '../core/constants';
@@ -36,7 +36,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
   const { isPresentationMode } = usePresentationMode();
   const mod = MODULES.find(m => m.id === activeModule);
   const [now, setNow] = useState(new Date());
-  const accentColor = moduleColors[activeModule as keyof typeof moduleColors] || '#4F7CFF';
+  const accentColor = moduleColors[activeModule as keyof typeof moduleColors] || '#D4AF37';
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);
@@ -138,7 +138,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
           }}>
-            {hasEmergency ? `${activeEvents.length} Alert${activeEvents.length > 1 ? 's' : ''}` : 'AI Monitoring'}
+            {hasEmergency ? `${activeEvents.length} Alert${activeEvents.length > 1 ? 's' : ''}` : 'AI Active'}
           </span>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             transition: transition.fast,
           }}
         >
-          <span style={{ color: '#C9A54E' }}>✦</span>
+          <span style={{ color: '#D4AF37' }}>✦</span>
           <span>Ask Slate</span>
           <span style={{
             fontSize: '10px',

@@ -1,28 +1,28 @@
 /**
  * Slate — Sidebar
- * Dark slate shell: #1A2332 background, light text on dark.
- * Left rail 88 collapsed / 248 expanded.
+ * Deep navy shell: #0B1629 background, cream/gold accents.
+ * Left rail 72 collapsed / 240 expanded.
  */
 import React, { useState } from 'react';
 import { MODULES, NAV_GROUPS, APP_NAME } from '../core/constants';
 import { bg, text, modules as moduleColors, font, fontSize, fontWeight, radius, transition } from '../core/theme';
 import { useRole, useNetwork } from '../data/DataStore';
 
-// Shell-specific color constants (dark slate surface)
+// Shell-specific color constants (deep navy surface)
 const SHELL = {
-  border:      'rgba(255, 255, 255, 0.08)',
-  groupLabel:  'rgba(255, 255, 255, 0.30)',
-  itemText:    'rgba(255, 255, 255, 0.65)',
-  itemTextActive: '#FFFFFF',
-  itemHover:   'rgba(255, 255, 255, 0.06)',
-  itemActive:  'rgba(255, 255, 255, 0.10)',
-  networkLabel:'rgba(255, 255, 255, 0.35)',
-  networkName: 'rgba(255, 255, 255, 0.90)',
-  networkSub:  'rgba(255, 255, 255, 0.45)',
-  roleBg:      'rgba(255, 255, 255, 0.08)',
-  roleActive:  'rgba(255, 255, 255, 0.15)',
-  roleText:    'rgba(255, 255, 255, 0.50)',
-  roleTextActive: '#FFFFFF',
+  border:         'rgba(255, 255, 255, 0.08)',
+  groupLabel:     'rgba(212, 175, 55, 0.55)',
+  itemText:       'rgba(245, 240, 232, 0.60)',
+  itemTextActive: '#F5F0E8',
+  itemHover:      'rgba(255, 255, 255, 0.05)',
+  itemActive:     'rgba(212, 175, 55, 0.12)',
+  networkLabel:   'rgba(245, 240, 232, 0.35)',
+  networkName:    '#F5F0E8',
+  networkSub:     'rgba(245, 240, 232, 0.45)',
+  roleBg:         'rgba(255, 255, 255, 0.06)',
+  roleActive:     'rgba(212, 175, 55, 0.18)',
+  roleText:       'rgba(245, 240, 232, 0.45)',
+  roleTextActive: '#F5F0E8',
 };
 
 interface SidebarProps {
@@ -68,7 +68,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
           width: 30,
           height: 30,
           borderRadius: '8px',
-          background: 'linear-gradient(135deg, #C9A54E 0%, #D4B978 100%)',
+          background: 'linear-gradient(135deg, #D4AF37 0%, #E8C84A 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -79,7 +79,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
             fontFamily: font.body,
             fontSize: '14px',
             fontWeight: fontWeight.bold,
-            color: '#1A2332',
+            color: '#0B1629',
             letterSpacing: '-0.5px',
           }}>S</span>
         </div>
@@ -156,7 +156,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
               if (!mod) return null;
               const isActive = activeModule === moduleId;
               const isHovered = hoveredItem === moduleId;
-              const accentColor = moduleColors[moduleId as keyof typeof moduleColors] || '#4F7CFF';
+              const accentColor = moduleColors[moduleId as keyof typeof moduleColors] || '#D4AF37';
 
               return (
                 <div

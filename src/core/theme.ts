@@ -1,74 +1,75 @@
 /**
  * Slate — Unified Design System
- * Source of truth: Slate Redesign Brief (April 2026)
+ * Final palette: Deep Navy shell · Cream canvas · White cards · Gold accents
  *
  * Creative directive: "Build Slate so it feels less like software someone
  * designed, and more like clarity itself appearing on the screen."
  *
  * 3-Surface System:
- *   Shell  (sidebar + topbar) — deep slate #1A2332
- *   Canvas (page background)  — warm off-white #EEF0F4
+ *   Shell  (sidebar + topbar) — deep navy #0B1629
+ *   Canvas (page background)  — warm cream #F5F0E8
  *   Cards  (content surfaces) — pure white #FFFFFF
  *
  * Rules:
- * - 80% neutral, 15% blue family, 5% semantic color
+ * - Navy shell, cream canvas, white cards
+ * - Gold (#D4AF37) as the single accent — used sparingly
  * - Inter only inside the product
- * - White cards on warm canvas on dark shell
- * - NO gold anywhere in the product UI
+ * - NO slate gray anywhere
  * - NO saturated gradients behind content
- * - NO glows except optional subtle focus halo on active inputs
- * - NO serif in product navigation, metrics, tables, or actions
  */
 
-// ─── Brand (splash/marketing only — never used inside product UI) ─────────
+// ─── Brand ────────────────────────────────────────────────────────────────
 export const brand = {
-  navy:      '#0A1628',
-  gold:      '#C9A54E',
-  mutedGold: '#D4B978',
-  ivory:     '#E8DCC8',
-  white:     '#F0F2F5',
-  iceBlue:   '#B8C9DB',
+  navy:      '#0B1629',
+  navyLight: '#142038',
+  navyMid:   '#1C2E4A',
+  gold:      '#D4AF37',
+  goldLight: '#E8C84A',
+  goldMuted: '#B8962E',
+  ivory:     '#F5F0E8',
+  cream:     '#EDE8DC',
+  white:     '#FFFFFF',
 } as const;
 
 // ─── Backgrounds — 3-surface system ──────────────────────────────────────
 export const bg = {
-  // Shell — sidebar + topbar (deep slate, not navy)
-  sidebar:      '#1A2332',
-  sidebarGlass: '#1E2A3D',
-  header:       '#1A2332',
-  // Canvas — the page background (warm, not glaring white)
-  app:          '#EEF0F4',
-  surface:      '#EEF0F4',
-  subtle:       '#E4E7ED',
-  gradient:     'linear-gradient(180deg, #EEF0F4 0%, #E4E7ED 100%)',
-  // Cards — pure white pops off the warm canvas
+  // Shell — sidebar + topbar (deep navy)
+  sidebar:      '#0B1629',
+  sidebarGlass: '#142038',
+  header:       '#0B1629',
+  // Canvas — warm cream (not glaring white)
+  app:          '#F5F0E8',
+  surface:      '#F5F0E8',
+  subtle:       '#EDE8DC',
+  gradient:     'linear-gradient(180deg, #F5F0E8 0%, #EDE8DC 100%)',
+  // Cards — pure white pops off the cream canvas
   card:         '#FFFFFF',
   cardGlass:    '#FFFFFF',
   // Interaction states
-  hover:        'rgba(79, 124, 255, 0.06)',
-  selected:     'rgba(79, 124, 255, 0.10)',
+  hover:        'rgba(212, 175, 55, 0.06)',
+  selected:     'rgba(212, 175, 55, 0.10)',
   blueSoft:     '#EAF0FF',
-  // Dark surfaces (for shell-level elements)
-  dark:         '#1A2332',
-  darkCard:     '#243044',
+  // Dark surfaces (for shell-level elements only)
+  dark:         '#0B1629',
+  darkCard:     '#142038',
   darkHover:    'rgba(255, 255, 255, 0.06)',
   darkSelected: 'rgba(255, 255, 255, 0.12)',
 } as const;
 
 // ─── Text Colors ──────────────────────────────────────────────────────────
 export const text = {
-  primary:       '#0F1728',
-  secondary:     '#4C5A70',
-  muted:         '#7A8699',
-  light:         '#9CA3AF',
-  inverse:       '#F9FAFB',
-  accent:        '#4F7CFF',
-  gold:          '#C9A54E',
-  ivory:         '#E8DCC8',
-  link:          '#4F7CFF',
-  darkPrimary:   '#F1F5F9',
-  darkSecondary: '#94A3B8',
-  darkMuted:     '#64748B',
+  primary:       '#0B1629',
+  secondary:     '#3D4F6B',
+  muted:         '#6B7A94',
+  light:         '#9AA5B8',
+  inverse:       '#F5F0E8',
+  accent:        '#D4AF37',
+  gold:          '#D4AF37',
+  ivory:         '#F5F0E8',
+  link:          '#2563EB',
+  darkPrimary:   '#F5F0E8',
+  darkSecondary: '#B8C4D4',
+  darkMuted:     '#7A8FAA',
 } as const;
 
 // ─── Semantic / Status Colors ─────────────────────────────────────────────
@@ -82,51 +83,51 @@ export const status = {
   amber:         '#F59E0B',
   amberBg:       'rgba(245, 158, 11, 0.08)',
   amberBorder:   'rgba(245, 158, 11, 0.20)',
-  blue:          '#4F7CFF',
-  blueBg:        'rgba(79, 124, 255, 0.08)',
-  blueBorder:    'rgba(79, 124, 255, 0.20)',
-  gray:          '#7A8699',
-  grayBg:        'rgba(122, 134, 153, 0.08)',
-  grayBorder:    'rgba(122, 134, 153, 0.20)',
-  neutral:       '#7A8699',
-  neutralBg:     'rgba(122, 134, 153, 0.08)',
-  neutralBorder: 'rgba(122, 134, 153, 0.20)',
+  blue:          '#2563EB',
+  blueBg:        'rgba(37, 99, 235, 0.08)',
+  blueBorder:    'rgba(37, 99, 235, 0.20)',
+  gray:          '#6B7A94',
+  grayBg:        'rgba(107, 122, 148, 0.08)',
+  grayBorder:    'rgba(107, 122, 148, 0.20)',
+  neutral:       '#6B7A94',
+  neutralBg:     'rgba(107, 122, 148, 0.08)',
+  neutralBorder: 'rgba(107, 122, 148, 0.20)',
 } as const;
 
 // ─── Module Accent Colors ─────────────────────────────────────────────────
 export const modules = {
-  dashboard: '#4F7CFF',
-  briefing:  '#4F7CFF',
+  dashboard: '#2563EB',
+  briefing:  '#2563EB',
   watch:     '#E5484D',
-  signal:    '#8B7CFF',
+  signal:    '#7C3AED',
   ledger:    '#17B26A',
-  scholar:   '#4F7CFF',
+  scholar:   '#2563EB',
   grounds:   '#F59E0B',
   shield:    '#E5484D',
   fund:      '#17B26A',
-  civic:     '#5ED3F3',
-  reports:   '#7A8699',
-  draft:     '#7A8699',
+  civic:     '#0891B2',
+  reports:   '#6B7A94',
+  draft:     '#6B7A94',
   datahub:   '#17B26A',
 } as const;
 
 // ─── Borders ──────────────────────────────────────────────────────────────
 export const border = {
-  light:       '#E2E7EF',
-  medium:      '#CDD4DF',
-  dark:        '#B0BCC9',
-  focus:       'rgba(79, 124, 255, 0.45)',
-  glass:       '#E2E7EF',
-  chromLight:  '#E2E7EF',
-  chromMedium: '#CDD4DF',
+  light:       '#E8E2D8',
+  medium:      '#D8D0C4',
+  dark:        '#C4BAA8',
+  focus:       'rgba(212, 175, 55, 0.45)',
+  glass:       '#E8E2D8',
+  chromLight:  '#E8E2D8',
+  chromMedium: '#D8D0C4',
 } as const;
 
-// ─── Shadows — crisp lift for white cards on warm canvas ──────────────────
+// ─── Shadows — crisp lift for white cards on cream canvas ─────────────────
 export const shadow = {
-  sm:         '0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04)',
-  md:         '0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04)',
-  lg:         '0 8px 24px rgba(16, 24, 40, 0.10), 0 4px 8px rgba(16, 24, 40, 0.06)',
-  xl:         '0 16px 40px rgba(16, 24, 40, 0.12), 0 8px 16px rgba(16, 24, 40, 0.08)',
+  sm:         '0 1px 3px rgba(11, 22, 41, 0.06), 0 1px 2px rgba(11, 22, 41, 0.04)',
+  md:         '0 4px 12px rgba(11, 22, 41, 0.08), 0 2px 4px rgba(11, 22, 41, 0.04)',
+  lg:         '0 8px 24px rgba(11, 22, 41, 0.10), 0 4px 8px rgba(11, 22, 41, 0.06)',
+  xl:         '0 16px 40px rgba(11, 22, 41, 0.12), 0 8px 16px rgba(11, 22, 41, 0.08)',
   glow:       (_color: string) => 'none',
   glassInset: 'none',
 } as const;
@@ -207,19 +208,19 @@ export const risk = {
   high:     { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)', label: 'HIGH' },
   elevated: { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.06)', label: 'ELEVATED' },
   low:      { color: '#17B26A', bg: 'rgba(23, 178, 106, 0.08)', label: 'LOW' },
-  clear:    { color: '#7A8699', bg: 'rgba(122, 134, 153, 0.08)', label: 'CLEAR' },
+  clear:    { color: '#6B7A94', bg: 'rgba(107, 122, 148, 0.08)', label: 'CLEAR' },
 } as const;
 
 // ─── Chart Colors ─────────────────────────────────────────────────────────
 export const chart = {
-  primary:    '#4F7CFF',
+  primary:    '#2563EB',
   secondary:  '#17B26A',
-  tertiary:   '#8B7CFF',
+  tertiary:   '#7C3AED',
   quaternary: '#F59E0B',
   danger:     '#E5484D',
-  muted:      '#7A8699',
-  grid:       'rgba(0, 0, 0, 0.05)',
-  bars: ['#4F7CFF', '#17B26A', '#8B7CFF', '#F59E0B', '#5ED3F3', '#E5484D'],
+  muted:      '#6B7A94',
+  grid:       'rgba(11, 22, 41, 0.05)',
+  bars: ['#2563EB', '#17B26A', '#7C3AED', '#F59E0B', '#0891B2', '#E5484D'],
 } as const;
 
 // ─── Convenience: Flat "C" object (backward compat) ──────────────────────
@@ -229,7 +230,7 @@ export const C = {
   subtle:    bg.subtle,
   dark:      bg.dark,
   deep:      text.primary,
-  rock:      '#0F1728',
+  rock:      '#0B1629',
   mid:       text.secondary,
   light:     text.muted,
   muted:     text.light,

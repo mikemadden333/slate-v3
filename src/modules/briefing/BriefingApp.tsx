@@ -15,7 +15,7 @@ import {
   useFundraising, useCompliance, useFacilities, useCivic, useRole, useEmergencies,
 } from '../../data/DataStore';
 import { Card, ModuleHeader, StatusBadge } from '../../components/Card';
-import { fmt, fmtNum, fmtPct, fmtFull } from '../../core/formatters';
+import { fmt, fmtM, fmtNum, fmtPct, fmtFull } from '../../core/formatters';
 import {
   bg, text as textColor, brand, border, status as statusColor, font, fontSize, fontWeight,
   shadow, radius, transition, modules as modColors,
@@ -80,14 +80,19 @@ function BriefSection({
 // ─── Metric Inline ───────────────────────────────────────────────────────
 
 function M({ v, c }: { v: string; c?: string }) {
+  const pillBg = c ? `${c}18` : 'rgba(11, 22, 41, 0.07)';
+  const pillBorder = c ? `${c}30` : 'rgba(11, 22, 41, 0.12)';
   return (
     <span style={{
       fontFamily: font.mono,
-      fontWeight: fontWeight.bold,
+      fontWeight: fontWeight.semibold,
+      fontSize: fontSize.sm,
       color: c || textColor.primary,
-      background: `${c || brand.navy}08`,
-      padding: '1px 5px',
-      borderRadius: 3,
+      background: pillBg,
+      border: `1px solid ${pillBorder}`,
+      padding: '2px 6px',
+      borderRadius: 4,
+      display: 'inline-block',
     }}>
       {v}
     </span>
@@ -159,7 +164,7 @@ function ExecutiveSummary() {
       </p>
       <p style={{ margin: '0 0 12px' }}>
         <strong>Financial Position:</strong> Year-to-date {surplusStatus} of{' '}
-        <M v={fmt(Math.abs(ytd.surplus))} c={ytd.surplus >= 0 ? statusColor.green : statusColor.red} />.
+        <M v={fmtM(Math.abs(ytd.surplus))} c={ytd.surplus >= 0 ? statusColor.green : statusColor.red} />.
         Revenue is tracking at <M v={fmtPct(ytd.revActual / ytd.revBudget * 100)} /> of budget.
         DSCR at <M v={ytd.dscr.toFixed(2)} c={ytd.dscr >= fin.covenants.dscrMinimum ? statusColor.green : statusColor.red} />{' '}
         (covenant minimum: {fin.covenants.dscrMinimum.toFixed(2)}). Days cash:{' '}
@@ -204,8 +209,8 @@ function FinancialBrief() {
   return (
     <BriefSection icon="◧" title="Financial Intelligence" accent={modColors.ledger} priority={priority}>
       <p style={{ margin: '0 0 12px' }}>
-        Revenue is at <M v={fmt(ytd.revActual)} /> against a budget of <M v={fmt(ytd.revBudget)} /> ({fmtPct(revPct)} collection rate).
-        Expenses are at <M v={fmt(ytd.expActual)} /> against <M v={fmt(ytd.expBudget)} /> ({fmtPct(expPct)} burn rate).
+        Revenue is at <M v={fmtM(ytd.revActual)} /> against a budget of <M v={fmtM(ytd.revBudget)} /> ({fmtPct(revPct)} collection rate).
+        Expenses are at <M v={fmtM(ytd.expActual)} /> against <M v={fmtM(ytd.expBudget)} /> ({fmtPct(expPct)} burn rate).
         {expPct > revPct
           ? <> <strong style={{ color: statusColor.amber }}>Expenses are outpacing revenue collection — monitor closely.</strong></>
           : <> Revenue collection is outpacing expenses — healthy trajectory.</>

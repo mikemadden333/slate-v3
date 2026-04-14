@@ -466,7 +466,7 @@ export default function SignalApp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<Warning | null>(null);
-  const [activeTab, setActiveTab] = useState<'radar' | 'horizon' | 'register'>('radar');
+  const [activeTab, setActiveTab] = useState<'radar' | 'horizon' | 'register'>('register');
   const detailRef = useRef<HTMLDivElement>(null);
 
   // Build snapshot from all data sources
@@ -565,9 +565,10 @@ Generate 6-8 warnings distributed across all 5 layers (at least 1 from each laye
     }
   }, [network, snapshot]);
 
-  // Auto-run on mount
+  // Signal runs on demand (click "Rescan Environment") — not on mount
+  // This avoids API errors on dev server; on Vercel the API proxy is available
   useEffect(() => {
-    runSignal();
+    // Auto-run disabled — user clicks "Rescan Environment" to trigger AI analysis
   }, []);
 
   // Computed stats from risk register (always available even without AI)
@@ -783,17 +784,31 @@ Generate 6-8 warnings distributed across all 5 layers (at least 1 from each laye
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error State — shown as a soft notice, not a crash */}
         {error && !loading && (
-          <div style={{ padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: fontSize.md, color: statusColor.red, marginBottom: 12 }}>Signal Analysis Error</div>
-            <div style={{ fontSize: fontSize.sm, color: textColor.muted, marginBottom: 16 }}>{error}</div>
+          <div style={{
+            margin: '0 0 16px',
+            padding: '12px 16px',
+            background: `${statusColor.amber}08`,
+            border: `1px solid ${statusColor.amber}25`,
+            borderRadius: radius.md,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}>
+            <span style={{ fontSize: '16px' }}>◎</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: textColor.primary }}>AI Analysis Unavailable</div>
+              <div style={{ fontSize: fontSize.xs, color: textColor.muted, marginTop: 2 }}>Signal AI requires a live API connection. Risk Register data is available below. Click "Rescan Environment" to retry.</div>
+            </div>
             <button onClick={runSignal} style={{
-              padding: '8px 20px', borderRadius: radius.md,
-              background: modColors.signal, color: '#FFF', border: 'none',
-              fontSize: fontSize.sm, fontWeight: fontWeight.semibold, cursor: 'pointer',
+              padding: '6px 14px', borderRadius: radius.md,
+              background: 'transparent', color: modColors.signal,
+              border: `1px solid ${modColors.signal}40`,
+              fontSize: fontSize.xs, fontWeight: fontWeight.semibold, cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}>
-              Retry Scan
+              Retry
             </button>
           </div>
         )}

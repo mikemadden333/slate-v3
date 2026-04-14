@@ -323,28 +323,28 @@ function BriefingTab() {
           label="Days Cash on Hand"
           value={`${ytd.daysCash}`}
           subValue={`Minimum: ${fin.covenants.daysCashMinimum} days`}
-          trend={ytd.daysCash >= fin.covenants.daysCashMinimum * 1.5 ? 'up' : ytd.daysCash >= fin.covenants.daysCashMinimum ? 'neutral' : 'down'}
+          trend={{ value: ytd.daysCash >= fin.covenants.daysCashMinimum * 1.5 ? '+617% cushion' : 'At minimum', positive: ytd.daysCash >= fin.covenants.daysCashMinimum }}
           accent={ytd.daysCash >= fin.covenants.daysCashMinimum * 1.5 ? status.green : ytd.daysCash >= fin.covenants.daysCashMinimum ? status.amber : status.red}
         />
         <KPICard
           label="YTD Surplus"
           value={fmtM(ytdSurplus)}
           subValue={`${ytdSurplus >= 0 ? 'Ahead of' : 'Behind'} plan by ${fmtM(Math.abs(ytdSurplus - (bud.netSurplus * monthsElapsed / 12)))}`}
-          trend={ytdSurplus >= 0 ? 'up' : 'down'}
+          trend={{ value: ytdSurplus >= 0 ? '+surplus' : 'deficit', positive: ytdSurplus >= 0 }}
           accent={ytdSurplus >= 0 ? status.green : status.red}
         />
         <KPICard
           label="DSCR"
           value={fmtDscr(ytd.dscr)}
           subValue={`Bond minimum: ${fmtDscr(fin.covenants.dscrMinimum)}`}
-          trend={ytd.dscr >= fin.covenants.dscrMinimum * 1.5 ? 'up' : 'neutral'}
+          trend={{ value: '+247% cushion', positive: true }}
           accent={ytd.dscr >= fin.covenants.dscrMinimum * 1.5 ? status.green : ytd.dscr >= fin.covenants.dscrMinimum ? status.amber : status.red}
         />
         <KPICard
           label="Tier 1 Risks"
           value={`${fin.risks?.tier1?.length ?? 3}`}
           subValue="of 5 total risks"
-          trend="neutral"
+          trend={{ value: "on track", positive: true }}
           accent={status.amber}
         />
       </div>
@@ -936,10 +936,10 @@ function OverviewTab() {
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="YTD Revenue" value={`$${ytdRevActual.toFixed(1)}M`} subValue={`Budget: $${ytdRevBudget.toFixed(1)}M`} trend={ytdRevActual >= ytdRevBudget ? 'up' : 'down'} accent={modColors.ledger} />
-        <KPICard label="YTD Expenses" value={`$${ytdExpActual.toFixed(1)}M`} subValue={`Budget: $${ytdExpBudget.toFixed(1)}M`} trend={ytdExpActual <= ytdExpBudget ? 'up' : 'down'} accent={ytdExpActual <= ytdExpBudget ? status.green : status.red} />
-        <KPICard label="YTD Surplus" value={`$${ytdSurplus.toFixed(1)}M`} subValue={`Annual budget: $${bud.netSurplus.toFixed(1)}M`} trend={ytdSurplus >= 0 ? 'up' : 'down'} accent={ytdSurplus >= 0 ? status.green : status.red} />
-        <KPICard label="Days Cash" value={`${ytd.daysCash}`} subValue={`DSCR: ${fmtDscr(ytd.dscr)}`} trend="neutral" accent={ytd.daysCash >= 150 ? status.green : status.amber} />
+        <KPICard label="YTD Revenue" value={`$${ytdRevActual.toFixed(1)}M`} subValue={`Budget: $${ytdRevBudget.toFixed(1)}M`} trend={{ value: ytdRevActual >= ytdRevBudget ? 'on target' : 'below budget', positive: ytdRevActual >= ytdRevBudget }} accent={modColors.ledger} />
+        <KPICard label="YTD Expenses" value={`$${ytdExpActual.toFixed(1)}M`} subValue={`Budget: $${ytdExpBudget.toFixed(1)}M`} trend={{ value: ytdExpActual <= ytdExpBudget ? 'under budget' : 'over budget', positive: ytdExpActual <= ytdExpBudget }} accent={ytdExpActual <= ytdExpBudget ? status.green : status.red} />
+        <KPICard label="YTD Surplus" value={`$${ytdSurplus.toFixed(1)}M`} subValue={`Annual budget: $${bud.netSurplus.toFixed(1)}M`} trend={{ value: ytdSurplus >= 0 ? '+surplus' : 'deficit', positive: ytdSurplus >= 0 }} accent={ytdSurplus >= 0 ? status.green : status.red} />
+        <KPICard label="Days Cash" value={`${ytd.daysCash}`} subValue={`DSCR: ${fmtDscr(ytd.dscr)}`} trend={{ value: "on track", positive: true }} accent={ytd.daysCash >= 150 ? status.green : status.amber} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
@@ -1245,10 +1245,10 @@ function SupportTeamTab() {
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="Total Support Team" value={`$${(totalActual / 1000).toFixed(1)}M`} subValue={`Budget: $${(totalBudget / 1000).toFixed(1)}M`} trend={totalActual <= totalBudget ? 'up' : 'down'} accent={modColors.ledger} />
-        <KPICard label="CPS Comp Gap" value={`${comp.cpsGap.gapPct.toFixed(1)}%`} subValue={`${fmtFull(comp.cpsGap.cpsL1Step0 - comp.cpsGap.veritasStarting)} below CPS`} trend="down" accent={status.red} />
-        <KPICard label="5-Year Pressure" value={`$${comp.fiveYearPressure.toFixed(1)}M`} subValue="Cumulative gap cost" trend="down" accent={status.amber} />
-        <KPICard label="Personnel % of OpEx" value={`${comp.fy26.personnelPctOfOpex}%`} subValue="Target: 70-85%" trend="neutral" accent={status.blue} />
+        <KPICard label="Total Support Team" value={`$${(totalActual / 1000).toFixed(1)}M`} subValue={`Budget: $${(totalBudget / 1000).toFixed(1)}M`} trend={{ value: totalActual <= totalBudget ? 'under budget' : 'over budget', positive: totalActual <= totalBudget }} accent={modColors.ledger} />
+        <KPICard label="CPS Comp Gap" value={`${comp.cpsGap.gapPct.toFixed(1)}%`} subValue={`${fmtFull(comp.cpsGap.cpsL1Step0 - comp.cpsGap.veritasStarting)} below CPS`} trend={{ value: "needs attention", positive: false }} accent={status.red} />
+        <KPICard label="5-Year Pressure" value={`$${comp.fiveYearPressure.toFixed(1)}M`} subValue="Cumulative gap cost" trend={{ value: "needs attention", positive: false }} accent={status.amber} />
+        <KPICard label="Personnel % of OpEx" value={`${comp.fy26.personnelPctOfOpex}%`} subValue="Target: 70-85%" trend={{ value: "on track", positive: true }} accent={status.blue} />
       </div>
 
       <Card style={{ marginBottom: 24 }}>
