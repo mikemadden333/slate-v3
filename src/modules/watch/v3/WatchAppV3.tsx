@@ -54,45 +54,45 @@ import {
 // Dark slate intelligence aesthetic — distinct from the warm off-white of the app
 // ═══════════════════════════════════════════════════════════════════════════
 const W = {
-  // Backgrounds — dark slate
-  bg:        '#1C2333',   // Main dark slate
-  bgCard:    '#232B3E',   // Slightly lighter card
-  bgSurface: '#1A2030',   // Deeper surface
-  bgHover:   '#2A3450',   // Hover state
+  // Backgrounds — light canvas (Slate brief)
+  bg:        '#F6F8FB',   // App canvas
+  bgCard:    '#FFFFFF',   // White card
+  bgSurface: '#F1F4F8',   // Subtle surface
+  bgHover:   'rgba(79, 124, 255, 0.04)',  // Blue hover
 
-  // Text on dark
-  textPrimary:   '#F0F2F5',   // Signal white
-  textSecondary: '#B8C9DB',   // Ice blue
-  textMuted:     '#7A8BA0',   // Subdued
-  textDim:       '#4A5A70',   // Very dim
+  // Text — dark slate
+  textPrimary:   '#0F1728',   // Deep slate
+  textSecondary: '#4C5A70',   // Secondary
+  textMuted:     '#7A8699',   // Muted
+  textDim:       '#9CA3AF',   // Dim
 
-  // Gold accents
+  // Gold accents (sparingly)
   gold:      '#C9A54E',
-  goldDim:   'rgba(201, 165, 78, 0.15)',
-  goldBorder:'rgba(201, 165, 78, 0.25)',
+  goldDim:   'rgba(201, 165, 78, 0.10)',
+  goldBorder:'rgba(201, 165, 78, 0.20)',
 
-  // Status
-  red:       '#E05252',
-  redDim:    'rgba(224, 82, 82, 0.12)',
-  redBorder: 'rgba(224, 82, 82, 0.25)',
-  amber:     '#D4A017',
-  amberDim:  'rgba(212, 160, 23, 0.12)',
-  green:     '#38A169',
-  greenDim:  'rgba(56, 161, 105, 0.12)',
-  blue:      '#4A9EDB',
-  blueDim:   'rgba(74, 158, 219, 0.12)',
+  // Status — semantic on light
+  red:       '#E5484D',
+  redDim:    'rgba(229, 72, 77, 0.08)',
+  redBorder: 'rgba(229, 72, 77, 0.20)',
+  amber:     '#F59E0B',
+  amberDim:  'rgba(245, 158, 11, 0.08)',
+  green:     '#17B26A',
+  greenDim:  'rgba(23, 178, 106, 0.08)',
+  blue:      '#4F7CFF',
+  blueDim:   'rgba(79, 124, 255, 0.08)',
 
-  // Borders on dark
-  border:    'rgba(255, 255, 255, 0.08)',
-  borderMd:  'rgba(255, 255, 255, 0.12)',
-  borderLg:  'rgba(255, 255, 255, 0.18)',
+  // Borders — light
+  border:    'rgba(26, 35, 50, 0.08)',
+  borderMd:  'rgba(26, 35, 50, 0.12)',
+  borderLg:  'rgba(26, 35, 50, 0.18)',
 
-  // Threat level colors
+  // Threat level colors — semantic on white
   threat: {
-    GREEN:  { color: '#38A169', bg: 'rgba(56, 161, 105, 0.12)', border: 'rgba(56, 161, 105, 0.20)', label: 'Clear' },
-    AMBER:  { color: '#D4A017', bg: 'rgba(212, 160, 23, 0.12)', border: 'rgba(212, 160, 23, 0.20)', label: 'Monitor' },
-    ORANGE: { color: '#E07020', bg: 'rgba(224, 112, 32, 0.12)', border: 'rgba(224, 112, 32, 0.20)', label: 'Elevated' },
-    RED:    { color: '#E05252', bg: 'rgba(224, 82, 82, 0.12)',  border: 'rgba(224, 82, 82, 0.20)',  label: 'Alert' },
+    GREEN:  { color: '#17B26A', bg: 'rgba(23, 178, 106, 0.08)',  border: 'rgba(23, 178, 106, 0.20)',  label: 'Clear' },
+    AMBER:  { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)',  border: 'rgba(245, 158, 11, 0.20)',  label: 'Monitor' },
+    ORANGE: { color: '#E07020', bg: 'rgba(224, 112, 32, 0.08)',  border: 'rgba(224, 112, 32, 0.20)',  label: 'Elevated' },
+    RED:    { color: '#E5484D', bg: 'rgba(229, 72, 77, 0.08)',   border: 'rgba(229, 72, 77, 0.20)',   label: 'Alert' },
   },
 } as const;
 
@@ -101,8 +101,6 @@ const W = {
 // ═══════════════════════════════════════════════════════════════════════════
 const V3_CSS = `
 ${GANG_BOUNDARY_CSS}
-
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:wght@300;400&display=swap');
 
 @keyframes v3PulseRed {
   0%, 100% { box-shadow: 0 0 0 0 rgba(224, 82, 82, 0.5); }
@@ -155,14 +153,13 @@ ${GANG_BOUNDARY_CSS}
   animation: v3Blink 1.5s ease-in-out infinite;
 }
 
-/* Leaflet dark mode */
-.leaflet-tile-pane { filter: brightness(0.9) saturate(0.8); }
+/* Leaflet light mode */
 .leaflet-popup-content-wrapper {
   background: ${W.bgCard} !important;
   border: 1px solid ${W.borderMd} !important;
   border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
-  font-family: 'IBM Plex Sans', sans-serif !important;
+  box-shadow: 0 8px 24px rgba(26,35,50,0.12) !important;
+  font-family: 'Inter', sans-serif !important;
   color: ${W.textPrimary} !important;
 }
 .leaflet-popup-content {
@@ -683,8 +680,8 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
             borderRadius: 12, padding: '16px 20px',
           }}>
             <div style={{
-              fontFamily: font.mono, fontSize: '10px', letterSpacing: '0.08em',
-              color: W.textMuted, textTransform: 'uppercase', marginBottom: 8,
+              fontFamily: font.body, fontSize: '11px',
+              color: W.textMuted, marginBottom: 8, fontWeight: 500,
             }}>
               {kpi.label}
             </div>
@@ -708,8 +705,8 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
         borderRadius: 12, padding: '20px 24px',
       }}>
         <div style={{
-          fontFamily: font.mono, fontSize: '10px', letterSpacing: '0.1em',
-          color: W.gold, textTransform: 'uppercase', marginBottom: 12,
+          fontFamily: font.body, fontSize: '11px', fontWeight: 600,
+          color: W.textMuted, marginBottom: 12,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <span>Intelligence Briefing</span>
@@ -730,8 +727,8 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
       {/* CAMPUS MATRIX */}
       <div>
         <div style={{
-          fontFamily: font.mono, fontSize: '10px', letterSpacing: '0.1em',
-          color: W.gold, textTransform: 'uppercase', marginBottom: 14,
+          fontFamily: font.body, fontSize: '12px', fontWeight: 600,
+          color: W.textMuted, marginBottom: 14,
         }}>
           Campus Status Matrix
         </div>
@@ -794,12 +791,12 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
       {/* CRITICAL INCIDENTS */}
       <div>
         <div style={{
-          fontFamily: font.mono, fontSize: '10px', letterSpacing: '0.1em',
-          color: W.gold, textTransform: 'uppercase', marginBottom: 14,
+          fontFamily: font.body, fontSize: '12px', fontWeight: 600,
+          color: W.textMuted, marginBottom: 14,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <span>Critical Incidents — Last 24 Hours</span>
-          <span style={{ color: W.textDim, fontSize: '10px' }}>
+          <span style={{ color: W.textDim, fontSize: '11px', fontWeight: 400 }}>
             Shootings & Homicides Only
           </span>
         </div>
@@ -836,8 +833,8 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                         <span style={{
-                          fontFamily: font.mono, fontSize: '10px', fontWeight: 600,
-                          color: incColor, textTransform: 'uppercase', letterSpacing: '0.06em',
+                          fontFamily: font.body, fontSize: '11px', fontWeight: 700,
+                          color: incColor,
                         }}>
                           {VIOLENT_CRIME_LABELS[inc.crimeType]}
                           {isDemo && ' — DEMO'}
@@ -943,14 +940,14 @@ function MapTab({
         {/* Network status pill */}
         <div style={{
           position: 'absolute', top: 16, left: 16, zIndex: 1000,
-          background: 'rgba(28, 35, 51, 0.92)', backdropFilter: 'blur(12px)',
+          background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
           borderRadius: 10, padding: '10px 16px',
           border: `1px solid ${W.border}`,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          boxShadow: '0 4px 16px rgba(26,35,50,0.12)',
         }}>
           <div style={{
-            fontFamily: font.mono, fontSize: '9px', letterSpacing: '0.1em',
-            color: W.textDim, textTransform: 'uppercase', marginBottom: 4,
+            fontFamily: font.body, fontSize: '10px', fontWeight: 600,
+            color: W.textMuted, marginBottom: 4,
           }}>
             Network Status
           </div>
@@ -1003,13 +1000,13 @@ function MapTab({
           onClick={onToggleGangBoundaries}
           style={{
             position: 'absolute', top: 16, right: 16, zIndex: 1000,
-            background: showGangBoundaries ? 'rgba(43, 95, 138, 0.9)' : 'rgba(28, 35, 51, 0.9)',
-            backdropFilter: 'blur(8px)',
-            border: `1px solid ${showGangBoundaries ? '#2B5F8A' : W.border}`,
-            borderRadius: 8, padding: '8px 14px',
-            cursor: 'pointer', fontSize: '11px', fontWeight: 600,
-            fontFamily: font.mono, letterSpacing: '0.04em',
-            color: showGangBoundaries ? '#fff' : W.textSecondary,
+          background: showGangBoundaries ? 'rgba(43, 95, 138, 0.9)' : 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(8px)',
+          border: `1px solid ${showGangBoundaries ? '#2B5F8A' : W.border}`,
+          borderRadius: 8, padding: '8px 14px',
+          cursor: 'pointer', fontSize: '11px', fontWeight: 600,
+          fontFamily: font.body,
+          color: showGangBoundaries ? '#fff' : W.textSecondary,
             transition: 'all 0.2s ease',
             display: 'flex', alignItems: 'center', gap: 6,
           }}
@@ -1047,11 +1044,11 @@ function MapTab({
           flexShrink: 0,
         }}>
           <div style={{
-            fontFamily: font.mono, fontSize: '10px', letterSpacing: '0.1em',
-            color: W.gold, textTransform: 'uppercase',
-          }}>
-            Live Violent Crime Feed
-          </div>
+          fontFamily: font.body, fontSize: '11px', fontWeight: 600,
+          color: W.textMuted,
+        }}>
+          Live Violent Crime Feed
+        </div>
           <div style={{
             fontFamily: font.mono, fontSize: '10px', color: W.textDim,
           }}>
@@ -1070,8 +1067,8 @@ function MapTab({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{
-                fontFamily: font.mono, fontSize: '10px', color: W.gold,
-                textTransform: 'uppercase', letterSpacing: '0.1em',
+                fontFamily: font.body, fontSize: '11px', fontWeight: 600,
+                color: W.textMuted,
               }}>
                 Incident Detail
               </span>
@@ -1086,9 +1083,8 @@ function MapTab({
               </button>
             </div>
             <div style={{
-              fontFamily: font.mono, fontSize: '11px', fontWeight: 600,
-              color: W.red, textTransform: 'uppercase', letterSpacing: '0.06em',
-              marginBottom: 10,
+              fontFamily: font.body, fontSize: '12px', fontWeight: 700,
+              color: W.red, marginBottom: 10,
             }}>
               {VIOLENT_CRIME_LABELS[selectedIncident.crimeType]}
             </div>
@@ -1174,8 +1170,8 @@ function MapTab({
                         </span>
                       )}
                       <span style={{
-                        fontFamily: font.mono, fontSize: '10px', fontWeight: 600,
-                        color: incColor, textTransform: 'uppercase', letterSpacing: '0.05em',
+                        fontFamily: font.body, fontSize: '11px', fontWeight: 700,
+                        color: incColor,
                       }}>
                         {VIOLENT_CRIME_LABELS[inc.crimeType]}
                         {isDemo && ' — DEMO'}
@@ -1482,9 +1478,9 @@ export const WatchAppV3: React.FC = () => {
         }}>
           {smsNotifications.map(notif => (
             <div key={notif.id} style={{
-              background: 'rgba(28, 35, 51, 0.97)', backdropFilter: 'blur(20px)',
+              background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)',
               borderRadius: 14, padding: '14px 18px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
+              boxShadow: '0 8px 32px rgba(26,35,50,0.18), 0 0 0 1px rgba(26,35,50,0.08)',
               animation: notif.visible ? 'smsSlideIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards' : 'smsSlideOut 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards',
               display: 'flex', gap: 12, alignItems: 'flex-start',
             }}>
@@ -1519,7 +1515,7 @@ export const WatchAppV3: React.FC = () => {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 28px', height: 56,
-        background: W.bgSurface,
+        background: W.bgCard,
         borderBottom: `1px solid ${W.border}`,
         flexShrink: 0,
       }}>
@@ -1558,7 +1554,7 @@ export const WatchAppV3: React.FC = () => {
                 style={{
                   padding: '0 28px', border: 'none', cursor: 'pointer',
                   background: 'transparent',
-                  borderBottom: isActive ? `2px solid ${W.gold}` : '2px solid transparent',
+                  borderBottom: isActive ? `2px solid ${W.blue}` : '2px solid transparent',
                   transition: 'all 0.15s ease',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center', gap: 2,
@@ -1567,7 +1563,7 @@ export const WatchAppV3: React.FC = () => {
                 <span style={{
                   fontFamily: font.body, fontSize: '13px',
                   fontWeight: isActive ? 600 : 400,
-                  color: isActive ? W.gold : W.textMuted,
+                  color: isActive ? W.textPrimary : W.textMuted,
                   transition: 'color 0.15s ease',
                 }}>
                   {tab.label}
