@@ -19,10 +19,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { brand, font } from '../core/theme';
 
-// ─── Background palette — Deep Navy system ────
-const BG_CENTER = '#122040';
-const BG_MID    = '#0E1A32';
-const BG_BASE   = '#0A1628';
+// ─── Background palette — Light Canvas system ────
+const BG_CENTER = '#FFFFFF';
+const BG_MID    = '#F6F8FB';
+const BG_BASE   = '#EEF1F6';
 
 // ─── Letter path data (Playfair Display Black) ──
 const LETTERS = [
@@ -50,7 +50,7 @@ function ApertureIris({ open }: { open: boolean }) {
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
         height: '50%',
-        background: BG_BASE,
+        background: '#1A2332',
         transform: open ? 'translateY(-102%)' : 'translateY(0)',
         transition: open
           ? 'transform 2s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -60,15 +60,14 @@ function ApertureIris({ open }: { open: boolean }) {
         <div style={{
           position: 'absolute', bottom: 0, left: '10%', right: '10%',
           height: 1,
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.04) 70%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(201,165,78,0.15) 30%, rgba(201,165,78,0.25) 50%, rgba(201,165,78,0.15) 70%, transparent 100%)',
         }} />
       </div>
-
       {/* Bottom shutter panel */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         height: '50%',
-        background: BG_BASE,
+        background: '#1A2332',
         transform: open ? 'translateY(102%)' : 'translateY(0)',
         transition: open
           ? 'transform 2s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -78,18 +77,18 @@ function ApertureIris({ open }: { open: boolean }) {
         <div style={{
           position: 'absolute', top: 0, left: '10%', right: '10%',
           height: 1,
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.04) 70%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(201,165,78,0.15) 30%, rgba(201,165,78,0.25) 50%, rgba(201,165,78,0.15) 70%, transparent 100%)',
         }} />
       </div>
-
-      {/* Center seam — a whisper of warm light at the split point */}
+      {/* Center seam — a whisper of warm gold at the split point */}
       <div style={{
         position: 'absolute', top: '50%', left: '15%', right: '15%',
         height: 1, marginTop: -0.5,
-        background: `linear-gradient(90deg, transparent 0%, rgba(201,165,78,0.12) 25%, rgba(201,165,78,0.2) 50%, rgba(201,165,78,0.12) 75%, transparent 100%)`,
+        background: `linear-gradient(90deg, transparent 0%, rgba(201,165,78,0.3) 25%, rgba(201,165,78,0.5) 50%, rgba(201,165,78,0.3) 75%, transparent 100%)`,
         opacity: open ? 0 : 1,
         transition: open ? 'opacity 0.6s ease 0.3s' : 'none',
       }} />
+      </div>
     </div>
   );
 }
@@ -106,17 +105,17 @@ function AmbientLight({ active }: { active: boolean }) {
         <>
           <div style={{
             position: 'absolute', width: '120%', height: '120%', top: '-10%', left: '-10%',
-            background: 'radial-gradient(ellipse at 50% 45%, rgba(201,165,78,0.035) 0%, transparent 50%)',
+            background: 'radial-gradient(ellipse at 50% 45%, rgba(201,165,78,0.06) 0%, transparent 50%)',
             animation: 'ambientDrift 20s ease-in-out infinite',
           }} />
           <div style={{
             position: 'absolute', width: '100%', height: '100%',
-            background: 'radial-gradient(ellipse at 30% 35%, rgba(91,141,184,0.015) 0%, transparent 45%), radial-gradient(ellipse at 70% 65%, rgba(184,201,219,0.01) 0%, transparent 40%)',
+            background: 'radial-gradient(ellipse at 30% 35%, rgba(79,124,255,0.04) 0%, transparent 45%), radial-gradient(ellipse at 70% 65%, rgba(79,124,255,0.025) 0%, transparent 40%)',
             animation: 'ambientDrift 25s ease-in-out 5s infinite',
           }} />
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.03) 0%, transparent 60%)',
+            background: 'radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.6) 0%, transparent 60%)',
             animation: 'ambientBreath 8s ease-in-out infinite',
           }} />
         </>
@@ -151,7 +150,7 @@ function AmbientParticles({ active }: { active: boolean }) {
           width: p.size, height: p.size, borderRadius: '50%',
           background: p.isGold
             ? `radial-gradient(circle, rgba(201,165,78,${p.opacity * 2}) 0%, rgba(201,165,78,${p.opacity * 0.5}) 100%)`
-            : `radial-gradient(circle, rgba(240,242,245,${p.opacity * 2.5}) 0%, rgba(184,201,219,${p.opacity * 0.5}) 100%)`,
+            : `radial-gradient(circle, rgba(26,35,50,${p.opacity * 1.5}) 0%, rgba(79,124,255,${p.opacity * 0.4}) 100%)`,
           boxShadow: p.isGold ? `0 0 ${p.size * 2}px rgba(201,165,78,${p.opacity * 0.5})` : undefined,
           animation: `ambientFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
           ['--p-opacity' as string]: p.opacity,
@@ -253,19 +252,19 @@ function DrawnText({ drawPhase, fillVisible, showPeriod, periodRef, isReflection
             <feDisplacementMap in="SourceGraphic" in2="warp" scale="3" xChannelSelector="R" yChannelSelector="G" />
           </filter>
           <linearGradient id={`strokeGrad${prefix}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={brand.ivory} />
-            <stop offset="50%" stopColor={brand.white} />
-            <stop offset="100%" stopColor={brand.ivory} />
+            <stop offset="0%" stopColor="#2A3548" />
+            <stop offset="50%" stopColor="#1A2332" />
+            <stop offset="100%" stopColor="#2A3548" />
           </linearGradient>
         </defs>
 
         {/* Fill layer */}
         {LETTERS.map((letter, i) => (
           <g key={`fill-${i}`} transform={`translate(${letter.xOffset}, 0) scale(1,-1) translate(0,-${UPEM})`}>
-            <path d={letter.path} fill={brand.white} filter={`url(#roughEdge${prefix})`}
-              style={{ opacity: fillVisible ? (isReflection ? 0.6 : 0.85) : 0, transition: `opacity 0.8s ease ${i * 0.08}s` }} />
-            <path d={letter.path} fill={brand.ivory} filter={`url(#chalkGrain${prefix})`}
-              style={{ opacity: fillVisible ? (isReflection ? 0.3 : 0.5) : 0, transition: `opacity 0.8s ease ${i * 0.08}s` }} />
+            <path d={letter.path} fill="#1A2332" filter={`url(#roughEdge${prefix})`}
+              style={{ opacity: fillVisible ? (isReflection ? 0.25 : 0.9) : 0, transition: `opacity 0.8s ease ${i * 0.08}s` }} />
+            <path d={letter.path} fill="#2A3548" filter={`url(#chalkGrain${prefix})`}
+              style={{ opacity: fillVisible ? (isReflection ? 0.12 : 0.35) : 0, transition: `opacity 0.8s ease ${i * 0.08}s` }} />
           </g>
         ))}
 
@@ -328,9 +327,9 @@ function GlassOrb({ visible }: { visible: boolean }) {
   return (
     <div style={{
       position: 'absolute', width: 700, height: 700, borderRadius: '50%',
-      background: 'radial-gradient(ellipse at 35% 25%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 30%, transparent 60%), radial-gradient(ellipse at 65% 75%, rgba(201,165,78,0.01) 0%, transparent 50%)',
-      border: '1px solid rgba(255,255,255,0.025)',
-      boxShadow: 'inset 0 0 100px rgba(255,255,255,0.01), inset 0 -40px 80px rgba(0,0,0,0.1), 0 0 200px rgba(255,255,255,0.01)',
+      background: 'radial-gradient(ellipse at 35% 25%, rgba(79,124,255,0.04) 0%, rgba(79,124,255,0.015) 30%, transparent 60%), radial-gradient(ellipse at 65% 75%, rgba(201,165,78,0.03) 0%, transparent 50%)',
+      border: '1px solid rgba(26,35,50,0.04)',
+      boxShadow: 'inset 0 0 100px rgba(79,124,255,0.02), 0 0 200px rgba(79,124,255,0.03)',
       opacity: visible ? 1 : 0, transition: 'opacity 3s ease', pointerEvents: 'none',
       top: '50%', left: '50%', transform: 'translate(-50%, -55%)',
     }} />
@@ -431,10 +430,10 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
           @keyframes glassShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         `}</style>
         <div style={{
-          background: 'rgba(18, 32, 56, 0.9)', backdropFilter: 'blur(40px)',
+          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(40px)',
           borderRadius: 20, padding: '56px 48px', maxWidth: 520, width: '90%',
           textAlign: 'center', position: 'relative', zIndex: 1,
-          boxShadow: '0 32px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.1)',
+          boxShadow: '0 32px 100px rgba(26,35,50,0.12), 0 0 0 1px rgba(26,35,50,0.08), inset 0 1px 0 rgba(255,255,255,1)',
           animation: 'slideUpModal 0.5s ease 0.1s both',
         }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 20, overflow: 'hidden', pointerEvents: 'none' }}>
@@ -447,17 +446,17 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
           <div style={{ fontSize: 11, fontFamily: font.mono, letterSpacing: 2.5, color: brand.gold, fontWeight: 500, marginBottom: 18, textTransform: 'uppercase' as const, position: 'relative' }}>
             Important Notice
           </div>
-          <h2 style={{ fontFamily: font.display, fontSize: 28, fontWeight: 300, color: brand.white, margin: '0 0 18px', position: 'relative' }}>
+          <h2 style={{ fontFamily: font.body, fontSize: 28, fontWeight: 300, color: '#1A2332', margin: '0 0 18px', position: 'relative' }}>
             Illustrative Platform Demo
           </h2>
-          <p style={{ fontFamily: font.body, fontSize: 14, lineHeight: 1.75, color: brand.iceBlue, margin: '0 0 10px', position: 'relative', fontWeight: 300 }}>
+          <p style={{ fontFamily: font.body, fontSize: 14, lineHeight: 1.75, color: '#4C5A70', margin: '0 0 10px', position: 'relative', fontWeight: 300 }}>
             All data, organizations, names, figures, and scenarios in Slate
-            are <strong style={{ color: brand.white, fontWeight: 500 }}>fictional and for demonstration purposes only</strong>.
+            are <strong style={{ color: '#1A2332', fontWeight: 500 }}>fictional and for demonstration purposes only</strong>.
             This platform is not connected to any live systems and does not
             represent any real institution, school network, or organization.
           </p>
-          <p style={{ fontFamily: font.body, fontSize: 14, lineHeight: 1.75, color: brand.iceBlue, margin: '0 0 32px', position: 'relative', fontWeight: 300 }}>
-            Slate is a product design concept by <strong style={{ color: brand.white, fontWeight: 500 }}>Madden Education Advisory</strong>.
+          <p style={{ fontFamily: font.body, fontSize: 14, lineHeight: 1.75, color: '#4C5A70', margin: '0 0 32px', position: 'relative', fontWeight: 300 }}>
+            Slate is a product design concept by <strong style={{ color: '#1A2332', fontWeight: 500 }}>Madden Education Advisory</strong>.
           </p>
           <button onClick={() => onEnter()} style={{
             fontFamily: font.body, fontSize: 14, fontWeight: 500, letterSpacing: 0.5, color: brand.navy,
@@ -488,7 +487,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       <AmbientLight active={ambientActive} />
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: `radial-gradient(circle at 40% 35%, rgba(201,165,78,0.03) 0%, transparent 45%), radial-gradient(circle at 60% 65%, rgba(212,185,120,0.02) 0%, transparent 40%)`,
+        backgroundImage: `radial-gradient(circle at 40% 35%, rgba(201,165,78,0.06) 0%, transparent 45%), radial-gradient(circle at 60% 65%, rgba(79,124,255,0.03) 0%, transparent 40%)`,
       }} />
 
       <GlassOrb visible={orbVisible} />
@@ -500,13 +499,13 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         opacity: badgeVisible ? 1 : 0, transform: badgeVisible ? 'translateY(0)' : 'translateY(-12px)',
         transition: 'all 0.8s ease', marginBottom: 48, position: 'relative', zIndex: 1,
       }}>
-        <div style={{
-          fontFamily: font.mono, fontSize: 11, letterSpacing: 3.5, color: 'rgba(240,242,245,0.55)',
-          textTransform: 'uppercase' as const, border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 24, padding: '10px 28px', backdropFilter: 'blur(8px)',
-          background: 'rgba(255,255,255,0.025)',
-          boxShadow: '0 4px 30px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
-        }}>
+      <div style={{
+        fontFamily: font.mono, fontSize: 11, letterSpacing: 3.5, color: 'rgba(26,35,50,0.45)',
+        textTransform: 'uppercase' as const, border: '1px solid rgba(26,35,50,0.1)',
+        borderRadius: 24, padding: '10px 28px', backdropFilter: 'blur(8px)',
+        background: 'rgba(255,255,255,0.7)',
+        boxShadow: '0 4px 30px rgba(26,35,50,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+      }}>
           Platform Design System — Version 3.0 — Confidential
         </div>
       </div>
@@ -536,8 +535,8 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         transition: 'all 0.8s ease', fontFamily: font.mono, fontSize: 13, letterSpacing: 5,
         textTransform: 'uppercase' as const,
         marginBottom: 44, position: 'relative', zIndex: 1,
-        color: taglineGlow ? 'rgba(240,242,245,0.95)' : 'rgba(240,242,245,0.45)',
-        textShadow: taglineGlow ? '0 0 20px rgba(240,242,245,0.6), 0 0 40px rgba(240,242,245,0.3), 0 0 80px rgba(240,242,245,0.15)' : 'none',
+        color: taglineGlow ? 'rgba(26,35,50,0.9)' : 'rgba(26,35,50,0.4)',
+        textShadow: taglineGlow ? '0 0 20px rgba(201,165,78,0.3), 0 0 40px rgba(201,165,78,0.15)' : 'none',
       }}>
         <style>{`
           @keyframes taglineGlowPulse { 0% { filter: brightness(1); } 50% { filter: brightness(1.3); } 100% { filter: brightness(1); } }
@@ -553,7 +552,7 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
       {/* Subtitle */}
       <div style={{
         opacity: subtitleVisible ? 1 : 0, transition: 'all 1s ease',
-        fontFamily: font.body, fontSize: 17, color: 'rgba(184,201,219,0.85)',
+        fontFamily: font.body, fontSize: 17, color: 'rgba(26,35,50,0.55)',
         letterSpacing: 1.5, position: 'relative', zIndex: 1, fontWeight: 400,
       }}>
         Intelligence for School Systems
@@ -565,10 +564,10 @@ export default function SplashScreen({ onEnter }: SplashScreenProps) {
         alignItems: 'center', gap: 8, opacity: footerVisible ? 1 : 0,
         transition: 'all 1s ease', zIndex: 1,
       }}>
-        <div style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: 3, color: 'rgba(240,242,245,0.5)', textTransform: 'uppercase' as const, fontWeight: 500 }}>
+        <div style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: 3, color: 'rgba(26,35,50,0.4)', textTransform: 'uppercase' as const, fontWeight: 500 }}>
           Madden Education Advisory
         </div>
-        <div style={{ fontFamily: font.mono, fontSize: 8, letterSpacing: 2, color: 'rgba(240,242,245,0.3)', textTransform: 'uppercase' as const }}>
+        <div style={{ fontFamily: font.mono, fontSize: 8, letterSpacing: 2, color: 'rgba(26,35,50,0.25)', textTransform: 'uppercase' as const }}>
           Proprietary & Confidential · All Rights Reserved · 2026
         </div>
         <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 15, opacity: 0.12 }}>
