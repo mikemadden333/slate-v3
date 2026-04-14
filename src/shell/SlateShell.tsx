@@ -51,7 +51,7 @@ export default function SlateShell({ activeModule, onNavigate, children }: Slate
       height: '100vh',
       width: '100vw',
       overflow: 'hidden',
-      background: bg.app,
+      background: bg.sidebar,
     }}>
       <Sidebar
         activeModule={activeModule}
@@ -118,6 +118,7 @@ export default function SlateShell({ activeModule, onNavigate, children }: Slate
           flex: 1,
           overflow: 'auto',
           padding: 24,
+          background: bg.app,
         }}>
           {children}
         </div>

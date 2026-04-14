@@ -1,12 +1,29 @@
 /**
  * Slate — Sidebar
- * Redesign Brief: light, clean, white sidebar. Left rail 88 collapsed / 248 expanded.
- * One accent state for active item. Inter only. No gold, no dark backgrounds.
+ * Dark slate shell: #1A2332 background, light text on dark.
+ * Left rail 88 collapsed / 248 expanded.
  */
 import React, { useState } from 'react';
 import { MODULES, NAV_GROUPS, APP_NAME } from '../core/constants';
-import { bg, text, brand, border, modules as moduleColors, font, fontSize, fontWeight, radius, transition } from '../core/theme';
+import { bg, text, modules as moduleColors, font, fontSize, fontWeight, radius, transition } from '../core/theme';
 import { useRole, useNetwork } from '../data/DataStore';
+
+// Shell-specific color constants (dark slate surface)
+const SHELL = {
+  border:      'rgba(255, 255, 255, 0.08)',
+  groupLabel:  'rgba(255, 255, 255, 0.30)',
+  itemText:    'rgba(255, 255, 255, 0.65)',
+  itemTextActive: '#FFFFFF',
+  itemHover:   'rgba(255, 255, 255, 0.06)',
+  itemActive:  'rgba(255, 255, 255, 0.10)',
+  networkLabel:'rgba(255, 255, 255, 0.35)',
+  networkName: 'rgba(255, 255, 255, 0.90)',
+  networkSub:  'rgba(255, 255, 255, 0.45)',
+  roleBg:      'rgba(255, 255, 255, 0.08)',
+  roleActive:  'rgba(255, 255, 255, 0.15)',
+  roleText:    'rgba(255, 255, 255, 0.50)',
+  roleTextActive: '#FFFFFF',
+};
 
 interface SidebarProps {
   activeModule: string;
@@ -23,11 +40,11 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
 
   return (
     <div style={{
-      width: collapsed ? 88 : 248,
-      minWidth: collapsed ? 88 : 248,
+      width: collapsed ? 72 : 240,
+      minWidth: collapsed ? 72 : 240,
       height: '100vh',
       background: bg.sidebar,
-      borderRight: `1px solid ${border.light}`,
+      borderRight: `1px solid ${SHELL.border}`,
       display: 'flex',
       flexDirection: 'column',
       transition: transition.smooth,
@@ -38,49 +55,50 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
 
       {/* ── Brand ── */}
       <div style={{
-        padding: collapsed ? '20px 0' : '20px 20px',
-        borderBottom: `1px solid ${border.light}`,
+        padding: collapsed ? '18px 0' : '18px 18px',
+        borderBottom: `1px solid ${SHELL.border}`,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
         justifyContent: collapsed ? 'center' : 'flex-start',
       }} onClick={onToggleCollapse}>
-        {/* Logo mark */}
+        {/* Logo mark — gold square with S */}
         <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: radius.sm,
-          background: text.primary,
+          width: 30,
+          height: 30,
+          borderRadius: '8px',
+          background: 'linear-gradient(135deg, #C9A54E 0%, #D4B978 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          boxShadow: '0 2px 8px rgba(201, 165, 78, 0.35)',
         }}>
           <span style={{
             fontFamily: font.body,
-            fontSize: '15px',
+            fontSize: '14px',
             fontWeight: fontWeight.bold,
-            color: '#FFFFFF',
+            color: '#1A2332',
             letterSpacing: '-0.5px',
           }}>S</span>
         </div>
         {!collapsed && (
           <div>
             <div style={{
-              fontSize: fontSize.md,
-              fontWeight: fontWeight.semibold,
-              color: text.primary,
+              fontSize: '14px',
+              fontWeight: fontWeight.bold,
+              color: '#FFFFFF',
               fontFamily: font.body,
               letterSpacing: '-0.3px',
               lineHeight: 1.2,
             }}>{APP_NAME}</div>
             <div style={{
-              fontSize: fontSize.xs,
-              color: text.muted,
+              fontSize: '10px',
+              color: SHELL.groupLabel,
               fontFamily: font.body,
               textTransform: 'uppercase',
-              letterSpacing: '0.8px',
+              letterSpacing: '1px',
               marginTop: 2,
             }}>Intelligence Platform</div>
           </div>
@@ -90,47 +108,47 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
       {/* ── Network Context ── */}
       {!collapsed && (
         <div style={{
-          padding: '12px 20px',
-          borderBottom: `1px solid ${border.light}`,
+          padding: '10px 18px',
+          borderBottom: `1px solid ${SHELL.border}`,
         }}>
           <div style={{
-            fontSize: fontSize.xs,
-            color: text.muted,
+            fontSize: '10px',
+            color: SHELL.networkLabel,
             textTransform: 'uppercase',
             letterSpacing: '0.8px',
             fontFamily: font.body,
-            fontWeight: fontWeight.medium,
-            marginBottom: 4,
+            fontWeight: fontWeight.semibold,
+            marginBottom: 3,
           }}>Network</div>
           <div style={{
-            fontSize: fontSize.md,
+            fontSize: fontSize.sm,
             fontWeight: fontWeight.semibold,
-            color: text.primary,
+            color: SHELL.networkName,
             fontFamily: font.body,
             lineHeight: 1.3,
           }}>{network.name}</div>
           <div style={{
-            fontSize: fontSize.sm,
-            color: text.muted,
+            fontSize: '11px',
+            color: SHELL.networkSub,
             fontFamily: font.body,
-            marginTop: 2,
+            marginTop: 1,
           }}>{network.campuses.length} campuses · {network.city}</div>
         </div>
       )}
 
       {/* ── Navigation ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: collapsed ? '12px 8px' : '12px 12px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: collapsed ? '10px 8px' : '10px 10px' }}>
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} style={{ marginBottom: 4 }}>
+          <div key={group.label} style={{ marginBottom: 2 }}>
             {!collapsed && (
               <div style={{
-                fontSize: fontSize.xs,
-                color: text.light,
+                fontSize: '10px',
+                color: SHELL.groupLabel,
                 textTransform: 'uppercase',
-                letterSpacing: '0.8px',
+                letterSpacing: '0.9px',
                 fontFamily: font.body,
-                fontWeight: fontWeight.medium,
-                padding: '8px 8px 4px',
+                fontWeight: fontWeight.semibold,
+                padding: '10px 8px 4px',
               }}>{group.label}</div>
             )}
             {group.modules.map((moduleId) => {
@@ -138,7 +156,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
               if (!mod) return null;
               const isActive = activeModule === moduleId;
               const isHovered = hoveredItem === moduleId;
-              const accentColor = moduleColors[moduleId as keyof typeof moduleColors] || text.accent;
+              const accentColor = moduleColors[moduleId as keyof typeof moduleColors] || '#4F7CFF';
 
               return (
                 <div
@@ -150,14 +168,14 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    padding: collapsed ? '9px 0' : '8px 10px',
-                    borderRadius: radius.sm,
+                    padding: collapsed ? '9px 0' : '7px 8px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     transition: transition.fast,
                     background: isActive
-                      ? `${accentColor}10`
+                      ? SHELL.itemActive
                       : isHovered
-                        ? bg.hover
+                        ? SHELL.itemHover
                         : 'transparent',
                     justifyContent: collapsed ? 'center' : 'flex-start',
                     position: 'relative',
@@ -173,16 +191,16 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                       top: '50%',
                       transform: 'translateY(-50%)',
                       width: 3,
-                      height: 20,
+                      height: 18,
                       borderRadius: radius.full,
                       background: accentColor,
                     }} />
                   )}
                   <span style={{
                     fontSize: collapsed ? fontSize.lg : fontSize.md,
-                    color: isActive ? accentColor : text.muted,
+                    color: isActive ? accentColor : SHELL.itemText,
                     transition: transition.fast,
-                    width: collapsed ? 'auto' : 20,
+                    width: collapsed ? 'auto' : 18,
                     textAlign: 'center',
                     flexShrink: 0,
                   }}>
@@ -190,9 +208,9 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                   </span>
                   {!collapsed && (
                     <span style={{
-                      fontSize: fontSize.md,
-                      fontWeight: isActive ? fontWeight.medium : fontWeight.normal,
-                      color: isActive ? text.primary : text.secondary,
+                      fontSize: '13px',
+                      fontWeight: isActive ? fontWeight.semibold : fontWeight.normal,
+                      color: isActive ? SHELL.itemTextActive : SHELL.itemText,
                       transition: transition.fast,
                       fontFamily: font.body,
                     }}>
@@ -208,25 +226,25 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
 
       {/* ── Role Switcher ── */}
       <div style={{
-        padding: collapsed ? '12px 8px' : '16px',
-        borderTop: `1px solid ${border.light}`,
+        padding: collapsed ? '12px 8px' : '14px 14px',
+        borderTop: `1px solid ${SHELL.border}`,
       }}>
         {!collapsed && (
           <div style={{
-            fontSize: fontSize.xs,
-            color: text.muted,
+            fontSize: '10px',
+            color: SHELL.networkLabel,
             textTransform: 'uppercase',
             letterSpacing: '0.8px',
-            marginBottom: 8,
+            marginBottom: 6,
             fontFamily: font.body,
-            fontWeight: fontWeight.medium,
+            fontWeight: fontWeight.semibold,
           }}>View As</div>
         )}
         <div style={{
           display: 'flex',
-          gap: 4,
-          background: bg.subtle,
-          borderRadius: radius.sm,
+          gap: 3,
+          background: SHELL.roleBg,
+          borderRadius: '8px',
           padding: 3,
         }}>
           {(['ceo', 'principal'] as const).map((r) => (
@@ -235,19 +253,18 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
               onClick={() => setRole(r)}
               style={{
                 flex: 1,
-                padding: collapsed ? '7px 4px' : '6px 10px',
-                borderRadius: '9px',
+                padding: collapsed ? '6px 4px' : '5px 8px',
+                borderRadius: '6px',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: fontSize.sm,
+                fontSize: fontSize.xs,
                 fontWeight: role === r ? fontWeight.semibold : fontWeight.normal,
-                color: role === r ? text.primary : text.muted,
-                background: role === r ? bg.card : 'transparent',
+                color: role === r ? SHELL.roleTextActive : SHELL.roleText,
+                background: role === r ? SHELL.roleActive : 'transparent',
                 transition: transition.fast,
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
                 fontFamily: font.body,
-                boxShadow: role === r ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}
             >
               {collapsed ? (r === 'ceo' ? 'C' : 'P') : (r === 'ceo' ? 'CEO' : 'Principal')}
@@ -261,11 +278,11 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
             style={{
               width: '100%',
               marginTop: 8,
-              padding: '7px 8px',
-              borderRadius: radius.sm,
-              border: `1px solid ${border.medium}`,
-              background: bg.card,
-              color: text.primary,
+              padding: '6px 8px',
+              borderRadius: '8px',
+              border: `1px solid ${SHELL.border}`,
+              background: SHELL.roleBg,
+              color: SHELL.networkName,
               fontSize: fontSize.sm,
               fontFamily: font.body,
               outline: 'none',

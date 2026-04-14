@@ -1,13 +1,29 @@
 /**
  * Slate — TopBar
- * Redesign Brief: white header, 64px height, page title + subtitle + command search + timestamp.
- * Inter only. No dark backgrounds. No gold.
+ * Dark slate shell: matches sidebar #1A2332.
+ * 64px height, module title + timestamp + AI status + Ask Slate.
  */
 import React, { useState, useEffect } from 'react';
 import { MODULES } from '../core/constants';
-import { bg, text, border, font, fontSize, fontWeight, radius, transition, status } from '../core/theme';
+import { bg, font, fontSize, fontWeight, radius, transition, status, modules as moduleColors } from '../core/theme';
 import { useNetwork, useRole, useEmergencies } from '../data/DataStore';
 import { usePresentationMode } from '../core/PresentationMode';
+
+// Shell-specific dark constants
+const SHELL = {
+  border:     'rgba(255, 255, 255, 0.08)',
+  titleText:  '#FFFFFF',
+  subText:    'rgba(255, 255, 255, 0.45)',
+  dateText:   'rgba(255, 255, 255, 0.55)',
+  dateBold:   'rgba(255, 255, 255, 0.80)',
+  divider:    'rgba(255, 255, 255, 0.15)',
+  badgeBg:    'rgba(255, 255, 255, 0.08)',
+  badgeBorder:'rgba(255, 255, 255, 0.12)',
+  badgeText:  'rgba(255, 255, 255, 0.60)',
+  btnBg:      'rgba(255, 255, 255, 0.08)',
+  btnBorder:  'rgba(255, 255, 255, 0.15)',
+  btnText:    'rgba(255, 255, 255, 0.80)',
+};
 
 interface TopBarProps {
   activeModule: string;
@@ -15,12 +31,12 @@ interface TopBarProps {
 }
 
 export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
-  const network = useNetwork();
   const { role } = useRole();
   const { activeEvents } = useEmergencies();
   const { isPresentationMode } = usePresentationMode();
   const mod = MODULES.find(m => m.id === activeModule);
   const [now, setNow] = useState(new Date());
+  const accentColor = moduleColors[activeModule as keyof typeof moduleColors] || '#4F7CFF';
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);
@@ -33,10 +49,10 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
 
   return (
     <div style={{
-      height: 64,
-      minHeight: 64,
+      height: 60,
+      minHeight: 60,
       background: bg.header,
-      borderBottom: `1px solid ${border.light}`,
+      borderBottom: `1px solid ${SHELL.border}`,
       display: 'flex',
       alignItems: 'center',
       padding: '0 24px',
@@ -47,16 +63,17 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
         {mod && (
           <span style={{
-            fontSize: fontSize.lg,
-            color: text.muted,
+            fontSize: '18px',
+            color: accentColor,
             flexShrink: 0,
+            opacity: 0.85,
           }}>{mod.icon}</span>
         )}
         <div style={{ minWidth: 0 }}>
           <div style={{
             fontSize: fontSize.lg,
             fontWeight: fontWeight.semibold,
-            color: text.primary,
+            color: SHELL.titleText,
             fontFamily: font.body,
             letterSpacing: '-0.2px',
             lineHeight: 1.2,
@@ -67,8 +84,8 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             {mod?.label || 'Slate'}
           </div>
           <div style={{
-            fontSize: fontSize.sm,
-            color: text.muted,
+            fontSize: fontSize.xs,
+            color: SHELL.subText,
             fontFamily: font.body,
             lineHeight: 1.2,
             whiteSpace: 'nowrap',
@@ -78,7 +95,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
         </div>
       </div>
 
-      {/* Center: date/time */}
+      {/* Center: date/time + AI status */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -87,12 +104,12 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
       }}>
         <div style={{
           fontSize: fontSize.sm,
-          color: text.muted,
+          color: SHELL.dateText,
           fontFamily: font.body,
           textAlign: 'center',
         }}>
-          <span style={{ color: text.secondary, fontWeight: fontWeight.medium }}>{dateStr}</span>
-          <span style={{ margin: '0 6px', color: border.medium }}>·</span>
+          <span style={{ color: SHELL.dateBold, fontWeight: fontWeight.medium }}>{dateStr}</span>
+          <span style={{ margin: '0 6px', color: SHELL.divider }}>·</span>
           <span>{timeStr} CDT</span>
         </div>
 
@@ -103,8 +120,8 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
           gap: 5,
           padding: '4px 10px',
           borderRadius: radius.full,
-          background: hasEmergency ? 'rgba(229,72,77,0.08)' : 'rgba(23,178,106,0.08)',
-          border: `1px solid ${hasEmergency ? 'rgba(229,72,77,0.20)' : 'rgba(23,178,106,0.20)'}`,
+          background: hasEmergency ? 'rgba(229,72,77,0.15)' : 'rgba(23,178,106,0.15)',
+          border: `1px solid ${hasEmergency ? 'rgba(229,72,77,0.30)' : 'rgba(23,178,106,0.30)'}`,
         }}>
           <div style={{
             width: 6,
@@ -115,7 +132,7 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
           }} />
           <span style={{
             fontSize: fontSize.xs,
-            fontWeight: fontWeight.medium,
+            fontWeight: fontWeight.semibold,
             color: hasEmergency ? status.red : status.green,
             fontFamily: font.body,
             letterSpacing: '0.5px',
@@ -129,16 +146,16 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
       {/* Right: role badge + Ask Slate */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{
-          fontSize: fontSize.sm,
-          fontWeight: fontWeight.medium,
-          color: text.secondary,
+          fontSize: fontSize.xs,
+          fontWeight: fontWeight.semibold,
+          color: SHELL.badgeText,
           fontFamily: font.body,
           padding: '5px 12px',
           borderRadius: radius.sm,
-          background: bg.subtle,
-          border: `1px solid ${border.light}`,
+          background: SHELL.badgeBg,
+          border: `1px solid ${SHELL.badgeBorder}`,
           textTransform: 'uppercase',
-          letterSpacing: '0.5px',
+          letterSpacing: '0.6px',
         }}>
           {role === 'ceo' ? 'CEO View' : 'Principal View'}
         </div>
@@ -151,8 +168,8 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             fontFamily: font.body,
             padding: '5px 10px',
             borderRadius: radius.sm,
-            background: 'rgba(245,158,11,0.08)',
-            border: '1px solid rgba(245,158,11,0.20)',
+            background: 'rgba(245,158,11,0.15)',
+            border: '1px solid rgba(245,158,11,0.30)',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
           }}>
@@ -168,23 +185,22 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             gap: 6,
             padding: '7px 14px',
             borderRadius: radius.sm,
-            border: `1px solid ${border.medium}`,
-            background: bg.card,
-            color: text.secondary,
+            border: `1px solid ${SHELL.btnBorder}`,
+            background: SHELL.btnBg,
+            color: SHELL.btnText,
             fontSize: fontSize.sm,
             fontFamily: font.body,
             fontWeight: fontWeight.medium,
             cursor: 'pointer',
             transition: transition.fast,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
           }}
         >
-          <span style={{ color: text.accent }}>✦</span>
+          <span style={{ color: '#C9A54E' }}>✦</span>
           <span>Ask Slate</span>
           <span style={{
             fontSize: '10px',
-            color: text.light,
-            background: bg.subtle,
+            color: 'rgba(255,255,255,0.35)',
+            background: 'rgba(255,255,255,0.08)',
             padding: '1px 5px',
             borderRadius: '4px',
             fontFamily: font.mono,

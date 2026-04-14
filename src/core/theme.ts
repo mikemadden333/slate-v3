@@ -5,15 +5,19 @@
  * Creative directive: "Build Slate so it feels less like software someone
  * designed, and more like clarity itself appearing on the screen."
  *
+ * 3-Surface System:
+ *   Shell  (sidebar + topbar) — deep slate #1A2332
+ *   Canvas (page background)  — warm off-white #EEF0F4
+ *   Cards  (content surfaces) — pure white #FFFFFF
+ *
  * Rules:
  * - 80% neutral, 15% blue family, 5% semantic color
- * - Inter only inside the product (Playfair Display for splash brand mark ONLY)
- * - White surfaces, soft borders, 16px radius cards
+ * - Inter only inside the product
+ * - White cards on warm canvas on dark shell
  * - NO gold anywhere in the product UI
  * - NO saturated gradients behind content
  * - NO glows except optional subtle focus halo on active inputs
  * - NO serif in product navigation, metrics, tables, or actions
- * - Whitespace is a feature — 30–40% of every screen should breathe
  */
 
 // ─── Brand (splash/marketing only — never used inside product UI) ─────────
@@ -26,23 +30,29 @@ export const brand = {
   iceBlue:   '#B8C9DB',
 } as const;
 
-// ─── Backgrounds ──────────────────────────────────────────────────────────
+// ─── Backgrounds — 3-surface system ──────────────────────────────────────
 export const bg = {
-  app:          '#F6F8FB',
-  sidebar:      '#FFFFFF',
-  sidebarGlass: '#FFFFFF',
-  header:       '#FFFFFF',
+  // Shell — sidebar + topbar (deep slate, not navy)
+  sidebar:      '#1A2332',
+  sidebarGlass: '#1E2A3D',
+  header:       '#1A2332',
+  // Canvas — the page background (warm, not glaring white)
+  app:          '#EEF0F4',
+  surface:      '#EEF0F4',
+  subtle:       '#E4E7ED',
+  gradient:     'linear-gradient(180deg, #EEF0F4 0%, #E4E7ED 100%)',
+  // Cards — pure white pops off the warm canvas
   card:         '#FFFFFF',
   cardGlass:    '#FFFFFF',
-  hover:        'rgba(79, 124, 255, 0.04)',
-  selected:     'rgba(79, 124, 255, 0.08)',
-  subtle:       '#F1F4F8',
-  surface:      '#F6F8FB',
-  gradient:     'linear-gradient(180deg, #F6F8FB 0%, #F1F4F8 100%)',
+  // Interaction states
+  hover:        'rgba(79, 124, 255, 0.06)',
+  selected:     'rgba(79, 124, 255, 0.10)',
   blueSoft:     '#EAF0FF',
-  dark:         '#1C2333',
-  darkCard:     '#242D3E',
-  darkHover:    'rgba(255, 255, 255, 0.04)',
+  // Dark surfaces (for shell-level elements)
+  dark:         '#1A2332',
+  darkCard:     '#243044',
+  darkHover:    'rgba(255, 255, 255, 0.06)',
+  darkSelected: 'rgba(255, 255, 255, 0.12)',
 } as const;
 
 // ─── Text Colors ──────────────────────────────────────────────────────────
@@ -102,21 +112,21 @@ export const modules = {
 
 // ─── Borders ──────────────────────────────────────────────────────────────
 export const border = {
-  light:       '#E6EBF2',
-  medium:      '#D5DDE8',
-  dark:        '#B8C4D4',
+  light:       '#E2E7EF',
+  medium:      '#CDD4DF',
+  dark:        '#B0BCC9',
   focus:       'rgba(79, 124, 255, 0.45)',
-  glass:       '#E6EBF2',
-  chromLight:  '#E6EBF2',
-  chromMedium: '#D5DDE8',
+  glass:       '#E2E7EF',
+  chromLight:  '#E2E7EF',
+  chromMedium: '#CDD4DF',
 } as const;
 
-// ─── Shadows — soft ambient only ─────────────────────────────────────────
+// ─── Shadows — crisp lift for white cards on warm canvas ──────────────────
 export const shadow = {
-  sm:         '0 1px 2px rgba(16, 24, 40, 0.04)',
-  md:         '0 6px 18px rgba(16, 24, 40, 0.06)',
-  lg:         '0 12px 28px rgba(16, 24, 40, 0.08)',
-  xl:         '0 16px 40px rgba(16, 24, 40, 0.10)',
+  sm:         '0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04)',
+  md:         '0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04)',
+  lg:         '0 8px 24px rgba(16, 24, 40, 0.10), 0 4px 8px rgba(16, 24, 40, 0.06)',
+  xl:         '0 16px 40px rgba(16, 24, 40, 0.12), 0 8px 16px rgba(16, 24, 40, 0.08)',
   glow:       (_color: string) => 'none',
   glassInset: 'none',
 } as const;
@@ -177,9 +187,9 @@ export const space = {
 
 // ─── Border Radius ────────────────────────────────────────────────────────
 export const radius = {
-  sm:   '12px',
-  md:   '16px',
-  lg:   '20px',
+  sm:   '10px',
+  md:   '14px',
+  lg:   '18px',
   xl:   '20px',
   full: '9999px',
 } as const;
@@ -208,7 +218,7 @@ export const chart = {
   quaternary: '#F59E0B',
   danger:     '#E5484D',
   muted:      '#7A8699',
-  grid:       'rgba(0, 0, 0, 0.04)',
+  grid:       'rgba(0, 0, 0, 0.05)',
   bars: ['#4F7CFF', '#17B26A', '#8B7CFF', '#F59E0B', '#5ED3F3', '#E5484D'],
 } as const;
 
