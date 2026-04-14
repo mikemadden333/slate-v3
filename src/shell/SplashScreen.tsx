@@ -1,139 +1,192 @@
 /**
- * Slate — Splash Screen v4
- * Cinematic, awe-inspiring. Deep slate canvas with gold brand mark.
- * Sequence: grid fades in → "Slate." draws in gold → tagline appears →
- * glass disclaimer card rises → user enters.
+ * Slate v3 — Splash Screen v5
+ * Camera aperture iris opening → content reveal → disclaimer card
+ * Matches reference: deep navy, Playfair "Slate." with gold period,
+ * glass pill badge, gold rule, START WITH THE FACTS, footer.
+ * NO floating data particles. Clean, minimal, cinematic.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
-const T = {
-  gridFade:       400,
-  logoStart:      600,
-  logoDuration:   1200,
-  taglineStart:   1900,
-  taglineDuration:600,
-  cardStart:      2700,
-  cardDuration:   500,
-};
+interface SplashScreenProps {
+  onComplete: () => void;
+}
 
-function GridBackground({ visible }: { visible: boolean }) {
+// ─── Aperture Iris ─────────────────────────────────────────────────────────
+// 8 geometric blades that rotate open like a camera lens
+function ApertureIris({ open }: { open: boolean }) {
+  const bladeCount = 8;
+  const size = 700;
+  const cx = size / 2;
+  const cy = size / 2;
+
   return (
-    <div style={{ position: 'absolute', inset: 0, opacity: visible ? 1 : 0, transition: `opacity ${T.gridFade}ms ease`, overflow: 'hidden' }}>
-      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
-        <defs>
-          <pattern id="splashGrid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(201,165,78,0.07)" strokeWidth="0.5"/>
-          </pattern>
-          <radialGradient id="splashGridFade" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stopColor="white" stopOpacity="0"/>
-            <stop offset="100%" stopColor="black" stopOpacity="1"/>
-          </radialGradient>
-          <mask id="splashGridMask">
-            <rect width="100%" height="100%" fill="url(#splashGridFade)"/>
-          </mask>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#splashGrid)" mask="url(#splashGridMask)"/>
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 20,
+      pointerEvents: 'none',
+    }}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{
+          transition: open
+            ? 'transform 1.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease 1.2s'
+            : 'none',
+          transform: open ? 'scale(5) rotate(60deg)' : 'scale(1) rotate(0deg)',
+          opacity: open ? 0 : 1,
+        }}
+      >
+        {Array.from({ length: bladeCount }).map((_, i) => {
+          const angle = (i / bladeCount) * 360;
+          const bladeW = 140;
+          const bladeH = 310;
+          const bx = cx - bladeW / 2;
+          const by = cy - bladeH;
+          return (
+            <g key={i} transform={`rotate(${angle}, ${cx}, ${cy})`}>
+              <rect
+                x={bx}
+                y={by}
+                width={bladeW}
+                height={bladeH}
+                rx={12}
+                fill="#0A1220"
+                stroke="rgba(212,175,55,0.12)"
+                strokeWidth={1}
+              />
+            </g>
+          );
+        })}
+        {/* Center lens circle */}
+        <circle cx={cx} cy={cy} r={28} fill="#0A1220" stroke="rgba(212,175,55,0.2)" strokeWidth={1} />
+        <circle cx={cx} cy={cy} r={14} fill="#0A1220" />
       </svg>
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 700, height: 700, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,165,78,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(201,165,78,0.25) 50%, transparent 100%)', animation: 'splashScan 10s linear infinite' }} />
-      <style>{`@keyframes splashScan { 0% { top: 0%; opacity: 0; } 5% { opacity: 1; } 95% { opacity: 1; } 100% { top: 100%; opacity: 0; } }`}</style>
     </div>
   );
 }
 
-function DataParticles({ visible }: { visible: boolean }) {
-  const particles = [
-    { x: 10, y: 18, label: 'DSCR 3.47x', delay: 0 },
-    { x: 80, y: 14, label: '6,823 enrolled', delay: 200 },
-    { x: 7,  y: 70, label: '215 days cash', delay: 400 },
-    { x: 86, y: 66, label: '$138.3M budget', delay: 100 },
-    { x: 18, y: 44, label: '10 campuses', delay: 300 },
-    { x: 74, y: 40, label: 'Bond compliant', delay: 500 },
-    { x: 44, y: 7,  label: 'AI monitoring', delay: 250 },
-    { x: 50, y: 87, label: 'Chicago, IL', delay: 350 },
-  ];
+// ─── Ambient Background ───────────────────────────────────────────────────
+function AmbientBackground() {
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-      {particles.map((p, i) => (
-        <div key={i} style={{ position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, opacity: visible ? 0.30 : 0, transition: `opacity 1.2s ease ${p.delay}ms`, animation: visible ? `splashFloat${i % 3} ${6 + i * 0.7}s ease-in-out infinite ${p.delay}ms` : 'none' }}>
-          <div style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", color: 'rgba(201,165,78,0.75)', letterSpacing: '0.5px', whiteSpace: 'nowrap', padding: '3px 8px', border: '1px solid rgba(201,165,78,0.15)', borderRadius: '4px', background: 'rgba(201,165,78,0.04)' }}>{p.label}</div>
-        </div>
-      ))}
-      <style>{`
-        @keyframes splashFloat0 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        @keyframes splashFloat1 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-        @keyframes splashFloat2 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-      `}</style>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 0 }}>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse 90% 70% at 50% 35%, #0f1e3a 0%, #090f1e 55%, #050b15 100%)',
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '-15%',
+        left: '-10%',
+        width: '55%',
+        height: '55%',
+        background: 'radial-gradient(ellipse, rgba(25,55,115,0.22) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-10%',
+        right: '-5%',
+        width: '45%',
+        height: '45%',
+        background: 'radial-gradient(ellipse, rgba(15,40,90,0.18) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
     </div>
   );
 }
 
-function BrandMark({ progress }: { progress: number }) {
-  const letters = ['S', 'l', 'a', 't', 'e', '.'];
-  const letterProgress = letters.map((_, i) => {
-    const start = i / letters.length;
-    const end = (i + 1) / letters.length;
-    return Math.max(0, Math.min(1, (progress - start) / (end - start)));
-  });
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, userSelect: 'none' }}>
-      {letters.map((letter, i) => (
-        <span key={i} style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: '96px',
-          fontWeight: 800,
-          letterSpacing: i < 5 ? '-4px' : '0px',
-          color: i === 5 ? '#C9A54E' : '#FFFFFF',
-          opacity: letterProgress[i],
-          transform: `translateY(${(1 - letterProgress[i]) * 24}px)`,
-          display: 'inline-block',
-          lineHeight: 1,
-          textShadow: i === 5
-            ? '0 0 50px rgba(201,165,78,0.6), 0 0 100px rgba(201,165,78,0.2)'
-            : '0 2px 30px rgba(0,0,0,0.4)',
-        }}>{letter}</span>
-      ))}
-    </div>
-  );
-}
-
-function GoldRule({ visible }: { visible: boolean }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 22, opacity: visible ? 1 : 0, transform: visible ? 'scaleX(1)' : 'scaleX(0)', transformOrigin: 'center', transition: 'opacity 0.7s ease, transform 0.9s cubic-bezier(0.4,0,0.2,1)' }}>
-      <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(201,165,78,0.5), transparent)' }} />
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#C9A54E', boxShadow: '0 0 14px rgba(201,165,78,0.7)' }} />
-      <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(201,165,78,0.5), transparent)' }} />
-    </div>
-  );
-}
-
+// ─── Disclaimer Card ──────────────────────────────────────────────────────
 function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () => void }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, opacity: visible ? 1 : 0, pointerEvents: visible ? 'all' : 'none', transition: `opacity ${T.cardDuration}ms ease`, background: visible ? 'rgba(10,16,28,0.80)' : 'transparent', backdropFilter: visible ? 'blur(10px)' : 'none' }}>
-      <div style={{ width: 520, background: 'rgba(22,30,45,0.97)', border: '1px solid rgba(201,165,78,0.22)', borderRadius: '20px', padding: '40px 44px', boxShadow: '0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,165,78,0.06) inset', transform: visible ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.96)', transition: `transform ${T.cardDuration}ms cubic-bezier(0.34,1.56,0.64,1)` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '7px', background: 'linear-gradient(135deg, #C9A54E, #D4B978)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(201,165,78,0.45)', flexShrink: 0 }}>
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#1A2332', fontFamily: 'Inter, sans-serif' }}>S</span>
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#C9A54E', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Important Notice</div>
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 50,
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(28px)',
+      transition: 'opacity 0.7s ease, transform 0.7s cubic-bezier(0.34,1.56,0.64,1)',
+      pointerEvents: visible ? 'auto' : 'none',
+      background: visible ? 'rgba(5,10,20,0.75)' : 'transparent',
+      backdropFilter: visible ? 'blur(12px)' : 'none',
+    }}>
+      <div style={{
+        background: 'rgba(14,22,40,0.95)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(212,175,55,0.22)',
+        borderRadius: 18,
+        padding: '38px 42px',
+        maxWidth: 500,
+        width: '90%',
+        boxShadow: '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03) inset',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
+          <div style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            background: 'linear-gradient(135deg, #D4AF37, #B8960C)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 13,
+            fontWeight: 800,
+            color: '#0A1220',
+            fontFamily: 'Playfair Display, serif',
+            boxShadow: '0 2px 12px rgba(212,175,55,0.4)',
+          }}>S</div>
+          <span style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.14em',
+            color: '#D4AF37',
+            fontFamily: 'Inter, sans-serif',
+            textTransform: 'uppercase' as const,
+          }}>IMPORTANT NOTICE</span>
         </div>
-        <p style={{ fontSize: '13px', lineHeight: 1.75, color: 'rgba(255,255,255,0.68)', fontFamily: 'Inter, sans-serif', margin: '0 0 12px' }}>
-          This platform contains <strong style={{ color: 'rgba(255,255,255,0.92)' }}>confidential financial, operational, and student data</strong> for authorized users only.
+        <p style={{ fontSize: 13.5, lineHeight: 1.7, color: 'rgba(255,255,255,0.75)', fontFamily: 'Inter, sans-serif', marginBottom: 12 }}>
+          This platform contains <strong style={{ color: '#fff' }}>confidential financial, operational, and student data</strong> for authorized users only.
         </p>
-        <p style={{ fontSize: '13px', lineHeight: 1.75, color: 'rgba(255,255,255,0.68)', fontFamily: 'Inter, sans-serif', margin: '0 0 28px' }}>
-          All data shown is <strong style={{ color: 'rgba(255,255,255,0.92)' }}>simulated demo data</strong> for demonstration purposes. No real student, financial, or operational records are present.
+        <p style={{ fontSize: 13.5, lineHeight: 1.7, color: 'rgba(255,255,255,0.6)', fontFamily: 'Inter, sans-serif', marginBottom: 28 }}>
+          All data shown is <strong style={{ color: 'rgba(255,255,255,0.85)' }}>simulated demo data</strong> for demonstration purposes. No real student, financial, or operational records are present.
         </p>
-        <div style={{ height: 1, background: 'rgba(201,165,78,0.12)', marginBottom: 24 }} />
         <button
           onClick={onEnter}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          style={{ width: '100%', padding: '14px 24px', borderRadius: '12px', border: 'none', background: hovered ? 'linear-gradient(135deg, #D4B978 0%, #C9A54E 100%)' : 'linear-gradient(135deg, #C9A54E 0%, #B8943F 100%)', color: '#1A2332', fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', letterSpacing: '0.5px', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: hovered ? '0 10px 28px rgba(201,165,78,0.50)' : '0 4px 16px rgba(201,165,78,0.30)', transform: hovered ? 'translateY(-1px)' : 'translateY(0)' }}
+          style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: hovered
+              ? 'linear-gradient(135deg, #E0BC45 0%, #C9A030 100%)'
+              : 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)',
+            border: 'none',
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            color: '#0A1220',
+            fontFamily: 'Inter, sans-serif',
+            cursor: 'pointer',
+            transition: 'all 0.18s ease',
+            boxShadow: hovered
+              ? '0 12px 32px rgba(212,175,55,0.5)'
+              : '0 4px 18px rgba(212,175,55,0.3)',
+            transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+          }}
         >
           I Understand — Enter Slate
         </button>
-        <div style={{ marginTop: 16, textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.22)', fontFamily: 'Inter, sans-serif', letterSpacing: '0.3px' }}>
+        <div style={{ marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: 'Inter, sans-serif', letterSpacing: '0.04em' }}>
           Madden Education Advisory · Confidential · Not for distribution
         </div>
       </div>
@@ -141,64 +194,168 @@ function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () =>
   );
 }
 
-interface SplashScreenProps {
-  onComplete: () => void;
-}
-
+// ─── Main Splash ──────────────────────────────────────────────────────────
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
-  const [gridVisible, setGridVisible]           = useState(false);
-  const [logoProgress, setLogoProgress]         = useState(0);
-  const [taglineVisible, setTaglineVisible]     = useState(false);
-  const [particlesVisible, setParticlesVisible] = useState(false);
-  const [cardVisible, setCardVisible]           = useState(false);
-  const animFrameRef = useRef<number>();
-  const startTimeRef = useRef<number>(0);
+  const [irisOpen, setIrisOpen] = useState(false);
+  const [contentVisible, setContentVisible] = useState(false);
+  const [cardVisible, setCardVisible] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setGridVisible(true), 100);
-    const t2 = setTimeout(() => setParticlesVisible(true), 900);
-    const t3 = setTimeout(() => setTaglineVisible(true), T.taglineStart);
-    const t4 = setTimeout(() => setCardVisible(true), T.cardStart);
-    const t5 = setTimeout(() => {
-      startTimeRef.current = performance.now();
-      const animate = (now: number) => {
-        const elapsed = now - startTimeRef.current;
-        const p = Math.min(1, elapsed / T.logoDuration);
-        const eased = 1 - Math.pow(1 - p, 3);
-        setLogoProgress(eased);
-        if (p < 1) { animFrameRef.current = requestAnimationFrame(animate); }
-      };
-      animFrameRef.current = requestAnimationFrame(animate);
-    }, T.logoStart);
-    return () => {
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5);
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    };
+    // Step 1: Open iris at 300ms
+    const t1 = setTimeout(() => setIrisOpen(true), 300);
+    // Step 2: Show content at 1600ms (after iris opens and fades)
+    const t2 = setTimeout(() => setContentVisible(true), 1600);
+    // Step 3: Show disclaimer card at 3000ms
+    const t3 = setTimeout(() => setCardVisible(true), 3000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
   const handleEnter = () => {
     setCardVisible(false);
+    setContentVisible(false);
     setTimeout(onComplete, 400);
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#0D1520', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9999, overflow: 'hidden' }}>
-      <GridBackground visible={gridVisible} />
-      <DataParticles visible={particlesVisible} />
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-        <BrandMark progress={logoProgress} />
-        <GoldRule visible={logoProgress > 0.85} />
-        <div style={{ marginTop: 22, opacity: taglineVisible ? 1 : 0, transform: taglineVisible ? 'translateY(0)' : 'translateY(12px)', transition: `opacity ${T.taglineDuration}ms ease, transform ${T.taglineDuration}ms ease` }}>
-          <div style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(255,255,255,0.45)', fontFamily: 'Inter, sans-serif', letterSpacing: '3.5px', textTransform: 'uppercase' }}>
-            Intelligence Platform for School Systems
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      overflow: 'hidden',
+      fontFamily: 'Inter, sans-serif',
+      background: '#090f1e',
+    }}>
+      <AmbientBackground />
+      <ApertureIris open={irisOpen} />
+
+      {/* Main Content — fades in after iris opens */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '52px 48px',
+        zIndex: 10,
+        opacity: contentVisible ? 1 : 0,
+        transition: 'opacity 1.0s ease',
+      }}>
+
+        {/* Top — Glass Pill Badge */}
+        <div style={{
+          background: 'rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 100,
+          padding: '9px 22px',
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: '0.15em',
+          color: 'rgba(255,255,255,0.45)',
+          textTransform: 'uppercase' as const,
+        }}>
+          PLATFORM DESIGN SYSTEM — VERSION 3.0 — CONFIDENTIAL
+        </div>
+
+        {/* Center — Brand Block */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          {/* "Slate." in Playfair Display */}
+          <div style={{ position: 'relative', marginBottom: 4 }}>
+            <span style={{
+              fontFamily: 'Playfair Display, serif',
+              fontWeight: 900,
+              fontSize: 'clamp(80px, 11vw, 128px)',
+              color: '#F5F0E8',
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+            }}>Slate</span>
+            <span style={{
+              fontFamily: 'Playfair Display, serif',
+              fontWeight: 900,
+              fontSize: 'clamp(80px, 11vw, 128px)',
+              color: '#D4AF37',
+              lineHeight: 1,
+            }}>.</span>
+            {/* Gold drip dots below the period */}
+            <div style={{
+              position: 'absolute',
+              bottom: -16,
+              right: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#D4AF37', opacity: 0.75 }} />
+              <div style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: '#D4AF37', opacity: 0.45 }} />
+              <div style={{ width: 2, height: 2, borderRadius: '50%', background: '#D4AF37', opacity: 0.25 }} />
+            </div>
+          </div>
+
+          {/* Gold Rule */}
+          <div style={{
+            width: 340,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.55) 50%, transparent 100%)',
+            margin: '36px 0 28px',
+          }} />
+
+          {/* Tagline */}
+          <div style={{
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: '0.24em',
+            color: 'rgba(255,255,255,0.65)',
+            textTransform: 'uppercase' as const,
+            marginBottom: 18,
+          }}>
+            START WITH THE FACTS
+          </div>
+
+          {/* Subtitle */}
+          <div style={{
+            fontSize: 19,
+            fontWeight: 400,
+            color: 'rgba(255,255,255,0.45)',
+            letterSpacing: '0.01em',
+            fontFamily: 'Inter, sans-serif',
+          }}>
+            Intelligence for School Systems
           </div>
         </div>
-        <div style={{ marginTop: 10, opacity: taglineVisible ? 1 : 0, transform: taglineVisible ? 'translateY(0)' : 'translateY(8px)', transition: `opacity ${T.taglineDuration + 200}ms ease, transform ${T.taglineDuration + 200}ms ease` }}>
-          <div style={{ fontSize: '11px', color: 'rgba(201,165,78,0.45)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '1px' }}>
-            Madden Education Advisory
+
+        {/* Bottom — Footer */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 7,
+        }}>
+          <div style={{
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: '0.2em',
+            color: 'rgba(255,255,255,0.35)',
+            textTransform: 'uppercase' as const,
+          }}>
+            MADDEN EDUCATION ADVISORY
+          </div>
+          <div style={{
+            fontSize: 10,
+            letterSpacing: '0.1em',
+            color: 'rgba(255,255,255,0.18)',
+            textTransform: 'uppercase' as const,
+          }}>
+            PROPRIETARY &amp; CONFIDENTIAL · ALL RIGHTS RESERVED · 2026
           </div>
         </div>
       </div>
+
+      {/* Disclaimer Card */}
       <DisclaimerCard visible={cardVisible} onEnter={handleEnter} />
     </div>
   );
