@@ -1,9 +1,7 @@
 /**
- * Slate v3 — Splash Screen v5
- * Camera aperture iris opening → content reveal → disclaimer card
- * Matches reference: deep navy, Playfair "Slate." with gold period,
- * glass pill badge, gold rule, START WITH THE FACTS, footer.
- * NO floating data particles. Clean, minimal, cinematic.
+ * Slate v3 — Splash Screen v6
+ * Subtle modern-art aperture: thin hairline SVG lines rotate and dissolve
+ * as content cross-fades in. The iris is a whisper, not a feature.
  */
 import React, { useEffect, useState } from 'react';
 
@@ -11,13 +9,15 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
-// ─── Aperture Iris ─────────────────────────────────────────────────────────
-// 8 geometric blades that rotate open like a camera lens
-function ApertureIris({ open }: { open: boolean }) {
+// ─── Subtle Hairline Aperture ─────────────────────────────────────────────────
+// 8 thin 1px lines radiating from center, rotating slowly, then dissolving
+function SubtleAperture({ phase }: { phase: 'closed' | 'opening' | 'gone' }) {
   const bladeCount = 8;
-  const size = 700;
+  const size = 320;
   const cx = size / 2;
   const cy = size / 2;
+  const innerR = 18;
+  const outerR = 148;
 
   return (
     <div style={{
@@ -26,82 +26,103 @@ function ApertureIris({ open }: { open: boolean }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 20,
+      zIndex: 15,
       pointerEvents: 'none',
+      opacity: phase === 'gone' ? 0 : phase === 'opening' ? 0.35 : 0.18,
+      transition: phase === 'gone'
+        ? 'opacity 0.7s ease'
+        : phase === 'opening'
+        ? 'opacity 0.4s ease'
+        : 'none',
     }}>
       <svg
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         style={{
-          transition: open
-            ? 'transform 1.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease 1.2s'
+          transform: phase === 'opening' ? 'rotate(22deg) scale(1.08)' : 'rotate(0deg) scale(1)',
+          transition: phase === 'opening'
+            ? 'transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             : 'none',
-          transform: open ? 'scale(5) rotate(60deg)' : 'scale(1) rotate(0deg)',
-          opacity: open ? 0 : 1,
         }}
       >
+        {/* Hairline blades — thin lines from inner circle to outer */}
         {Array.from({ length: bladeCount }).map((_, i) => {
-          const angle = (i / bladeCount) * 360;
-          const bladeW = 140;
-          const bladeH = 310;
-          const bx = cx - bladeW / 2;
-          const by = cy - bladeH;
+          const angle = (i / bladeCount) * Math.PI * 2;
+          const x1 = cx + Math.cos(angle) * innerR;
+          const y1 = cy + Math.sin(angle) * innerR;
+          const x2 = cx + Math.cos(angle) * outerR;
+          const y2 = cy + Math.sin(angle) * outerR;
           return (
-            <g key={i} transform={`rotate(${angle}, ${cx}, ${cy})`}>
-              <rect
-                x={bx}
-                y={by}
-                width={bladeW}
-                height={bladeH}
-                rx={12}
-                fill="#0A1220"
-                stroke="rgba(212,175,55,0.12)"
-                strokeWidth={1}
-              />
-            </g>
+            <line
+              key={i}
+              x1={x1} y1={y1}
+              x2={x2} y2={y2}
+              stroke="rgba(212,175,55,0.7)"
+              strokeWidth={0.75}
+              strokeLinecap="round"
+            />
           );
         })}
-        {/* Center lens circle */}
-        <circle cx={cx} cy={cy} r={28} fill="#0A1220" stroke="rgba(212,175,55,0.2)" strokeWidth={1} />
-        <circle cx={cx} cy={cy} r={14} fill="#0A1220" />
+        {/* Thin arc segments between blades — the "petals" */}
+        {Array.from({ length: bladeCount }).map((_, i) => {
+          const startAngle = (i / bladeCount) * Math.PI * 2;
+          const endAngle = ((i + 0.6) / bladeCount) * Math.PI * 2;
+          const midR = 80;
+          const x1 = cx + Math.cos(startAngle) * midR;
+          const y1 = cy + Math.sin(startAngle) * midR;
+          const x2 = cx + Math.cos(endAngle) * midR;
+          const y2 = cy + Math.sin(endAngle) * midR;
+          const largeArc = 0;
+          return (
+            <path
+              key={`arc-${i}`}
+              d={`M ${x1} ${y1} A ${midR} ${midR} 0 ${largeArc} 1 ${x2} ${y2}`}
+              fill="none"
+              stroke="rgba(212,175,55,0.4)"
+              strokeWidth={0.5}
+            />
+          );
+        })}
+        {/* Center dot */}
+        <circle cx={cx} cy={cy} r={3} fill="rgba(212,175,55,0.5)" />
+        {/* Outer ring */}
+        <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="rgba(212,175,55,0.15)" strokeWidth={0.5} />
+        {/* Inner ring */}
+        <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="rgba(212,175,55,0.3)" strokeWidth={0.5} />
       </svg>
     </div>
   );
 }
 
-// ─── Ambient Background ───────────────────────────────────────────────────
+// ─── Ambient Background ───────────────────────────────────────────────────────
 function AmbientBackground() {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 0 }}>
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'radial-gradient(ellipse 90% 70% at 50% 35%, #0f1e3a 0%, #090f1e 55%, #050b15 100%)',
+        background: 'radial-gradient(ellipse 90% 70% at 50% 38%, #0f1e3a 0%, #090f1e 55%, #050b15 100%)',
       }} />
       <div style={{
         position: 'absolute',
-        top: '-15%',
-        left: '-10%',
-        width: '55%',
-        height: '55%',
-        background: 'radial-gradient(ellipse, rgba(25,55,115,0.22) 0%, transparent 70%)',
+        top: '-15%', left: '-10%',
+        width: '55%', height: '55%',
+        background: 'radial-gradient(ellipse, rgba(25,55,115,0.2) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute',
-        bottom: '-10%',
-        right: '-5%',
-        width: '45%',
-        height: '45%',
-        background: 'radial-gradient(ellipse, rgba(15,40,90,0.18) 0%, transparent 70%)',
+        bottom: '-10%', right: '-5%',
+        width: '45%', height: '45%',
+        background: 'radial-gradient(ellipse, rgba(15,40,90,0.15) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
     </div>
   );
 }
 
-// ─── Disclaimer Card ──────────────────────────────────────────────────────
+// ─── Disclaimer Card ──────────────────────────────────────────────────────────
 function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () => void }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -116,11 +137,11 @@ function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () =>
       transform: visible ? 'translateY(0)' : 'translateY(28px)',
       transition: 'opacity 0.7s ease, transform 0.7s cubic-bezier(0.34,1.56,0.64,1)',
       pointerEvents: visible ? 'auto' : 'none',
-      background: visible ? 'rgba(5,10,20,0.75)' : 'transparent',
-      backdropFilter: visible ? 'blur(12px)' : 'none',
+      background: visible ? 'rgba(5,10,20,0.78)' : 'transparent',
+      backdropFilter: visible ? 'blur(14px)' : 'none',
     }}>
       <div style={{
-        background: 'rgba(14,22,40,0.95)',
+        background: 'rgba(14,22,40,0.96)',
         backdropFilter: 'blur(24px)',
         border: '1px solid rgba(212,175,55,0.22)',
         borderRadius: 18,
@@ -131,25 +152,16 @@ function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () =>
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
           <div style={{
-            width: 30,
-            height: 30,
-            borderRadius: 8,
+            width: 30, height: 30, borderRadius: 8,
             background: 'linear-gradient(135deg, #D4AF37, #B8960C)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 13,
-            fontWeight: 800,
-            color: '#0A1220',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 800, color: '#0A1220',
             fontFamily: 'Playfair Display, serif',
             boxShadow: '0 2px 12px rgba(212,175,55,0.4)',
           }}>S</div>
           <span style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.14em',
-            color: '#D4AF37',
-            fontFamily: 'Inter, sans-serif',
+            fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+            color: '#D4AF37', fontFamily: 'Inter, sans-serif',
             textTransform: 'uppercase' as const,
           }}>IMPORTANT NOTICE</span>
         </div>
@@ -164,23 +176,15 @@ function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () =>
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           style={{
-            width: '100%',
-            padding: '14px 24px',
+            width: '100%', padding: '14px 24px',
             background: hovered
               ? 'linear-gradient(135deg, #E0BC45 0%, #C9A030 100%)'
               : 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)',
-            border: 'none',
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: '0.05em',
-            color: '#0A1220',
-            fontFamily: 'Inter, sans-serif',
-            cursor: 'pointer',
-            transition: 'all 0.18s ease',
-            boxShadow: hovered
-              ? '0 12px 32px rgba(212,175,55,0.5)'
-              : '0 4px 18px rgba(212,175,55,0.3)',
+            border: 'none', borderRadius: 10,
+            fontSize: 13, fontWeight: 700, letterSpacing: '0.05em',
+            color: '#0A1220', fontFamily: 'Inter, sans-serif',
+            cursor: 'pointer', transition: 'all 0.18s ease',
+            boxShadow: hovered ? '0 12px 32px rgba(212,175,55,0.5)' : '0 4px 18px rgba(212,175,55,0.3)',
             transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
           }}
         >
@@ -194,20 +198,22 @@ function DisclaimerCard({ visible, onEnter }: { visible: boolean; onEnter: () =>
   );
 }
 
-// ─── Main Splash ──────────────────────────────────────────────────────────
+// ─── Main Splash ──────────────────────────────────────────────────────────────
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
-  const [irisOpen, setIrisOpen] = useState(false);
+  const [irisPhase, setIrisPhase] = useState<'closed' | 'opening' | 'gone'>('closed');
   const [contentVisible, setContentVisible] = useState(false);
   const [cardVisible, setCardVisible] = useState(false);
 
   useEffect(() => {
-    // Step 1: Open iris at 300ms
-    const t1 = setTimeout(() => setIrisOpen(true), 300);
-    // Step 2: Show content at 1600ms (after iris opens and fades)
-    const t2 = setTimeout(() => setContentVisible(true), 1600);
-    // Step 3: Show disclaimer card at 3000ms
-    const t3 = setTimeout(() => setCardVisible(true), 3000);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    // Iris starts barely visible, then opens (rotates + fades) while content fades in simultaneously
+    const t1 = setTimeout(() => setIrisPhase('opening'), 200);
+    // Content starts fading in at 400ms — cross-fades with iris
+    const t2 = setTimeout(() => setContentVisible(true), 400);
+    // Iris fully gone at 1200ms
+    const t3 = setTimeout(() => setIrisPhase('gone'), 1200);
+    // Disclaimer card at 2400ms
+    const t4 = setTimeout(() => setCardVisible(true), 2400);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
   const handleEnter = () => {
@@ -225,9 +231,9 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
       background: '#090f1e',
     }}>
       <AmbientBackground />
-      <ApertureIris open={irisOpen} />
+      <SubtleAperture phase={irisPhase} />
 
-      {/* Main Content — fades in after iris opens */}
+      {/* Main Content */}
       <div style={{
         position: 'fixed',
         inset: 0,
@@ -238,7 +244,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
         padding: '52px 48px',
         zIndex: 10,
         opacity: contentVisible ? 1 : 0,
-        transition: 'opacity 1.0s ease',
+        transition: 'opacity 1.2s ease',
       }}>
 
         {/* Top — Glass Pill Badge */}
@@ -251,18 +257,14 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           fontSize: 11,
           fontWeight: 500,
           letterSpacing: '0.15em',
-          color: 'rgba(255,255,255,0.45)',
+          color: 'rgba(255,255,255,0.4)',
           textTransform: 'uppercase' as const,
         }}>
           PLATFORM DESIGN SYSTEM — VERSION 3.0 — CONFIDENTIAL
         </div>
 
         {/* Center — Brand Block */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {/* "Slate." in Playfair Display */}
           <div style={{ position: 'relative', marginBottom: 4 }}>
             <span style={{
@@ -280,15 +282,10 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               color: '#D4AF37',
               lineHeight: 1,
             }}>.</span>
-            {/* Gold drip dots below the period */}
+            {/* Gold drip dots */}
             <div style={{
-              position: 'absolute',
-              bottom: -16,
-              right: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
+              position: 'absolute', bottom: -16, right: 4,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
             }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#D4AF37', opacity: 0.75 }} />
               <div style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: '#D4AF37', opacity: 0.45 }} />
@@ -298,19 +295,15 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
           {/* Gold Rule */}
           <div style={{
-            width: 340,
-            height: 1,
-            background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.55) 50%, transparent 100%)',
+            width: 340, height: 1,
+            background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.5) 50%, transparent 100%)',
             margin: '36px 0 28px',
           }} />
 
           {/* Tagline */}
           <div style={{
-            fontSize: 13,
-            fontWeight: 600,
-            letterSpacing: '0.24em',
-            color: 'rgba(255,255,255,0.65)',
-            textTransform: 'uppercase' as const,
+            fontSize: 13, fontWeight: 600, letterSpacing: '0.24em',
+            color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' as const,
             marginBottom: 18,
           }}>
             START WITH THE FACTS
@@ -318,37 +311,25 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
           {/* Subtitle */}
           <div style={{
-            fontSize: 19,
-            fontWeight: 400,
-            color: 'rgba(255,255,255,0.45)',
+            fontSize: 19, fontWeight: 400,
+            color: 'rgba(255,255,255,0.4)',
             letterSpacing: '0.01em',
-            fontFamily: 'Inter, sans-serif',
           }}>
             Intelligence for School Systems
           </div>
         </div>
 
         {/* Bottom — Footer */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 7,
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
           <div style={{
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '0.2em',
-            color: 'rgba(255,255,255,0.35)',
-            textTransform: 'uppercase' as const,
+            fontSize: 12, fontWeight: 600, letterSpacing: '0.2em',
+            color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' as const,
           }}>
             MADDEN EDUCATION ADVISORY
           </div>
           <div style={{
-            fontSize: 10,
-            letterSpacing: '0.1em',
-            color: 'rgba(255,255,255,0.18)',
-            textTransform: 'uppercase' as const,
+            fontSize: 10, letterSpacing: '0.1em',
+            color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' as const,
           }}>
             PROPRIETARY &amp; CONFIDENTIAL · ALL RIGHTS RESERVED · 2026
           </div>
