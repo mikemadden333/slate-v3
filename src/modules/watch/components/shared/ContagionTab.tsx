@@ -299,445 +299,245 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
   expandedCampus: string | null; onToggleCampus: (id: string | null) => void;
 }) {
   const s = stats as any;
+
+  // Determine overall network threat level from zones
+  const networkThreat = s.retWindows.length > 0 ? 'CRITICAL'
+    : s.acute.length > 0 ? 'HIGH'
+    : s.active.length > 0 ? 'ELEVATED'
+    : s.total > 0 ? 'WATCH'
+    : 'CLEAR';
+  const threatConfig: Record<string, { color: string; bg: string; border: string; label: string; desc: string }> = {
+    CRITICAL: { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', label: 'CRITICAL', desc: 'Retaliation window active — peak danger period for follow-on violence.' },
+    HIGH:     { color: '#EA580C', bg: '#FFF7ED', border: '#FDBA74', label: 'HIGH',     desc: 'ACUTE contagion zone(s) active — homicide within 72 hours of a campus.' },
+    ELEVATED: { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', label: 'ELEVATED', desc: 'ACTIVE zones present — homicide within 14 days. Heightened monitoring.' },
+    WATCH:    { color: '#B79145', bg: '#FDFAF3', border: '#E5D9B6', label: 'WATCH',    desc: 'Zones in WATCH phase only — risk above baseline but immediate danger passed.' },
+    CLEAR:    { color: '#16A34A', bg: '#F0FDF4', border: '#A7F3D0', label: 'CLEAR',    desc: 'No active contagion zones. Network is at baseline risk.' },
+  };
+  const tc = threatConfig[networkThreat];
+
+  // Build campus spread data
+  const campusSpread = s.exposureMatrix.filter((row: any) => row.zones.length > 0);
+
+  // Recommended actions based on threat level
+  const recommendedActions: { priority: string; action: string; color: string }[] = [];
+  if (s.retWindows.length > 0) {
+    recommendedActions.push({ priority: 'IMMEDIATE', action: `Activate enhanced security protocols at campuses near retaliation windows. Alert principals at: ${s.retWindows.map((z: ContagionZone) => z.block || 'unknown').slice(0, 2).join(', ')}.`, color: '#DC2626' });
+  }
+  if (s.acute.length > 0) {
+    const acuteCampuses = s.exposureMatrix.filter((r: any) => r.zones.some((z: ContagionZone) => z.phase === 'ACUTE')).map((r: any) => r.campus.short).slice(0, 3);
+    recommendedActions.push({ priority: 'TODAY', action: `Brief principals at ${acuteCampuses.join(', ')} on ACUTE zone status. Review dismissal routes and after-school programming.`, color: '#EA580C' });
+  }
+  if (s.active.length > 0) {
+    recommendedActions.push({ priority: 'THIS WEEK', action: `Monitor ${s.active.length} ACTIVE zone${s.active.length !== 1 ? 's' : ''} for escalation. Maintain heightened staff awareness at affected campuses.`, color: '#D97706' });
+  }
+  if (s.total === 0) {
+    recommendedActions.push({ priority: 'ROUTINE', action: 'Network is clear. Continue standard monitoring protocols. No additional actions required.', color: '#16A34A' });
+  } else {
+    recommendedActions.push({ priority: 'ONGOING', action: `Track ${s.total} active zone${s.total !== 1 ? 's' : ''} across ${campusSpread.length} campus${campusSpread.length !== 1 ? 'es' : ''}. Run AI analysis below for pattern detection and strategic guidance.`, color: '#6B7280' });
+  }
+
   return (
     <div>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: brand.brass, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
-          PAPACHRISTOS CONTAGION MODEL
-        </div>
-        <div style={{ fontSize: '20px', fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.body }}>
-          Network Contagion Landscape
-        </div>
-        <div style={{ fontSize: fontSize.sm, color: text.muted, marginTop: 4 }}>
-          Tracking homicide-generated violence contagion zones across all campuses.
-          Based on the 125-day contagion window established by Green, Horel &amp; Papachristos (JAMA 2017).
-        </div>
-      </div>
-
-      {/* KPI Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 8 }}>
-        <KPICard label="Total Zones" value={s.total} color={s.total > 0 ? '#DC2626' : '#059669'} />
-        <KPICard label="Acute" value={s.acute.length} color={PHASE_COLORS.ACUTE.color} sub="0-72h" />
-        <KPICard label="Active" value={s.active.length} color={PHASE_COLORS.ACTIVE.color} sub="72h-14d" />
-        <KPICard label="Watch" value={s.watch.length} color={PHASE_COLORS.WATCH.color} sub="14-125d" />
-        <KPICard label="Ret. Windows" value={s.retWindows.length} color={s.retWindows.length > 0 ? '#DC2626' : '#059669'} sub="18-72h" alert={s.retWindows.length > 0} />
-        <KPICard label="Gang-Related" value={s.gangRelated.length} color="#7C3AED" />
-      </div>
-
-      {/* KPI Narrative Context */}
+      {/* ═══ PANEL 1: THREAT LEVEL HEADER ═══ */}
       <div style={{
-        padding: '10px 14px', borderRadius: radius.sm, marginBottom: 24,
-        background: bg.subtle, fontSize: fontSize.xs, color: text.secondary, lineHeight: 1.6,
+        padding: '24px 28px', borderRadius: radius.lg, marginBottom: 20,
+        background: tc.bg, border: `2px solid ${tc.border}`,
+        display: 'flex', alignItems: 'center', gap: 20,
       }}>
-        {s.total === 0 ? (
-          <span><strong style={{ color: '#059669' }}>Network clear.</strong> No active contagion zones affecting any campus. This is the safest posture.</span>
-        ) : (
-          <span>
-            <strong>{s.total} homicide{s.total !== 1 ? 's' : ''}</strong> within the last 125 days {s.total !== 1 ? 'have' : 'has'} generated
-            active contagion zones near your campuses.
-            {s.acute.length > 0 && <> <strong style={{ color: '#DC2626' }}>{s.acute.length} zone{s.acute.length !== 1 ? 's are' : ' is'} in the ACUTE phase</strong> (0-72h) \u2014 this is the highest-risk period.</>}
-            {s.retWindows.length > 0 && <> <strong style={{ color: '#DC2626' }}>{s.retWindows.length} retaliation window{s.retWindows.length !== 1 ? 's are' : ' is'} active</strong> \u2014 the 18-72h period when retaliatory violence is most likely.</>}
-            {s.acute.length === 0 && s.active.length > 0 && <> <strong style={{ color: '#EA580C' }}>{s.active.length} zone{s.active.length !== 1 ? 's are' : ' is'} in the ACTIVE phase</strong> (72h-14d) \u2014 elevated monitoring recommended.</>}
-            {s.acute.length === 0 && s.active.length === 0 && <> All {s.total} zone{s.total !== 1 ? 's are' : ' is'} in the <strong>WATCH phase</strong> (14-125d) \u2014 the immediate danger has passed but statistical risk remains above baseline.</>}
-            {' '}Scroll down to see which campuses are affected and how close each zone is.
-          </span>
-        )}
-      </div>
-
-      {/* Retaliation Window Alert */}
-      {s.retWindows.length > 0 && (
+        {/* Pulse dot */}
         <div style={{
-          padding: '14px 18px', borderRadius: radius.md, marginBottom: 20,
-          background: '#FEF2F2', border: '2px solid #DC2626',
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
-          <div style={{
-            width: 10, height: 10, borderRadius: '50%', background: '#DC2626',
-            animation: 'pulse 1.5s ease-in-out infinite',
-          }} />
-          <div>
-            <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: '#DC2626' }}>
-              {s.retWindows.length} RETALIATION WINDOW{s.retWindows.length > 1 ? 'S' : ''} ACTIVE
-            </div>
-            <div style={{ fontSize: fontSize.sm, color: text.secondary, marginTop: 2 }}>
-              Peak danger period (18-72h post-homicide). Heightened risk of retaliatory violence near:
-              {' '}{s.retWindows.map((z: ContagionZone) => z.block || 'unknown location').join(', ')}
-            </div>
+          width: 16, height: 16, borderRadius: '50%',
+          background: tc.color, flexShrink: 0,
+          boxShadow: `0 0 0 4px ${tc.color}30`,
+          animation: networkThreat !== 'CLEAR' ? 'pulse 1.5s ease-in-out infinite' : undefined,
+        }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+            <span style={{ fontSize: '11px', fontWeight: fontWeight.bold, color: tc.color, letterSpacing: '0.12em' }}>
+              NETWORK CONTAGION STATUS
+            </span>
+            <span style={{
+              fontSize: '11px', fontWeight: fontWeight.bold, padding: '2px 10px',
+              borderRadius: radius.sm, background: tc.color, color: '#fff',
+              letterSpacing: '0.08em',
+            }}>
+              {tc.label}
+            </span>
+          </div>
+          <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: text.primary, marginBottom: 4 }}>
+            {tc.desc}
+          </div>
+          <div style={{ fontSize: fontSize.xs, color: text.muted }}>
+            Based on the Papachristos Violence Contagion Model (JAMA 2017) &middot; 125-day window &middot; {s.total} active zone{s.total !== 1 ? 's' : ''}
           </div>
         </div>
-      )}
-
-      {/* Understanding This View */}
-      <ContagionExplainerPanel />
-
-      {/* Campus Exposure Matrix */}
-      <SectionLabel>Campus Exposure Matrix</SectionLabel>
-      <div style={{
-        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.5, marginBottom: 10,
-      }}>
-        Which campuses are inside a contagion zone? Click any row with zones to see the specific homicide locations, distances, and phase details.
-      </div>
-      <div style={{
-        borderRadius: radius.md, border: `1px solid ${border.light}`,
-        overflow: 'hidden', marginBottom: 24,
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: fontSize.sm }}>
-          <thead>
-            <tr style={{ background: bg.subtle, borderBottom: `2px solid ${border.light}` }}>
-              <th style={{ textAlign: 'left', padding: '10px 14px', color: text.muted, fontWeight: fontWeight.semibold }}>Campus</th>
-              <th style={{ textAlign: 'center', padding: '10px 8px', color: text.muted, fontWeight: fontWeight.semibold }}>Zones</th>
-              <th style={{ textAlign: 'center', padding: '10px 8px', color: text.muted, fontWeight: fontWeight.semibold }}>Max Phase</th>
-              <th style={{ textAlign: 'center', padding: '10px 8px', color: text.muted, fontWeight: fontWeight.semibold }}>Ret. Window</th>
-              <th style={{ textAlign: 'center', padding: '10px 8px', color: text.muted, fontWeight: fontWeight.semibold }}>Risk Score</th>
-              <th style={{ textAlign: 'left', padding: '10px 14px', color: text.muted, fontWeight: fontWeight.semibold }}>Nearest Zone</th>
-            </tr>
-          </thead>
-          <tbody>
-            {s.exposureMatrix.map((row: any, i: number) => {
-              const campusRisk = allRisks.find(r => r.campusId === row.campus.id);
-              const riskColor = campusRisk ? RISK_COLORS[campusRisk.label] : { color: '#6B7280', bg: '#F3F4F6' };
-              const nearest = row.zones.length > 0
-                ? row.zones.reduce((min: any, z: ContagionZone) =>
-                    (z.distanceFromCampus ?? 99) < (min.distanceFromCampus ?? 99) ? z : min, row.zones[0])
-                : null;
-              const isExpanded = expandedCampus === row.campus.id;
-              const hasZones = row.zones.length > 0;
-              return (
-                <>
-                <tr
-                  key={row.campus.id}
-                  onClick={() => hasZones && onToggleCampus(isExpanded ? null : row.campus.id)}
-                  style={{
-                    borderBottom: isExpanded ? 'none' : `1px solid ${border.light}`,
-                    background: row.inRetWin ? '#FEF2F2' : i % 2 === 0 ? bg.card : bg.subtle,
-                    cursor: hasZones ? 'pointer' : 'default',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={(e) => { if (hasZones) (e.currentTarget as HTMLElement).style.background = row.inRetWin ? '#FEE2E2' : '#F5F0E8'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = row.inRetWin ? '#FEF2F2' : i % 2 === 0 ? bg.card : bg.subtle; }}
-                >
-                  <td style={{ padding: '10px 14px', fontWeight: fontWeight.semibold, color: text.primary }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {hasZones && <span style={{ fontSize: '10px', color: text.muted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>{"\u25B6"}</span>}
-                      {row.campus.short || row.campus.name}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                    <span style={{
-                      fontWeight: fontWeight.bold,
-                      color: row.zones.length > 0 ? '#DC2626' : '#059669',
-                    }}>
-                      {row.zones.length}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                    {row.maxPhase !== 'NONE' ? (
-                      <span style={{
-                        fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px',
-                        borderRadius: radius.sm, color: 'white',
-                        background: PHASE_COLORS[row.maxPhase]?.color || '#6B7280',
-                      }}>
-                        {row.maxPhase}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: fontSize.xs, color: text.muted }}>--</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                    {row.inRetWin ? (
-                      <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px', borderRadius: radius.sm, color: 'white', background: '#DC2626' }}>
-                        ACTIVE
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: fontSize.xs, color: text.muted }}>--</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                    <span style={{
-                      fontSize: fontSize.sm, fontWeight: fontWeight.bold,
-                      color: riskColor.color,
-                    }}>
-                      {campusRisk?.score ?? '--'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '10px 14px', fontSize: fontSize.xs, color: text.muted }}>
-                    {nearest ? (
-                      <>
-                        {fmtDist(nearest.distanceFromCampus ?? 0)} {nearest.bearingFromCampus != null ? compassLabel(nearest.bearingFromCampus) : ''}
-                        {nearest.block ? ` near ${nearest.block}` : ''}
-                      </>
-                    ) : '--'}
-                  </td>
-                </tr>
-                {/* Expanded campus detail drawer */}
-                {isExpanded && (
-                  <tr key={`${row.campus.id}-detail`}>
-                    <td colSpan={6} style={{ padding: 0, borderBottom: `1px solid ${border.light}` }}>
-                      <div style={{
-                        padding: '16px 20px', background: '#FAFAF5',
-                        borderTop: `2px solid ${PHASE_COLORS[row.maxPhase]?.color || brand.brass}`,
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                          <div>
-                            <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: brand.brass, letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>
-                              CAMPUS EXPOSURE DETAIL
-                            </div>
-                            <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: text.primary, marginTop: 2 }}>
-                              {row.campus.name}
-                            </div>
-                            <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>
-                              {row.campus.addr} &middot; {row.zones.length} active zone{row.zones.length !== 1 ? 's' : ''}
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: fontSize.xs, color: text.muted }}>PULSE Risk Score</div>
-                            <div style={{ fontSize: '24px', fontWeight: fontWeight.black, color: riskColor.color }}>
-                              {campusRisk?.score ?? '--'}
-                            </div>
-                          </div>
-                        </div>
-                        {/* Zone cards inside the drawer */}
-                        <div style={{ display: 'grid', gap: 8 }}>
-                          {row.zones.map((zone: ContagionZone) => (
-                            <div key={zone.incidentId} style={{
-                              padding: '12px 16px', borderRadius: radius.md,
-                              background: bg.card, border: `1px solid ${PHASE_COLORS[zone.phase]?.border || border.light}`,
-                              borderLeft: `4px solid ${PHASE_COLORS[zone.phase]?.color || '#6B7280'}`,
-                            }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                    <span style={{
-                                      fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px',
-                                      borderRadius: radius.sm, color: 'white',
-                                      background: PHASE_COLORS[zone.phase]?.color || '#6B7280',
-                                    }}>
-                                      {zone.phase}
-                                    </span>
-                                    {zone.retWin && (
-                                      <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px', borderRadius: radius.sm, color: 'white', background: '#DC2626' }}>
-                                        RET. WINDOW
-                                      </span>
-                                    )}
-                                    {zone.gang && (
-                                      <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px', borderRadius: radius.sm, color: '#7C3AED', background: '#EDE9FE' }}>
-                                        GANG
-                                      </span>
-                                    )}
-                                    {zone.firearm && (
-                                      <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '2px 8px', borderRadius: radius.sm, color: '#DC2626', background: '#FEF2F2' }}>
-                                        FIREARM
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.primary }}>
-                                    Homicide {zone.block ? `near ${zone.block}` : 'location unknown'}
-                                  </div>
-                                  <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>
-                                    {fmtAgo(zone.homicideDate)} &middot; {zone.daysLeft}d remaining in 125-day window
-                                  </div>
-                                </div>
-                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                  <div style={{ fontSize: '16px', fontWeight: fontWeight.black, color: PHASE_COLORS[zone.phase]?.color || '#6B7280' }}>
-                                    {fmtDist(zone.distanceFromCampus ?? 0)}
-                                  </div>
-                                  <div style={{ fontSize: fontSize.xs, color: text.muted }}>
-                                    {zone.bearingFromCampus != null ? compassLabel(zone.bearingFromCampus) : ''} of campus
-                                  </div>
-                                </div>
-                              </div>
-                              <div style={{
-                                marginTop: 8, padding: '6px 10px', borderRadius: radius.sm,
-                                background: bg.subtle, fontSize: fontSize.xs, color: text.secondary,
-                                display: 'flex', gap: 12, flexWrap: 'wrap' as const,
-                              }}>
-                                <span><strong>Zone radius:</strong> {zone.radius} mi</span>
-                                <span><strong>Distance:</strong> {(zone.distanceFromCampus ?? 0).toFixed(2)} mi</span>
-                                <span><strong>Bearing:</strong> {zone.bearingFromCampus != null ? `${Math.round(zone.bearingFromCampus)}\u00B0 (${compassLabel(zone.bearingFromCampus)})` : 'N/A'}</span>
-                                <span><strong>Phase window:</strong> {PHASE_LABELS[zone.phase]}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                </>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Zone Timeline */}
-      <SectionLabel>Zone Timeline (125-Day Window)</SectionLabel>
-      <div style={{
-        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.5, marginBottom: 10,
-      }}>
-        Each bar represents one homicide-generated zone. The colored portion shows elapsed time; the marker shows the current position in the 125-day window. Zones progress from ACUTE (red) through ACTIVE (orange) to WATCH (amber) as time passes.
-      </div>
-      <div style={{
-        padding: '16px', borderRadius: radius.md,
-        background: bg.card, border: `1px solid ${border.light}`,
-        marginBottom: 24,
-      }}>
-        {zones.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: text.muted, fontSize: fontSize.sm }}>
-            No active contagion zones. The network is clear.
-          </div>
-        ) : (
-          <div>
-            {/* Timeline header */}
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12, paddingLeft: 120 }}>
-              {['0', '72h', '14d', '30d', '60d', '90d', '125d'].map((label, i) => (
-                <div key={i} style={{
-                  flex: i === 0 ? 0 : 1, fontSize: fontSize.xs, color: text.muted,
-                  textAlign: i === 0 ? 'left' : 'center',
-                  minWidth: i === 0 ? 0 : undefined,
-                }}>
-                  {label}
-                </div>
-              ))}
-            </div>
-            {/* Zone bars */}
-            {zones.map((zone) => {
-              const pct = Math.min(100, (zone.ageH / 3000) * 100);
-              const remainPct = 100 - pct;
-              const phaseColor = PHASE_COLORS[zone.phase];
-              return (
-                <div
-                  key={zone.incidentId}
-                  style={{
-                    display: 'flex', alignItems: 'center', marginBottom: 6,
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => onToggleZone(expandedZone === zone.incidentId ? null : zone.incidentId)}
-                >
-                  <div style={{
-                    width: 120, flexShrink: 0, fontSize: fontSize.xs,
-                    color: text.primary, fontWeight: fontWeight.semibold,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    paddingRight: 8,
-                  }}>
-                    {zone.block || 'Unknown'}
-                  </div>
-                  <div style={{
-                    flex: 1, height: 20, background: bg.subtle, borderRadius: radius.sm,
-                    overflow: 'hidden', position: 'relative',
-                  }}>
-                    {/* Elapsed portion */}
-                    <div style={{
-                      position: 'absolute', left: 0, top: 0, bottom: 0,
-                      width: `${pct}%`,
-                      background: phaseColor.color,
-                      opacity: 0.3,
-                      borderRadius: `${radius.sm} 0 0 ${radius.sm}`,
-                    }} />
-                    {/* Current position marker */}
-                    <div style={{
-                      position: 'absolute', left: `${pct}%`, top: 0, bottom: 0,
-                      width: 3, background: phaseColor.color,
-                      transform: 'translateX(-1.5px)',
-                    }} />
-                    {/* Phase label */}
-                    <div style={{
-                      position: 'absolute', left: `${Math.max(2, pct - 15)}%`, top: '50%',
-                      transform: 'translateY(-50%)',
-                      fontSize: '8px', fontWeight: fontWeight.bold, color: phaseColor.color,
-                      letterSpacing: '0.05em',
-                    }}>
-                      {zone.phase}
-                    </div>
-                    {/* Days remaining */}
-                    <div style={{
-                      position: 'absolute', right: 6, top: '50%',
-                      transform: 'translateY(-50%)',
-                      fontSize: '9px', color: text.muted,
-                    }}>
-                      {zone.daysLeft}d left
-                    </div>
-                    {/* Retaliation window indicator */}
-                    {zone.retWin && (
-                      <div style={{
-                        position: 'absolute', left: `${(18/3000)*100}%`, top: 0, bottom: 0,
-                        width: `${((72-18)/3000)*100}%`,
-                        background: '#DC262640',
-                        borderLeft: '1px dashed #DC2626',
-                        borderRight: '1px dashed #DC2626',
-                      }} />
-                    )}
-                  </div>
-                  <div style={{
-                    width: 50, flexShrink: 0, textAlign: 'right',
-                    fontSize: fontSize.xs, color: text.muted,
-                  }}>
-                    {fmtAgo(zone.homicideDate)}
-                  </div>
-                </div>
-              );
-            })}
-            {/* Legend */}
-            <div style={{ display: 'flex', gap: 16, marginTop: 12, paddingLeft: 120 }}>
-              {Object.entries(PHASE_COLORS).map(([phase, colors]) => (
-                <div key={phase} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: colors.color }} />
-                  <span style={{ fontSize: fontSize.xs, color: text.muted }}>
-                    {phase} ({PHASE_LABELS[phase]})
-                  </span>
-                </div>
-              ))}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#DC262660' }} />
-                <span style={{ fontSize: fontSize.xs, color: text.muted }}>Retaliation Window</span>
+        {/* KPI summary */}
+        <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
+          {[
+            { label: 'ACUTE', value: s.acute.length, color: '#DC2626' },
+            { label: 'ACTIVE', value: s.active.length, color: '#EA580C' },
+            { label: 'WATCH', value: s.watch.length, color: '#D97706' },
+            { label: 'RET. WIN', value: s.retWindows.length, color: s.retWindows.length > 0 ? '#DC2626' : '#9CA3AF' },
+          ].map(kpi => (
+            <div key={kpi.label} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '22px', fontWeight: fontWeight.black, color: kpi.color, lineHeight: 1 }}>
+                {kpi.value}
+              </div>
+              <div style={{ fontSize: '9px', fontWeight: fontWeight.bold, color: text.muted, letterSpacing: '0.06em', marginTop: 2 }}>
+                {kpi.label}
               </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
 
-      {/* Active Zone Detail */}
-      <SectionLabel>Active Zones ({zones.length})</SectionLabel>
+      {/* ═══ PANEL 2: CAMPUS SPREAD GRID ═══ */}
       <div style={{
-        fontSize: fontSize.xs, color: text.muted, lineHeight: 1.5, marginBottom: 10,
+        background: bg.card, border: `1px solid ${border.light}`, borderRadius: radius.lg,
+        padding: '20px 24px', marginBottom: 20,
       }}>
-        Every active contagion zone in the network. Click to expand and see which campuses are exposed, zone radius, and detailed location data.
-      </div>
-      <div style={{ marginBottom: 24 }}>
-        {zones.length === 0 ? (
-          <div style={{
-            padding: '24px', borderRadius: radius.md,
-            background: '#ECFDF5', border: '1px solid #A7F3D0',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: '#059669' }}>
-              Network Clear
-            </div>
-            <div style={{ fontSize: fontSize.sm, color: text.secondary, marginTop: 4 }}>
-              No active homicide-generated contagion zones affecting any campus.
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div>
+            <SectionLabel>CAMPUS SPREAD</SectionLabel>
+            <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: -4 }}>
+              Which campuses are inside an active contagion zone right now
             </div>
           </div>
-        ) : (
-          zones.map((zone) => (
-            <ZoneCard
-              key={zone.incidentId}
-              zone={zone}
-              expanded={expandedZone === zone.incidentId}
-              onToggle={() => onToggleZone(expandedZone === zone.incidentId ? null : zone.incidentId)}
-              allRisks={allRisks}
-            />
-          ))
-        )}
+          <div style={{ fontSize: fontSize.xs, color: text.muted }}>
+            {campusSpread.length} of {s.exposureMatrix.length} campuses affected
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          {s.exposureMatrix.map((row: any) => {
+            const hasZones = row.zones.length > 0;
+            const phaseColor = hasZones ? (PHASE_COLORS[row.maxPhase]?.color || '#6B7280') : '#16A34A';
+            const phaseBg = hasZones ? (PHASE_COLORS[row.maxPhase]?.bg || '#F3F4F6') : '#F0FDF4';
+            const campusRisk = allRisks.find(r => r.campusId === row.campus.id);
+            return (
+              <div
+                key={row.campus.id}
+                onClick={() => hasZones && onToggleCampus(expandedCampus === row.campus.id ? null : row.campus.id)}
+                style={{
+                  padding: '10px 12px', borderRadius: radius.md,
+                  background: phaseBg,
+                  border: `1px solid ${row.inRetWin ? '#DC2626' : phaseColor + '40'}`,
+                  borderTop: `3px solid ${phaseColor}`,
+                  cursor: hasZones ? 'pointer' : 'default',
+                  transition: 'opacity 0.15s',
+                }}
+                onMouseEnter={e => { if (hasZones) (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+              >
+                <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: text.primary, marginBottom: 3 }}>
+                  {row.campus.short}
+                </div>
+                <div style={{ fontSize: '9px', fontWeight: fontWeight.bold, color: phaseColor, letterSpacing: '0.06em' }}>
+                  {hasZones ? `${row.zones.length} ZONE${row.zones.length !== 1 ? 'S' : ''} · ${row.maxPhase}` : 'CLEAR'}
+                </div>
+                {row.inRetWin && (
+                  <div style={{ fontSize: '9px', fontWeight: fontWeight.bold, color: '#DC2626', marginTop: 2 }}>
+                    ⚠ RET. WINDOW
+                  </div>
+                )}
+                {campusRisk && (
+                  <div style={{ fontSize: '9px', color: text.muted, marginTop: 2 }}>
+                    Score: {campusRisk.score}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {/* Expanded campus detail */}
+        {expandedCampus && (() => {
+          const row = s.exposureMatrix.find((r: any) => r.campus.id === expandedCampus);
+          if (!row) return null;
+          const campusRisk = allRisks.find(r => r.campusId === row.campus.id);
+          return (
+            <div style={{
+              marginTop: 16, padding: '16px 18px', borderRadius: radius.md,
+              background: bg.subtle, border: `1px solid ${border.light}`,
+              borderTop: `3px solid ${PHASE_COLORS[row.maxPhase]?.color || brand.brass}`,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: text.primary }}>{row.campus.name}</div>
+                  <div style={{ fontSize: fontSize.xs, color: text.muted }}>{row.campus.addr} &middot; {row.zones.length} active zone{row.zones.length !== 1 ? 's' : ''}</div>
+                </div>
+                <button onClick={() => onToggleCampus(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: fontSize.sm, color: text.muted }}>&#x2715;</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {row.zones.map((zone: ContagionZone) => (
+                  <div key={zone.incidentId} style={{
+                    padding: '10px 14px', borderRadius: radius.sm,
+                    background: bg.card, border: `1px solid ${PHASE_COLORS[zone.phase]?.border || border.light}`,
+                    borderLeft: `4px solid ${PHASE_COLORS[zone.phase]?.color || '#6B7280'}`,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 3 }}>
+                        <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '1px 6px', borderRadius: 3, background: PHASE_COLORS[zone.phase]?.color, color: '#fff' }}>{zone.phase}</span>
+                        {zone.retWin && <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '1px 6px', borderRadius: 3, background: '#DC2626', color: '#fff' }}>RET. WINDOW</span>}
+                        {zone.gang && <span style={{ fontSize: '9px', color: '#7C3AED', fontWeight: fontWeight.bold }}>GANG</span>}
+                      </div>
+                      <div style={{ fontSize: fontSize.sm, color: text.primary }}>
+                        Homicide {zone.block ? `near ${zone.block}` : ''}
+                      </div>
+                      <div style={{ fontSize: fontSize.xs, color: text.muted }}>
+                        {fmtAgo(zone.homicideDate)} &middot; {zone.daysLeft}d remaining
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '16px', fontWeight: fontWeight.black, color: PHASE_COLORS[zone.phase]?.color }}>{fmtDist(zone.distanceFromCampus ?? 0)}</div>
+                      <div style={{ fontSize: fontSize.xs, color: text.muted }}>{zone.bearingFromCampus != null ? compassLabel(zone.bearingFromCampus) : ''} of campus</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
-      {/* AI Analysis */}
+      {/* ═══ PANEL 3: RECOMMENDED ACTIONS ═══ */}
+      <div style={{
+        background: bg.card, border: `1px solid ${border.light}`, borderRadius: radius.lg,
+        padding: '20px 24px', marginBottom: 20,
+      }}>
+        <SectionLabel>RECOMMENDED ACTIONS</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {recommendedActions.map((action, i) => (
+            <div key={i} style={{
+              display: 'flex', gap: 14, alignItems: 'flex-start',
+              padding: '12px 14px', borderRadius: radius.md,
+              background: bg.subtle, border: `1px solid ${border.light}`,
+              borderLeft: `4px solid ${action.color}`,
+            }}>
+              <div style={{
+                fontSize: '9px', fontWeight: fontWeight.bold, color: action.color,
+                letterSpacing: '0.08em', whiteSpace: 'nowrap', paddingTop: 2,
+                minWidth: 80,
+              }}>
+                {action.priority}
+              </div>
+              <div style={{ fontSize: fontSize.sm, color: text.secondary, lineHeight: 1.6 }}>
+                {action.action}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ AI ANALYSIS ═══ */}
       <AIAnalysisSection
         analysis={aiAnalysis}
         loading={aiLoading}
         onRun={onRunAi}
         label={`Analyze ${zones.length} Contagion Zone${zones.length !== 1 ? 's' : ''}`}
       />
+
+      {/* ═══ EXPLAINER (COLLAPSED BY DEFAULT) ═══ */}
+      <ContagionExplainerPanel />
     </div>
   );
 }

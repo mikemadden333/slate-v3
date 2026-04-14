@@ -611,6 +611,34 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
   const narrative = generateIntelligenceNarrative(data);
   const net = data.networkStatus;
   const dismissalActive = isDismissalWindow();
+  const [expandedIncId, setExpandedIncId] = useState<string | null>(null);
+  const [incAiText, setIncAiText] = useState<Record<string, string>>({});
+  const [incAiLoading, setIncAiLoading] = useState<Record<string, boolean>>({});
+
+  const handleIncidentAi = async (e: React.MouseEvent, inc: WatchIncident) => {
+    e.stopPropagation();
+    if (incAiText[inc.id] || incAiLoading[inc.id]) return;
+    setIncAiLoading(prev => ({ ...prev, [inc.id]: true }));
+    const nearestCampus = data.campusThreats.find(c => c.campusId === inc.nearestCampusId);
+    try {
+      const res = await fetch('/api/anthropic-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          system: 'You are a school safety intelligence analyst. Provide a concise 2-3 sentence analysis of what this incident means for nearby school campuses. Focus on: (1) immediate safety implications, (2) whether staff/students should be notified, (3) one specific action recommendation. Be direct and actionable.',
+          messages: [{ role: 'user', content: `Incident: ${inc.crimeType}${inc.title ? ' — ' + inc.title : ''}. Confidence: ${inc.confidence} (${inc.confidenceScore}%). Time: ${inc.ageMinutes < 60 ? inc.ageMinutes + ' minutes ago' : Math.round(inc.ageMinutes / 60) + ' hours ago'}. Nearest campus: ${nearestCampus?.campusShort ?? 'Unknown'} (${inc.distanceToCampus?.toFixed(1) ?? '?'} miles away). What does this mean for campus safety?` }],
+        }),
+      });
+      const data2 = await res.json();
+      setIncAiText(prev => ({ ...prev, [inc.id]: data2?.content?.[0]?.text || 'Analysis unavailable.' }));
+    } catch {
+      setIncAiText(prev => ({ ...prev, [inc.id]: 'Unable to generate analysis at this time.' }));
+    } finally {
+      setIncAiLoading(prev => ({ ...prev, [inc.id]: false }));
+    }
+  };
 
   const sortedThreats = useMemo(() => {
     const order: Record<ThreatLevel, number> = { RED: 0, ORANGE: 1, AMBER: 2, GREEN: 3 };
@@ -817,19 +845,30 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
                 ? dirFromCampus(nearestCampus.lat, nearestCampus.lng, inc.lat, inc.lng, inc.distanceToCampus)
                 : null;
               const incColor = inc.crimeType === 'HOMICIDE' ? '#FF6B6B' : W.red;
+              const isExpanded = expandedIncId === inc.id;
+              const aiText = incAiText[inc.id];
+              const aiLoading = incAiLoading[inc.id];
               return (
                 <div
                   key={inc.id}
-                  className="v3-incident-row"
                   style={{
                     background: isDemo ? 'rgba(224, 82, 82, 0.08)' : W.bgCard,
-                    border: `1px solid ${isDemo ? W.redBorder : W.border}`,
-                    borderRadius: 10, padding: '14px 18px',
-                    cursor: 'pointer', transition: 'all 0.15s ease',
+                    border: `1px solid ${isDemo ? W.redBorder : isExpanded ? W.goldBorder : W.border}`,
+                    borderRadius: 10,
                     animation: isDemo ? 'v3FadeIn 0.4s ease-out' : undefined,
+                    overflow: 'hidden',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  {/* Clickable header */}
+                  <div
+                    className="v3-incident-row"
+                    onClick={() => setExpandedIncId(isExpanded ? null : inc.id)}
+                    style={{
+                      padding: '14px 18px',
+                      cursor: 'pointer', transition: 'all 0.15s ease',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
+                    }}
+                  >
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                         <span style={{
@@ -848,10 +887,7 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
                           {inc.confidence} {inc.confidenceScore}%
                         </span>
                         {inc.corroboratedBy.length > 0 && (
-                          <span style={{
-                            fontSize: '10px', color: W.green,
-                            fontFamily: font.mono,
-                          }}>
+                          <span style={{ fontSize: '10px', color: W.green, fontFamily: font.mono }}>
                             +{inc.corroboratedBy.join(', ')}
                           </span>
                         )}
@@ -878,13 +914,72 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
                         )}
                       </div>
                     </div>
-                    <div style={{
-                      fontFamily: font.mono, fontSize: '11px', color: W.textDim,
-                      whiteSpace: 'nowrap', flexShrink: 0,
-                    }}>
-                      {fmtAgo(inc.timestamp)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <div style={{ fontFamily: font.mono, fontSize: '11px', color: W.textDim, whiteSpace: 'nowrap' }}>
+                        {fmtAgo(inc.timestamp)}
+                      </div>
+                      <span style={{ fontSize: '10px', color: W.textDim }}>{isExpanded ? '▲' : '▼'}</span>
                     </div>
                   </div>
+                  {/* Expanded detail panel */}
+                  {isExpanded && (
+                    <div style={{
+                      padding: '0 18px 16px', borderTop: `1px solid ${W.border}`,
+                      background: W.bgSurface,
+                    }}>
+                      {/* Detail grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '12px 0 12px' }}>
+                        <div>
+                          <div style={{ fontSize: '9px', fontWeight: 700, color: W.textDim, letterSpacing: '0.06em', marginBottom: 3 }}>NEAREST CAMPUS</div>
+                          <div style={{ fontSize: '12px', color: W.textPrimary, fontFamily: font.body }}>
+                            {nearestCampus?.campusShort ?? 'Unknown'}{inc.distanceToCampus != null ? ` — ${inc.distanceToCampus.toFixed(2)} mi` : ''}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '9px', fontWeight: 700, color: W.textDim, letterSpacing: '0.06em', marginBottom: 3 }}>SOURCES</div>
+                          <div style={{ fontSize: '12px', color: W.textPrimary, fontFamily: font.body }}>
+                            {[inc.source, ...inc.corroboratedBy].filter(Boolean).join(', ')}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '9px', fontWeight: 700, color: W.textDim, letterSpacing: '0.06em', marginBottom: 3 }}>CONFIDENCE</div>
+                          <div style={{ fontSize: '12px', fontFamily: font.body,
+                            color: inc.confidence === 'CONFIRMED' ? W.green : inc.confidence === 'CORROBORATED' ? W.blue : W.amber,
+                            fontWeight: 600,
+                          }}>
+                            {inc.confidence} — {inc.confidenceScore}%
+                          </div>
+                        </div>
+                      </div>
+                      {/* AI button */}
+                      {!aiText && !aiLoading && (
+                        <button
+                          onClick={(e) => handleIncidentAi(e, inc)}
+                          style={{
+                            padding: '6px 14px', borderRadius: 6,
+                            background: W.gold, color: '#fff',
+                            border: 'none', cursor: 'pointer',
+                            fontSize: '11px', fontWeight: 700,
+                            fontFamily: font.body, letterSpacing: '0.04em',
+                          }}
+                        >
+                          ✨ What does this mean?
+                        </button>
+                      )}
+                      {aiLoading && (
+                        <div style={{ fontSize: '11px', color: W.textMuted, fontStyle: 'italic', padding: '4px 0' }}>Analyzing…</div>
+                      )}
+                      {aiText && (
+                        <div style={{
+                          fontSize: '13px', color: W.textSecondary, lineHeight: 1.65,
+                          borderTop: `1px solid ${W.border}`, paddingTop: 10, marginTop: 4,
+                        }}>
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: W.gold, letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>SLATE ANALYSIS</span>
+                          {aiText}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -552,6 +552,9 @@ export default function NetworkDashboard({
   // ── State ──
   const [howToReadOpen, setHowToReadOpen] = useState(false);
   const [explainerCampusId, setExplainerCampusId] = useState<number | null>(null);
+  const [expandedIncidentId, setExpandedIncidentId] = useState<string | null>(null);
+  const [incidentAiText, setIncidentAiText] = useState<Record<string, string>>({});
+  const [incidentAiLoading, setIncidentAiLoading] = useState<Record<string, boolean>>({});
 
   // ── Compute KPIs ──
   const violent24h = useMemo(() => {
@@ -946,39 +949,136 @@ export default function NetworkDashboard({
                   const d = haversine(c.lat, c.lng, inc.lat, inc.lng);
                   return d < best.dist ? { campus: c, dist: d } : best;
                 }, { campus: CAMPUSES[0], dist: Infinity });
+                const incId = inc.id || `inc-${i}`;
+                const isExpanded = expandedIncidentId === incId;
+                const aiText = incidentAiText[incId];
+                const aiLoading = incidentAiLoading[incId];
+
+                const handleAiAnalysis = async (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  if (aiText || aiLoading) return;
+                  setIncidentAiLoading(prev => ({ ...prev, [incId]: true }));
+                  try {
+                    const res = await fetch('/api/anthropic-proxy', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 300,
+                        system: 'You are a school safety intelligence analyst. Provide a concise 2-3 sentence analysis of what this incident means for nearby school campuses. Focus on: (1) immediate safety implications, (2) whether staff/students should be notified, (3) one specific action recommendation. Be direct and actionable.',
+                        messages: [{ role: 'user', content: `Incident: ${inc.type}${inc.description ? ' — ' + inc.description : ''}. Location: ${inc.block || 'Unknown block'}. Time: ${hrs < 1 ? Math.round(hrs * 60) + ' minutes ago' : hrs.toFixed(1) + ' hours ago'}. Nearest campus: ${nearest.campus.short} (${nearest.dist.toFixed(1)} miles away). What does this mean for campus safety?` }],
+                      }),
+                    });
+                    const data = await res.json();
+                    const text = data?.content?.[0]?.text || 'Analysis unavailable.';
+                    setIncidentAiText(prev => ({ ...prev, [incId]: text }));
+                  } catch {
+                    setIncidentAiText(prev => ({ ...prev, [incId]: 'Unable to generate analysis at this time.' }));
+                  } finally {
+                    setIncidentAiLoading(prev => ({ ...prev, [incId]: false }));
+                  }
+                };
 
                 return (
-                  <div key={inc.id || i} style={{
-                    display: 'flex', gap: 12, alignItems: 'flex-start',
-                    padding: '10px 0',
+                  <div key={incId} style={{
                     borderBottom: i < criticalIncidents.length - 1 ? `1px solid ${C.chalk}` : 'none',
                   }}>
-                    <div style={{
-                      width: 3, minHeight: 36, borderRadius: 2,
-                      background: C.red, flexShrink: 0, marginTop: 2,
-                    }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Clickable header row */}
+                    <div
+                      onClick={() => setExpandedIncidentId(isExpanded ? null : incId)}
+                      style={{
+                        display: 'flex', gap: 12, alignItems: 'flex-start',
+                        padding: '10px 0', cursor: 'pointer',
+                        transition: 'opacity 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+                    >
                       <div style={{
-                        fontSize: 13, fontWeight: 600, color: C.deep,
-                        fontFamily: FONT.body, marginBottom: 3,
-                      }}>
-                        {inc.description || inc.type}
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '2px 6px',
-                          borderRadius: 4, background: C.red + '15', color: C.red,
-                        }}>{inc.type}</span>
-                        <span style={{
-                          fontSize: 10, color: C.mid, fontFamily: FONT.mono,
-                        }}>
-                          {hrs < 1 ? `${Math.round(hrs * 60)}m ago` : `${hrs.toFixed(1)}h ago`}
-                        </span>
-                        <span style={{ fontSize: 10, color: C.mid }}>
-                          · {nearest.dist.toFixed(1)}mi from {nearest.campus.short}
-                        </span>
+                        width: 3, minHeight: 36, borderRadius: 2,
+                        background: C.red, flexShrink: 0, marginTop: 2,
+                      }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <div style={{
+                            fontSize: 13, fontWeight: 600, color: C.deep,
+                            fontFamily: FONT.body,
+                          }}>
+                            {inc.description || inc.type}
+                          </div>
+                          <span style={{ fontSize: 10, color: C.mid, marginLeft: 8, flexShrink: 0 }}>
+                            {isExpanded ? '▲' : '▼'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 6px',
+                            borderRadius: 4, background: C.red + '15', color: C.red,
+                          }}>{inc.type}</span>
+                          <span style={{ fontSize: 10, color: C.mid, fontFamily: FONT.mono }}>
+                            {hrs < 1 ? `${Math.round(hrs * 60)}m ago` : `${hrs.toFixed(1)}h ago`}
+                          </span>
+                          <span style={{ fontSize: 10, color: C.mid }}>
+                            · {nearest.dist.toFixed(1)}mi from {nearest.campus.short}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    {/* Expanded detail panel */}
+                    {isExpanded && (
+                      <div style={{
+                        marginLeft: 15, marginBottom: 10, padding: '12px 14px',
+                        background: '#FEF9F0', borderRadius: 8,
+                        border: `1px solid ${C.chalk}`,
+                      }}>
+                        {/* Detail rows */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: C.mid, letterSpacing: '0.06em', marginBottom: 2 }}>LOCATION</div>
+                            <div style={{ fontSize: 12, color: C.deep }}>{inc.block || 'Location not available'}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: C.mid, letterSpacing: '0.06em', marginBottom: 2 }}>NEAREST CAMPUS</div>
+                            <div style={{ fontSize: 12, color: C.deep }}>{nearest.campus.short} — {nearest.dist.toFixed(2)} mi</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: C.mid, letterSpacing: '0.06em', marginBottom: 2 }}>TIME</div>
+                            <div style={{ fontSize: 12, color: C.deep }}>{new Date(inc.date).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: C.mid, letterSpacing: '0.06em', marginBottom: 2 }}>COMMUNITY AREA</div>
+                            <div style={{ fontSize: 12, color: C.deep }}>{nearest.campus.communityArea || 'Chicago'}</div>
+                          </div>
+                        </div>
+                        {/* AI Analysis */}
+                        {!aiText && !aiLoading && (
+                          <button
+                            onClick={handleAiAnalysis}
+                            style={{
+                              padding: '6px 14px', borderRadius: 6,
+                              background: C.brass, color: '#fff',
+                              border: 'none', cursor: 'pointer',
+                              fontSize: 11, fontWeight: 700,
+                              fontFamily: FONT.body, letterSpacing: '0.04em',
+                            }}
+                          >
+                            ✨ What does this mean?
+                          </button>
+                        )}
+                        {aiLoading && (
+                          <div style={{ fontSize: 11, color: C.mid, fontStyle: 'italic' }}>Analyzing…</div>
+                        )}
+                        {aiText && (
+                          <div style={{
+                            fontSize: 12, color: C.rock, lineHeight: 1.6,
+                            borderTop: `1px solid ${C.chalk}`, paddingTop: 8, marginTop: 4,
+                          }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: C.brass, letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>SLATE ANALYSIS</span>
+                            {aiText}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
