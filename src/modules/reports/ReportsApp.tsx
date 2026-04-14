@@ -150,7 +150,7 @@ function BoardReportPreview({ onClose }: { onClose: () => void }) {
 
   const sectionTitle: React.CSSProperties = {
     fontSize: 16, fontWeight: 700, color: brand.navy, borderBottom: `2px solid ${brand.gold}`,
-    paddingBottom: 6, marginBottom: 16, fontFamily: font.serif,
+    paddingBottom: 6, marginBottom: 16, fontFamily: font.body,
   };
 
   const metricBox: React.CSSProperties = {
@@ -208,10 +208,10 @@ function BoardReportPreview({ onClose }: { onClose: () => void }) {
           <div style={{ fontSize: 11, letterSpacing: 3, color: brand.gold, fontWeight: 700, textTransform: 'uppercase' as const, marginBottom: 40, fontFamily: font.mono }}>
             Confidential — Board of Directors
           </div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: brand.navy, fontFamily: font.serif, margin: '0 0 8px' }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: brand.navy, fontFamily: font.body, margin: '0 0 8px' }}>
             {net.name}
           </h1>
-          <div style={{ fontSize: 20, color: '#666', fontFamily: font.serif, marginBottom: 40 }}>
+          <div style={{ fontSize: 20, color: '#666', fontFamily: font.body, marginBottom: 40 }}>
             Board Meeting Briefing
           </div>
           <div style={{ width: 60, height: 2, background: brand.gold, margin: '0 auto 40px' }} />

@@ -282,7 +282,7 @@ function BillDetail({ bill, onDraft }: { bill: ExtendedBill; onDraft: (b: Extend
         }}>{level?.label}</span>
         <span style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, fontFamily: font.mono, color: textColor.primary }}>{bill.number}</span>
       </div>
-      <div style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: textColor.primary, fontFamily: font.serif, marginBottom: 12, lineHeight: 1.4 }}>
+      <div style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: textColor.primary, fontFamily: font.body, marginBottom: 12, lineHeight: 1.4 }}>
         {bill.name}
       </div>
 

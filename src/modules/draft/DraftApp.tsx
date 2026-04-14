@@ -374,7 +374,7 @@ export default function DraftApp() {
               minHeight: 500, textAlign: 'center', padding: 40,
             }}>
               <div style={{ fontSize: '64px', marginBottom: 20, opacity: 0.2 }}>✍️</div>
-              <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, fontFamily: font.serif, color: textColor.secondary, marginBottom: 8 }}>
+              <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, fontFamily: font.body, color: textColor.secondary, marginBottom: 8 }}>
                 Select a Template
               </div>
               <div style={{ fontSize: fontSize.sm, color: textColor.muted, maxWidth: 400, lineHeight: 1.6 }}>

@@ -54,7 +54,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: font.display,
+          fontFamily: font.body,
           fontSize: fontSize.xl,
           fontWeight: fontWeight.light,
           color: brand.navy,
@@ -65,7 +65,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
         {!collapsed && (
           <div>
             <div style={{
-              fontFamily: font.display,
+              fontFamily: font.body,
               fontSize: fontSize.xl,
               fontWeight: fontWeight.light,
               color: '#FFFFFF',
@@ -75,7 +75,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
             </div>
             <div style={{
               fontSize: fontSize.xs,
-              color: brand.gold,
+              color: 'rgba(184,201,219,0.50)',
               letterSpacing: '1.5px',
               textTransform: 'uppercase',
               marginTop: 2,
@@ -167,7 +167,7 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                     cursor: 'pointer',
                     transition: transition.fast,
                     background: isActive
-                      ? 'rgba(201,165,78,0.10)'
+                      ? 'rgba(79,124,255,0.12)'
                       : isHovered
                         ? 'rgba(255,255,255,0.05)'
                         : 'transparent',
@@ -256,8 +256,8 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                 cursor: 'pointer',
                 fontSize: fontSize.sm,
                 fontWeight: role === r ? fontWeight.semibold : fontWeight.normal,
-                color: role === r ? brand.navy : 'rgba(210,220,232,0.70)',
-                background: role === r ? brand.gold : 'transparent',
+                color: role === r ? '#FFFFFF' : 'rgba(210,220,232,0.70)',
+                background: role === r ? 'rgba(79,124,255,0.25)' : 'transparent',
                 transition: transition.fast,
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',

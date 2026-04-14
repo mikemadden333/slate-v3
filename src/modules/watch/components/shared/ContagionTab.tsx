@@ -306,7 +306,7 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
         <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: brand.brass, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
           PAPACHRISTOS CONTAGION MODEL
         </div>
-        <div style={{ fontSize: '20px', fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.serif }}>
+        <div style={{ fontSize: '20px', fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.body }}>
           Network Contagion Landscape
         </div>
         <div style={{ fontSize: fontSize.sm, color: text.muted, marginTop: 4 }}>
@@ -761,7 +761,7 @@ function CampusContagionView({ campus, exposure, allZones, risk, aiAnalysis, aiL
         <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: brand.brass, letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
           CAMPUS CONTAGION EXPOSURE
         </div>
-        <div style={{ fontSize: '20px', fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.serif }}>
+        <div style={{ fontSize: '20px', fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.body }}>
           {campus.name}
         </div>
         <div style={{ fontSize: fontSize.sm, color: text.muted, marginTop: 4 }}>

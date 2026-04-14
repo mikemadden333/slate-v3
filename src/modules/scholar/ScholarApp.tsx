@@ -310,7 +310,7 @@ function CampusesTab() {
 
       {/* Campus Header */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.serif, color: textColor.primary }}>
+        <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.body, color: textColor.primary }}>
           {campus.name}
         </div>
         {netCampus && (
@@ -734,7 +734,7 @@ function PrincipalView() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.serif, color: textColor.primary }}>
+        <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.body, color: textColor.primary }}>
           {campus.name}
         </div>
         {netCampus && (

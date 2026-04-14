@@ -98,6 +98,7 @@ const COVENANTS: CovenantConfig = {
   daysCashMinimum: 30,
   currentRatioMinimum: 1.10,
   netAssetMinimum: 20.0,
+  enrollmentMinimum: 5500,
   depreciation: 3.5,
   interestExpense: 0.7,
 };

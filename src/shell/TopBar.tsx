@@ -131,24 +131,24 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
             title="Presentation Mode active — click to exit (or Ctrl+Shift+P)"
             style={{
               padding: '3px 10px', borderRadius: radius.full,
-              background: 'rgba(201,165,78,0.18)',
-              border: '1px solid rgba(201,165,78,0.55)',
+              background: 'rgba(79,124,255,0.18)',
+              border: '1px solid rgba(79,124,255,0.45)',
               fontSize: fontSize.xs, fontWeight: fontWeight.bold,
-              color: brand.gold, textTransform: 'uppercase', letterSpacing: '1.5px',
+              color: '#7FA8FF', textTransform: 'uppercase', letterSpacing: '1.5px',
               fontFamily: font.body, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 5,
             }}
           >
-            <span style={{ fontSize: 7, color: brand.gold }}>●</span>
+            <span style={{ fontSize: 7, color: '#7FA8FF' }}>●</span>
             DEMO
           </button>
         )}
         <div style={{
           padding: '5px 14px', borderRadius: radius.full,
-          background: `${brand.gold}15`,
-          border: `1px solid ${brand.gold}30`,
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.15)',
           fontSize: fontSize.sm, fontWeight: fontWeight.medium,
-          color: brand.gold, textTransform: 'uppercase', letterSpacing: '1px',
+          color: '#C8D5E3', textTransform: 'uppercase', letterSpacing: '1px',
           fontFamily: font.body,
         }}>
           {role === 'ceo' ? 'CEO View' : `Principal · ${campus?.short || ''}`}
@@ -162,8 +162,8 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
           fontFamily: font.body, fontSize: fontSize.base, color: '#C8D5E3',
         }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = brand.gold;
-            e.currentTarget.style.boxShadow = `0 0 0 2px ${brand.gold}20`;
+            e.currentTarget.style.borderColor = 'rgba(79,124,255,0.5)';
+            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(79,124,255,0.15)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';

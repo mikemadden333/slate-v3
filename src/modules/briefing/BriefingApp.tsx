@@ -119,7 +119,7 @@ function BriefTimestamp() {
       <div style={{
         fontSize: fontSize['2xl'],
         fontWeight: fontWeight.bold,
-        fontFamily: font.serif,
+        fontFamily: font.body,
         color: textColor.primary,
       }}>
         {day}

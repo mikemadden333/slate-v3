@@ -305,7 +305,7 @@ function SMSConfigPanel({ onClose }: { onClose: () => void }) {
         borderRadius: 16, padding: 32, width: 380,
         boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
       }}>
-        <div style={{ fontFamily: font.display, fontSize: '18px', color: W.textPrimary, marginBottom: 8 }}>
+        <div style={{ fontFamily: font.body, fontSize: '18px', color: W.textPrimary, marginBottom: 8 }}>
           SMS Alert Configuration
         </div>
         <div style={{ fontSize: '13px', color: W.textMuted, marginBottom: 20, lineHeight: 1.5 }}>
@@ -689,7 +689,7 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
               {kpi.label}
             </div>
             <div style={{
-              fontFamily: font.display, fontSize: '28px', fontWeight: 300,
+              fontFamily: font.body, fontSize: '28px', fontWeight: 300,
               color: kpi.color, lineHeight: 1, marginBottom: 6,
             }}>
               {kpi.value}
@@ -1448,7 +1448,7 @@ export const WatchAppV3: React.FC = () => {
           animation: 'v3Spin 1s linear infinite',
         }} />
         <div style={{
-          fontFamily: font.display, fontSize: '20px', color: W.textSecondary,
+          fontFamily: font.body, fontSize: '20px', color: W.textSecondary,
           fontWeight: 300, letterSpacing: '0.02em',
         }}>
           Scanning all sources...
@@ -1533,7 +1533,7 @@ export const WatchAppV3: React.FC = () => {
           }} />
           <div>
             <div style={{
-              fontFamily: font.display, fontSize: '16px', fontWeight: 300,
+              fontFamily: font.body, fontSize: '16px', fontWeight: 300,
               color: W.textPrimary, letterSpacing: '0.03em',
             }}>
               Watch

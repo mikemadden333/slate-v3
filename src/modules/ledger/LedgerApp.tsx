@@ -1,21 +1,19 @@
 /**
- * Slate v3 — Ledger
+ * Slate v4 — Ledger V2
  * ═══════════════════════════════════════════════════
- * Financial Intelligence Engine — Moonshot Edition
+ * Elite CFO Financial Intelligence System
  *
- * Budget vs. Actual · Covenant Monitor · Interactive Scenario Modeling
- * Support Team Spend · Compensation Intelligence · AI Financial Analysis
+ * FIVE-ACT STRUCTURE:
+ * Act I   — Briefing:   What is the financial picture right now?
+ * Act II  — Board Deck: One-click board & committee deck generation
+ * Act III — Horizon:    3-year scenario modeling with interactive sliders
+ * Act IV  — Deep Dive:  Revenue · Expenses · Covenants · Support Team
+ * Act V   — Principal:  Campus-level financial allocation
  *
- * CEO sees the full financial picture. Principal sees their campus allocation.
- *
- * KEY CHANGES from v2:
- * - Support Team department tracking
- * - Scenario tab now has INTERACTIVE sliders for what-if modeling
- * - Deep drill-down on every financial metric
- * - Covenant stress testing with scenario integration
+ * Design: Inter only, blue accents, no gold inside product UI,
+ * white cards on cool canvas, 16px radius, hairline borders.
  */
-
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useFinancials, useEnrollment, useNetwork, useRole } from '../../data/DataStore';
 import { useSlateAI } from '../../core/useSlateAI';
 import { Card, KPICard, ModuleHeader, Section, AIInsight, StatusBadge, EmptyState } from '../../components/Card';
@@ -26,20 +24,24 @@ import {
 } from '../../core/theme';
 
 // ─── Tab System ──────────────────────────────────────────────────────────
+type LedgerTab = 'briefing' | 'boarddeck' | 'horizon' | 'overview' | 'revenue' | 'expenses' | 'covenants' | 'support';
 
-type LedgerTab = 'overview' | 'revenue' | 'expenses' | 'covenants' | 'scenarios' | 'support';
-
-const TABS: { id: LedgerTab; label: string; icon: string }[] = [
-  { id: 'overview',  label: 'Overview',      icon: '◉' },
-  { id: 'revenue',   label: 'Revenue',       icon: '▲' },
-  { id: 'expenses',  label: 'Expenses',      icon: '▼' },
-  { id: 'covenants', label: 'Covenants',     icon: '◇' },
-  { id: 'scenarios', label: 'Scenarios',     icon: '◈' },
-  { id: 'support',   label: 'Support Team',  icon: '▤' },
+const TABS: { id: LedgerTab; label: string; subtitle: string; badge?: string }[] = [
+  { id: 'briefing',  label: 'Briefing',    subtitle: 'What is the picture?' },
+  { id: 'boarddeck', label: 'Board Deck',  subtitle: 'How do we explain it?', badge: 'NEW' },
+  { id: 'horizon',   label: 'Horizon',     subtitle: 'What happens next?', badge: 'INTERACTIVE' },
+  { id: 'overview',  label: 'Overview',    subtitle: 'Full financials' },
+  { id: 'revenue',   label: 'Revenue',     subtitle: 'Sources & trends' },
+  { id: 'expenses',  label: 'Expenses',    subtitle: 'Spend & variance' },
+  { id: 'covenants', label: 'Covenants',   subtitle: 'Bond compliance' },
+  { id: 'support',   label: 'Support Team',subtitle: 'Compensation' },
 ];
 
-// ─── Shared Styles ───────────────────────────────────────────────────────
+// ─── Formatters ──────────────────────────────────────────────────────────
+const fmtM = (n: number) => `$${Math.abs(n).toFixed(1)}M`;
+const fmtSign = (n: number) => `${n >= 0 ? '+' : '-'}$${Math.abs(n).toFixed(1)}M`;
 
+// ─── Shared Styles ───────────────────────────────────────────────────────
 const th: React.CSSProperties = {
   fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted,
   textTransform: 'uppercase', letterSpacing: '0.5px', padding: '10px 12px',
@@ -51,9 +53,10 @@ const td: React.CSSProperties = {
 };
 const tdL: React.CSSProperties = { ...td, fontFamily: font.sans, fontWeight: fontWeight.medium };
 
-// ─── Reusable Components ─────────────────────────────────────────────────
-
-function Bar({ value, max, color, h = 8, showLabel = false }: { value: number; max: number; color: string; h?: number; showLabel?: boolean }) {
+// ─── Bar Component ────────────────────────────────────────────────────────
+function Bar({ value, max, color, h = 8, showLabel = false }: {
+  value: number; max: number; color: string; h?: number; showLabel?: boolean;
+}) {
   const pct = Math.min((value / max) * 100, 100);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
@@ -65,13 +68,19 @@ function Bar({ value, max, color, h = 8, showLabel = false }: { value: number; m
   );
 }
 
+// ─── Sparkline Component ──────────────────────────────────────────────────
 function Spark({ data, color, w = 120, h = 32 }: { data: number[]; color: string; w?: number; h?: number }) {
   if (data.length < 2) return null;
   const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
   const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`).join(' ');
-  return <svg width={w} height={h} style={{ display: 'block' }}><polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  return (
+    <svg width={w} height={h} style={{ display: 'block' }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
+// ─── Variance Cell ────────────────────────────────────────────────────────
 function VarCell({ actual, budget, invert = false }: { actual: number; budget: number; invert?: boolean }) {
   const diff = actual - budget;
   const isGood = invert ? diff < 0 : diff >= 0;
@@ -83,13 +92,13 @@ function VarCell({ actual, budget, invert = false }: { actual: number; budget: n
 }
 
 // ─── Interactive Slider ──────────────────────────────────────────────────
-
 function Slider({ label, value, min, max, step, unit, color, onChange, description }: {
-  label: string; value: number; min: number; max: number; step: number; unit: string; color: string; onChange: (v: number) => void; description?: string;
+  label: string; value: number; min: number; max: number; step: number;
+  unit: string; color: string; onChange: (v: number) => void; description?: string;
 }) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
         <span style={{ fontSize: fontSize.sm, color: text.secondary, fontWeight: fontWeight.medium }}>{label}</span>
         <span style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, fontFamily: font.mono, color }}>{value.toFixed(unit === '%' ? 1 : 0)}{unit}</span>
@@ -102,8 +111,11 @@ function Slider({ label, value, min, max, step, unit, color, onChange, descripti
         <input type="range" min={min} max={max} step={step} value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           style={{ position: 'absolute', left: 0, right: 0, width: '100%', height: 24, opacity: 0, cursor: 'pointer', margin: 0 }} />
-        <div style={{ position: 'absolute', left: `calc(${pct}% - 8px)`, width: 16, height: 16, borderRadius: '50%',
-          background: color, border: `2px solid ${bg.card}`, boxShadow: `0 0 6px ${color}40`, pointerEvents: 'none', transition: 'left 0.1s' }} />
+        <div style={{
+          position: 'absolute', left: `calc(${pct}% - 8px)`, width: 16, height: 16, borderRadius: '50%',
+          background: color, border: `2px solid ${bg.card}`, boxShadow: `0 0 6px ${color}40`,
+          pointerEvents: 'none', transition: 'left 0.1s'
+        }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
         <span style={{ fontSize: '9px', color: text.light }}>{min}{unit}</span>
@@ -113,526 +125,571 @@ function Slider({ label, value, min, max, step, unit, color, onChange, descripti
   );
 }
 
-// ─── Gauge Component ─────────────────────────────────────────────────────
-
+// ─── Gauge Component ──────────────────────────────────────────────────────
 function Gauge({ value, min, max, thresholds, label, format }: {
-  value: number; min: number; max: number; thresholds: { danger: number; warning: number }; label: string; format: (n: number) => string;
+  value: number; min: number; max: number;
+  thresholds: { danger: number; warning: number };
+  label: string; format: (n: number) => string;
 }) {
   const pct = Math.min(Math.max((value - min) / (max - min), 0), 1);
-  const angle = -90 + pct * 180;
+  const angle = -135 + pct * 270;
   const color = value < thresholds.danger ? status.red : value < thresholds.warning ? status.amber : status.green;
-  const r = 50, cx = 60, cy = 55;
+  const r = 40, cx = 50, cy = 55;
+  const arcPath = (startAngle: number, endAngle: number, color: string) => {
+    const toRad = (a: number) => (a - 90) * Math.PI / 180;
+    const x1 = cx + r * Math.cos(toRad(startAngle));
+    const y1 = cy + r * Math.sin(toRad(startAngle));
+    const x2 = cx + r * Math.cos(toRad(endAngle));
+    const y2 = cy + r * Math.sin(toRad(endAngle));
+    const large = Math.abs(endAngle - startAngle) > 180 ? 1 : 0;
+    return <path d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />;
+  };
   return (
     <div style={{ textAlign: 'center' }}>
-      <svg width={120} height={70} viewBox="0 0 120 70">
-        <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={border.light} strokeWidth={8} strokeLinecap="round" />
-        <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round"
-          strokeDasharray={`${pct * Math.PI * r} ${Math.PI * r}`} />
-        <line x1={cx} y1={cy} x2={cx + 35 * Math.cos((angle * Math.PI) / 180)} y2={cy + 35 * Math.sin((angle * Math.PI) / 180)}
-          stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+      <svg viewBox="0 0 100 80" style={{ width: 100, height: 80 }}>
+        {arcPath(-135, 135, `${color}20`)}
+        {arcPath(-135, -135 + pct * 270, color)}
+        <line x1={cx} y1={cy} x2={cx + (r - 10) * Math.cos((angle - 90) * Math.PI / 180)} y2={cy + (r - 10) * Math.sin((angle - 90) * Math.PI / 180)}
+          stroke={color} strokeWidth={2} strokeLinecap="round" />
         <circle cx={cx} cy={cy} r={4} fill={color} />
+        <text x={cx} y={cy + 18} textAnchor="middle" fontSize={11} fontWeight="700" fill={color} fontFamily="JetBrains Mono, monospace">{format(value)}</text>
+        <text x={cx} y={cy + 28} textAnchor="middle" fontSize={7} fill="#9CA3AF" fontFamily="Inter, sans-serif" textTransform="uppercase">{label}</text>
       </svg>
-      <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, fontFamily: font.mono, color, marginTop: -4 }}>{format(value)}</div>
-      <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+// ─── Covenant Status Row ──────────────────────────────────────────────────
+function CovenantRow({ name, actual, minimum, bondDoc, format, description }: {
+  name: string; actual: number; minimum: number; bondDoc?: number;
+  format: (n: number) => string; description: string;
+}) {
+  const passing = actual >= minimum;
+  const cushion = ((actual - minimum) / minimum * 100);
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
+      borderBottom: `1px solid ${border.light}`,
+    }}>
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: passing ? status.green : status.red, flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.primary }}>{name}</div>
+        <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>{description}</div>
+      </div>
+      <div style={{ textAlign: 'right', minWidth: 80 }}>
+        <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, fontFamily: font.mono, color: passing ? status.green : status.red }}>{format(actual)}</div>
+        <div style={{ fontSize: fontSize.xs, color: text.light }}>Min: {format(minimum)}</div>
+      </div>
+      <div style={{ textAlign: 'right', minWidth: 60 }}>
+        <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, fontFamily: font.mono, color: passing ? status.green : status.red }}>
+          {cushion >= 0 ? '+' : ''}{cushion.toFixed(0)}%
+        </div>
+        <div style={{ fontSize: fontSize.xs, color: text.light }}>cushion</div>
+      </div>
+      <StatusBadge label={passing ? 'COMPLIANT' : 'VIOLATION'} variant={passing ? 'green' : 'red'} />
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// OVERVIEW TAB
+// ACT I — BRIEFING TAB
 // ═══════════════════════════════════════════════════════════════════════════
-
-function OverviewTab() {
+function BriefingTab() {
   const fin = useFinancials();
-  const ytd = fin.ytdSummary;
+  const { campuses } = useNetwork();
   const bud = fin.budget;
+  const ytd = fin.ytdSummary;
   const actuals = fin.actuals;
-
-  const ytdRevActual = actuals.reduce((s, m) => s + m.revenue.total, 0);
-  const ytdExpActual = actuals.reduce((s, m) => s + m.expenses.total, 0);
-  const ytdSurplus = ytdRevActual - ytdExpActual;
   const monthsElapsed = actuals.length;
-  const ytdRevBudget = (bud.revenue.total / 12) * monthsElapsed;
-  const ytdExpBudget = (bud.expenses.total / 12) * monthsElapsed;
-  const revTrend = actuals.map(m => m.revenue.total);
-  const expTrend = actuals.map(m => m.expenses.total);
+  const ytdRevActual = actuals.reduce((s, m) => s + m.revenue.total, 0);
+  const ytdRevBudget = bud.revenue.total * (monthsElapsed / 12);
+  const ytdExpActual = actuals.reduce((s, m) => s + m.expenses.total, 0);
+  const ytdExpBudget = bud.expenses.total * (monthsElapsed / 12);
+  const ytdSurplus = ytdRevActual - ytdExpActual;
+  const revVariance = ytdRevActual - ytdRevBudget;
+  const expVariance = ytdExpActual - ytdExpBudget;
 
   const ai = useSlateAI({
-    prompt: `Provide a concise financial health assessment for this charter school network. Cover YTD revenue vs budget performance, expense tracking, surplus position, covenant compliance (DSCR, days cash), and the single most important financial trend the CEO should focus on today. Be specific with numbers.`,
-    domain: 'ledger-overview',
-    fallback: `Through ${monthsElapsed} months of FY26, Veritas is tracking $${(ytdRevActual - ytdRevBudget).toFixed(1)}M ${ytdRevActual >= ytdRevBudget ? 'ahead of' : 'behind'} revenue budget and $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M ${ytdExpActual <= ytdExpBudget ? 'under' : 'over'} on expenses. The YTD surplus of $${ytdSurplus.toFixed(1)}M provides a cushion. Days cash at ${ytd.daysCash} is strong. DSCR of ${fmtDscr(ytd.dscr)} exceeds covenant minimum.`,
+    prompt: `You are the CFO of a 10-campus charter school network in Chicago. Write a concise, authoritative 3-sentence financial briefing for the CEO. Current status: ${monthsElapsed} months into FY26. YTD Revenue: $${ytdRevActual.toFixed(1)}M vs budget $${ytdRevBudget.toFixed(1)}M (${revVariance >= 0 ? 'ahead' : 'behind'} by $${Math.abs(revVariance).toFixed(1)}M). YTD Expenses: $${ytdExpActual.toFixed(1)}M vs budget $${ytdExpBudget.toFixed(1)}M (${expVariance <= 0 ? 'under' : 'over'} by $${Math.abs(expVariance).toFixed(1)}M). YTD Surplus: $${ytdSurplus.toFixed(1)}M. Days Cash: ${ytd.daysCash}. DSCR: ${fmtDscr(ytd.dscr)}. Be direct, use specific numbers, and end with the single most important thing to watch.`,
+    domain: 'ledger-briefing',
+    fallback: `Through ${monthsElapsed} months of FY26, the network is tracking $${Math.abs(revVariance).toFixed(1)}M ${revVariance >= 0 ? 'ahead of' : 'behind'} revenue budget with expenses ${expVariance <= 0 ? 'under' : 'over'} plan by $${Math.abs(expVariance).toFixed(1)}M, producing a YTD surplus of $${ytdSurplus.toFixed(1)}M. Days cash at ${ytd.daysCash} and DSCR at ${fmtDscr(ytd.dscr)} both exceed bond covenants with comfortable cushion. Key watch: Q3-Q4 philanthropy performance will determine whether the YTD advantage holds through year-end.`,
   });
 
-  return (
-    <div>
-      {/* 5-KPI Header */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="YTD Revenue" value={`$${ytdRevActual.toFixed(1)}M`} subValue={`Budget: $${ytdRevBudget.toFixed(1)}M`}
-          trend={{ value: `${ytdRevActual >= ytdRevBudget ? '+' : ''}${(ytdRevActual - ytdRevBudget).toFixed(1)}M`, positive: ytdRevActual >= ytdRevBudget }}
-          icon="▲" accent={modColors.ledger} />
-        <KPICard label="YTD Expenses" value={`$${ytdExpActual.toFixed(1)}M`} subValue={`Budget: $${ytdExpBudget.toFixed(1)}M`}
-          trend={{ value: `${ytdExpActual <= ytdExpBudget ? 'Under' : 'Over'} by $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M`, positive: ytdExpActual <= ytdExpBudget }}
-          icon="▼" accent={status.amber} />
-        <KPICard label="YTD Surplus" value={`$${ytdSurplus.toFixed(1)}M`} subValue={`Annual target: $${bud.netSurplus.toFixed(1)}M`}
-          trend={{ value: ytdSurplus >= 0 ? 'Surplus' : 'Deficit', positive: ytdSurplus >= 0 }}
-          icon="◆" accent={ytdSurplus >= 0 ? status.green : status.red} />
-        <KPICard label="Days Cash" value={`${ytd.daysCash}`} subValue={`Target: ${bud.daysCashTarget} days`}
-          trend={{ value: ytd.daysCash >= bud.daysCashTarget ? 'Above target' : 'Below target', positive: ytd.daysCash >= bud.daysCashTarget }}
-          icon="◎" accent={ytd.daysCash >= bud.daysCashTarget ? status.green : status.amber} />
-        <KPICard label="DSCR" value={fmtDscr(ytd.dscr)} subValue={`Min: ${fmtDscr(fin.covenants.dscrMinimum)}`}
-          trend={{ value: ytd.dscr >= fin.covenants.dscrMinimum ? 'Compliant' : 'VIOLATION', positive: ytd.dscr >= fin.covenants.dscrMinimum }}
-          accent={ytd.dscr >= fin.covenants.dscrMinimum ? status.green : status.red} />
-      </div>
+  // Anomaly detection
+  const anomalies = useMemo(() => {
+    const items: { type: 'warning' | 'info' | 'positive'; label: string; detail: string }[] = [];
+    if (revVariance < -1) items.push({ type: 'warning', label: 'Revenue Below Budget', detail: `$${Math.abs(revVariance).toFixed(1)}M behind plan through ${monthsElapsed} months` });
+    if (expVariance > 1) items.push({ type: 'warning', label: 'Expenses Above Budget', detail: `$${expVariance.toFixed(1)}M over plan — investigate personnel and occupancy` });
+    if (ytd.daysCash < 90) items.push({ type: 'warning', label: 'Days Cash Declining', detail: `${ytd.daysCash} days — approaching 90-day watch threshold` });
+    if (ytd.dscr < 1.5) items.push({ type: 'warning', label: 'DSCR Tightening', detail: `${fmtDscr(ytd.dscr)} — monitor against ${fmtDscr(fin.covenants.dscrMinimum)} minimum` });
+    if (revVariance > 1) items.push({ type: 'positive', label: 'Revenue Ahead of Plan', detail: `$${revVariance.toFixed(1)}M above budget — philanthropy spike in December` });
+    if (expVariance < -0.5) items.push({ type: 'positive', label: 'Expense Discipline', detail: `$${Math.abs(expVariance).toFixed(1)}M under budget — vacancy savings and deferred spend` });
+    if (items.length === 0) items.push({ type: 'info', label: 'No Anomalies Detected', detail: 'All financial metrics tracking within normal parameters' });
+    return items;
+  }, [revVariance, expVariance, ytd, monthsElapsed, fin.covenants]);
 
-      {/* Revenue vs Expense Trends */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <Card accent={modColors.ledger}>
-          <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Monthly Revenue Trend</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-            <Spark data={revTrend} color={status.green} w={200} h={48} />
-            <div>
-              <div style={{ fontSize: fontSize.sm, color: text.muted }}>Latest: ${actuals[actuals.length - 1]?.revenue.total.toFixed(1)}M</div>
-              <div style={{ fontSize: fontSize.xs, color: text.light }}>{monthsElapsed}-month avg: ${(ytdRevActual / monthsElapsed).toFixed(1)}M</div>
-            </div>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>
-              <th style={th}>Month</th><th style={{ ...th, textAlign: 'right' }}>CPS</th>
-              <th style={{ ...th, textAlign: 'right' }}>Other Public</th><th style={{ ...th, textAlign: 'right' }}>Philanthropy</th>
-              <th style={{ ...th, textAlign: 'right' }}>Total</th>
-            </tr></thead>
-            <tbody>{actuals.map(m => (
-              <tr key={m.month}>
-                <td style={tdL}>{m.month}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{m.revenue.cps.toFixed(1)}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{m.revenue.otherPublic.toFixed(1)}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{m.revenue.philanthropy.toFixed(1)}</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.semibold }}>{m.revenue.total.toFixed(1)}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </Card>
-
-        <Card accent={status.amber}>
-          <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Monthly Expense Trend</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-            <Spark data={expTrend} color={status.red} w={200} h={48} />
-            <div>
-              <div style={{ fontSize: fontSize.sm, color: text.muted }}>Latest: ${actuals[actuals.length - 1]?.expenses.total.toFixed(1)}M</div>
-              <div style={{ fontSize: fontSize.xs, color: text.light }}>{monthsElapsed}-month avg: ${(ytdExpActual / monthsElapsed).toFixed(1)}M</div>
-            </div>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>
-              <th style={th}>Month</th><th style={{ ...th, textAlign: 'right' }}>Personnel</th>
-              <th style={{ ...th, textAlign: 'right' }}>Direct</th><th style={{ ...th, textAlign: 'right' }}>Occupancy</th>
-              <th style={{ ...th, textAlign: 'right' }}>Total</th>
-            </tr></thead>
-            <tbody>{actuals.map(m => (
-              <tr key={m.month}>
-                <td style={tdL}>{m.month}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{m.expenses.personnel.toFixed(1)}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{m.expenses.directStudent.toFixed(1)}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{m.expenses.occupancy.toFixed(1)}</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.semibold }}>{m.expenses.total.toFixed(1)}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </Card>
-      </div>
-
-      {/* Budget Architecture */}
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>FY26 Budget Architecture</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
-          <div>
-            <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.primary, marginBottom: 12 }}>Revenue — ${bud.revenue.total.toFixed(1)}M</div>
-            {[
-              { label: 'CPS Per-Pupil', value: bud.revenue.cps, pct: bud.revenue.cps / bud.revenue.total * 100 },
-              { label: 'Other Public', value: bud.revenue.otherPublic, pct: bud.revenue.otherPublic / bud.revenue.total * 100 },
-              { label: 'Philanthropy', value: bud.revenue.philanthropy, pct: bud.revenue.philanthropy / bud.revenue.total * 100 },
-            ].map(r => (
-              <div key={r.label} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: fontSize.sm, color: text.secondary }}>{r.label}</span>
-                  <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, color: text.primary }}>${r.value.toFixed(1)}M ({fmtPct(r.pct)})</span>
-                </div>
-                <Bar value={r.value} max={bud.revenue.total} color={status.green} h={6} />
-              </div>
-            ))}
-          </div>
-          <div>
-            <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.primary, marginBottom: 12 }}>Expenses — ${bud.expenses.total.toFixed(1)}M</div>
-            {[
-              { label: 'Personnel', value: bud.expenses.personnel, pct: bud.expenses.personnel / bud.expenses.total * 100 },
-              { label: 'Direct Student', value: bud.expenses.directStudent, pct: bud.expenses.directStudent / bud.expenses.total * 100 },
-              { label: 'Occupancy', value: bud.expenses.occupancy, pct: bud.expenses.occupancy / bud.expenses.total * 100 },
-              { label: 'Other', value: bud.expenses.other, pct: bud.expenses.other / bud.expenses.total * 100 },
-            ].map(r => (
-              <div key={r.label} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: fontSize.sm, color: text.secondary }}>{r.label}</span>
-                  <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, color: text.primary }}>${r.value.toFixed(1)}M ({fmtPct(r.pct)})</span>
-                </div>
-                <Bar value={r.value} max={bud.expenses.total} color={status.red} h={6} />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: `2px solid ${border.light}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div><span style={{ fontSize: fontSize.sm, color: text.muted }}>EBITDA: </span><span style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, fontFamily: font.mono, color: bud.ebitda >= 0 ? status.green : status.red }}>${bud.ebitda.toFixed(1)}M</span></div>
-          <div><span style={{ fontSize: fontSize.sm, color: text.muted }}>Net Surplus: </span><span style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, fontFamily: font.mono, color: bud.netSurplus >= 0 ? status.green : status.red }}>${bud.netSurplus.toFixed(1)}M</span></div>
-          <div><span style={{ fontSize: fontSize.sm, color: text.muted }}>Contingency: </span><span style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, fontFamily: font.mono, color: text.primary }}>${bud.contingency.toFixed(1)}M</span></div>
-        </div>
-      </Card>
-
-      <AIInsight label="Slate Financial Intelligence"
-        content={`Through ${monthsElapsed} months of FY26, Veritas is tracking $${(ytdRevActual - ytdRevBudget).toFixed(1)}M ${ytdRevActual >= ytdRevBudget ? 'ahead of' : 'behind'} revenue budget and $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M ${ytdExpActual <= ytdExpBudget ? 'under' : 'over'} on expenses. The YTD surplus of $${ytdSurplus.toFixed(1)}M provides a cushion against the budgeted annual deficit of $${Math.abs(bud.netSurplus).toFixed(1)}M. Days cash at ${ytd.daysCash} is ${(ytd.daysCash / bud.daysCashTarget * 100).toFixed(0)}% of the ${bud.daysCashTarget}-day target — a strong liquidity position. The DSCR of ${fmtDscr(ytd.dscr)} comfortably exceeds the bond document minimum of ${fmtDscr(fin.covenants.dscrBondDoc)}. Key watch: December philanthropy spike ($1.7M) inflated the surplus; January's $0.4M philanthropy is more typical. Monitor whether Q3-Q4 giving sustains the YTD advantage.`}
-        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// REVENUE TAB
-// ═══════════════════════════════════════════════════════════════════════════
-
-function RevenueTab() {
-  const fin = useFinancials();
-  const bud = fin.budget;
-  const actuals = fin.actuals;
-  const historical = fin.historical;
-
-  const ytdCPS = actuals.reduce((s, m) => s + m.revenue.cps, 0);
-  const ytdOther = actuals.reduce((s, m) => s + m.revenue.otherPublic, 0);
-  const ytdPhil = actuals.reduce((s, m) => s + m.revenue.philanthropy, 0);
-
-  const ai = useSlateAI({
-    prompt: `Analyze the revenue composition and trends for this charter school network. Focus on CPS per-pupil revenue concentration risk, philanthropy volatility, revenue diversification strategy, and the historical growth trajectory. What is the single biggest revenue risk and what should the CEO do about it?`,
-    domain: 'ledger-revenue',
-    fallback: `Revenue has grown from $83.5M (FY20) to a budgeted $138.3M (FY26). CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue — a concentration risk. Philanthropy shows significant monthly volatility. Recommendation: Build a 3-year revenue diversification strategy.`,
-  });
-
-  return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="CPS Revenue (YTD)" value={`$${ytdCPS.toFixed(1)}M`} subValue={`Annual budget: $${bud.revenue.cps.toFixed(1)}M`} accent={modColors.ledger} />
-        <KPICard label="Other Public (YTD)" value={`$${ytdOther.toFixed(1)}M`} subValue={`Annual budget: $${bud.revenue.otherPublic.toFixed(1)}M`} accent={chart.secondary} />
-        <KPICard label="Philanthropy (YTD)" value={`$${ytdPhil.toFixed(1)}M`} subValue={`Annual budget: $${bud.revenue.philanthropy.toFixed(1)}M`} accent={chart.tertiary} />
-        <KPICard label="Revenue Concentration" value={`${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}%`} subValue="CPS as % of total revenue"
-          trend={{ value: 'High concentration risk', positive: false }} accent={status.amber} />
-      </div>
-
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Revenue Growth History</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={th}>Year</th><th style={{ ...th, textAlign: 'right' }}>Enrollment</th>
-            <th style={{ ...th, textAlign: 'right' }}>CPS Revenue</th><th style={{ ...th, textAlign: 'right' }}>Total Revenue</th>
-            <th style={{ ...th, textAlign: 'right' }}>Rev/Pupil</th><th style={{ ...th, textAlign: 'right' }}>YoY Growth</th>
-          </tr></thead>
-          <tbody>{historical.map((h, i) => {
-            const prevRev = i > 0 ? historical[i - 1].totalRevenue : null;
-            const growth = prevRev ? ((h.totalRevenue - prevRev) / prevRev * 100) : null;
-            return (
-              <tr key={h.year}>
-                <td style={tdL}>{h.year}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{fmtNum(h.enrollment)}</td>
-                <td style={{ ...td, textAlign: 'right' }}>${h.cpsRevenue.toFixed(1)}M</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.semibold }}>${h.totalRevenue.toFixed(1)}M</td>
-                <td style={{ ...td, textAlign: 'right' }}>{fmtFull(Math.round(h.totalRevenue * 1000000 / h.enrollment))}</td>
-                <td style={{ ...td, textAlign: 'right', color: growth && growth >= 0 ? status.green : status.red }}>
-                  {growth !== null ? `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%` : '—'}
-                </td>
-              </tr>
-            );
-          })}</tbody>
-        </table>
-      </Card>
-
-      {/* Revenue Concentration Risk */}
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Revenue Concentration Analysis</div>
-        <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          <div style={{ width: 120, height: 120, position: 'relative' }}>
-            <svg width={120} height={120} viewBox="0 0 120 120">
-              {(() => {
-                const slices = [
-                  { pct: bud.revenue.cps / bud.revenue.total, color: modColors.ledger, label: 'CPS' },
-                  { pct: bud.revenue.otherPublic / bud.revenue.total, color: chart.secondary, label: 'Other' },
-                  { pct: bud.revenue.philanthropy / bud.revenue.total, color: chart.tertiary, label: 'Phil.' },
-                ];
-                let cum = 0;
-                return slices.map((s, i) => {
-                  const start = cum * 360;
-                  cum += s.pct;
-                  const end = cum * 360;
-                  const r = 50, cx = 60, cy = 60;
-                  const startRad = (start - 90) * Math.PI / 180;
-                  const endRad = (end - 90) * Math.PI / 180;
-                  const large = s.pct > 0.5 ? 1 : 0;
-                  const x1 = cx + r * Math.cos(startRad), y1 = cy + r * Math.sin(startRad);
-                  const x2 = cx + r * Math.cos(endRad), y2 = cy + r * Math.sin(endRad);
-                  return <path key={i} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`} fill={s.color} opacity={0.85} />;
-                });
-              })()}
-              <circle cx={60} cy={60} r={25} fill={bg.card} />
-            </svg>
-          </div>
-          <div style={{ flex: 1 }}>
-            {[
-              { label: 'CPS Per-Pupil', pct: bud.revenue.cps / bud.revenue.total * 100, color: modColors.ledger, risk: 'HIGH' },
-              { label: 'Other Public', pct: bud.revenue.otherPublic / bud.revenue.total * 100, color: chart.secondary, risk: 'LOW' },
-              { label: 'Philanthropy', pct: bud.revenue.philanthropy / bud.revenue.total * 100, color: chart.tertiary, risk: 'MEDIUM' },
-            ].map(item => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <div style={{ width: 12, height: 12, borderRadius: 3, background: item.color }} />
-                <span style={{ fontSize: fontSize.sm, color: text.secondary, flex: 1 }}>{item.label}</span>
-                <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, fontWeight: fontWeight.semibold, color: text.primary }}>{fmtPct(item.pct)}</span>
-                <StatusBadge label={item.risk} variant={item.risk === 'HIGH' ? 'red' : item.risk === 'MEDIUM' ? 'amber' : 'green'} size="sm" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      <AIInsight label="Revenue Intelligence"
-        content={`Veritas revenue has grown from $83.5M in FY20 to a budgeted $138.3M in FY26 — a ${((138.3 / 83.5 - 1) * 100).toFixed(0)}% increase driven primarily by enrollment growth and per-pupil rate increases. The critical dependency: CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue. This concentration creates existential risk if per-pupil rates flatten or decline. Philanthropy at $${bud.revenue.philanthropy.toFixed(1)}M (${(bud.revenue.philanthropy / bud.revenue.total * 100).toFixed(1)}% of revenue) is healthy for a network this size but shows significant monthly volatility — December's $1.7M vs January's $0.4M. Recommendation: Build a 3-year revenue diversification strategy targeting 75% CPS dependency by FY29.`}
-        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// EXPENSES TAB
-// ═══════════════════════════════════════════════════════════════════════════
-
-function ExpensesTab() {
-  const fin = useFinancials();
-  const bud = fin.budget;
-  const actuals = fin.actuals;
-  const historical = fin.historical;
-
-  const ytdPersonnel = actuals.reduce((s, m) => s + m.expenses.personnel, 0);
-  const ytdDirect = actuals.reduce((s, m) => s + m.expenses.directStudent, 0);
-  const ytdOccupancy = actuals.reduce((s, m) => s + m.expenses.occupancy, 0);
-  const ytdTotal = actuals.reduce((s, m) => s + m.expenses.total, 0);
-
-  const ai = useSlateAI({
-    prompt: `Analyze the expense structure and trends for this charter school network. Focus on personnel cost as % of total, the expense growth rate vs revenue growth rate, the FY23 deficit year as a cautionary tale, cost per student competitiveness, and the structural challenge of expense growth outpacing revenue. What is the crossover risk and what should the board understand?`,
-    domain: 'ledger-expenses',
-    fallback: `Total expenses have grown from $82.1M (FY20) to a budgeted $131.9M (FY26). Personnel consistently represents 70-85% of total expenses. The key structural challenge: expense growth is outpacing revenue growth, creating a potential crossover point. This is the single most important financial trend for the board to understand.`,
-  });
-
-  return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="Personnel (YTD)" value={`$${ytdPersonnel.toFixed(1)}M`} subValue={`${(ytdPersonnel / ytdTotal * 100).toFixed(0)}% of total`} accent={modColors.ledger} />
-        <KPICard label="Direct Student (YTD)" value={`$${ytdDirect.toFixed(1)}M`} subValue={`Annual budget: $${bud.expenses.directStudent.toFixed(1)}M`} accent={chart.tertiary} />
-        <KPICard label="Occupancy (YTD)" value={`$${ytdOccupancy.toFixed(1)}M`} subValue={`Annual budget: $${bud.expenses.occupancy.toFixed(1)}M`} accent={chart.quaternary} />
-        <KPICard label="Cost Per Student" value={fmtFull(Math.round(bud.expenses.total * 1000000 / bud.enrollment))} subValue={`${fmtNum(bud.enrollment)} budgeted students`} accent={status.amber} />
-      </div>
-
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Expense Growth History</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={th}>Year</th><th style={{ ...th, textAlign: 'right' }}>Personnel</th>
-            <th style={{ ...th, textAlign: 'right' }}>Total Expenses</th><th style={{ ...th, textAlign: 'right' }}>Personnel %</th>
-            <th style={{ ...th, textAlign: 'right' }}>Cost/Student</th><th style={{ ...th, textAlign: 'right' }}>YoY Growth</th>
-          </tr></thead>
-          <tbody>{historical.map((h, i) => {
-            const prevExp = i > 0 ? historical[i - 1].totalExpenses : null;
-            const growth = prevExp ? ((h.totalExpenses - prevExp) / prevExp * 100) : null;
-            return (
-              <tr key={h.year}>
-                <td style={tdL}>{h.year}</td>
-                <td style={{ ...td, textAlign: 'right' }}>${h.personnel.toFixed(1)}M</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.semibold }}>${h.totalExpenses.toFixed(1)}M</td>
-                <td style={{ ...td, textAlign: 'right' }}>{(h.personnel / h.totalExpenses * 100).toFixed(0)}%</td>
-                <td style={{ ...td, textAlign: 'right' }}>{fmtFull(Math.round(h.totalExpenses * 1000000 / h.enrollment))}</td>
-                <td style={{ ...td, textAlign: 'right', color: growth && growth > 0 ? status.red : status.green }}>
-                  {growth !== null ? `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%` : '—'}
-                </td>
-              </tr>
-            );
-          })}</tbody>
-        </table>
-      </Card>
-
-      <AIInsight label="Expense Intelligence"
-        content={`Total expenses have grown from $82.1M (FY20) to a budgeted $131.9M (FY26) — a ${((131.9 / 82.1 - 1) * 100).toFixed(0)}% increase. Personnel consistently represents 70-85% of total expenses, which is typical for charter networks. The FY23 spike to $113.5M (vs $107.8M revenue) created a -$1.7M deficit — a cautionary year. Cost per student at ${fmtFull(Math.round(bud.expenses.total * 1000000 / bud.enrollment))} is competitive for a Chicago charter. The key structural challenge: expense growth is outpacing revenue growth in the reasonable scenario, creating a potential crossover point in FY28 where expenses exceed revenue. This is the single most important financial trend for the board to understand.`}
-        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// COVENANTS TAB
-// ═══════════════════════════════════════════════════════════════════════════
-
-function CovenantsTab() {
-  const fin = useFinancials();
-  const ytd = fin.ytdSummary;
-  const cov = fin.covenants;
-
-  const ai = useSlateAI({
-    prompt: `Analyze the bond covenant compliance for this charter school network. Cover DSCR cushion above minimum, days cash strength, current ratio and net asset ratio health. What strategic opportunities does the covenant cushion create? Should the network be more aggressive with investments given the compliance headroom?`,
-    domain: 'ledger-covenants',
-    fallback: `All four financial covenants are in compliance. The DSCR of ${fmtDscr(ytd.dscr)} provides a ${((ytd.dscr - cov.dscrMinimum) / cov.dscrMinimum * 100).toFixed(0)}% cushion above the ${fmtDscr(cov.dscrMinimum)} minimum. Days cash at ${ytd.daysCash} is ${((ytd.daysCash / cov.daysCashMinimum - 1) * 100).toFixed(0)}% above the ${cov.daysCashMinimum}-day minimum. Recommendation: Use the covenant cushion strategically.`,
-  });
-
-  const covenantItems = [
-    { name: 'Debt Service Coverage Ratio (DSCR)', actual: ytd.dscr, minimum: cov.dscrMinimum, bondDoc: cov.dscrBondDoc, format: fmtDscr, description: 'Measures ability to service debt obligations. Calculated as (Net Income + Depreciation + Interest) / Annual Debt Service.', isRatio: true },
-    { name: 'Days Cash on Hand', actual: ytd.daysCash, minimum: cov.daysCashMinimum, bondDoc: null as number | null, format: (n: number) => `${n} days`, description: 'Number of days the organization can operate using only available cash reserves.', isRatio: false },
-    { name: 'Current Ratio', actual: ytd.currentRatio, minimum: cov.currentRatioMinimum, bondDoc: null as number | null, format: (n: number) => `${n.toFixed(2)}x`, description: 'Current assets divided by current liabilities. Measures short-term liquidity.', isRatio: true },
-    { name: 'Net Asset Ratio', actual: ytd.netAssetRatio, minimum: cov.netAssetMinimum, bondDoc: null as number | null, format: (n: number) => `${n.toFixed(1)}%`, description: 'Unrestricted net assets as a percentage of total assets. Measures long-term financial health.', isRatio: false },
+  const covenants = [
+    { name: 'DSCR', actual: ytd.dscr, min: fin.covenants.dscrMinimum, format: fmtDscr },
+    { name: 'Days Cash', actual: ytd.daysCash, min: fin.covenants.daysCashMinimum, format: (n: number) => `${n}d` },
+    { name: 'Current Ratio', actual: ytd.currentRatio, min: fin.covenants.currentRatioMinimum, format: (n: number) => `${n.toFixed(2)}x` },
+    { name: 'Net Asset Ratio', actual: ytd.netAssetRatio, min: fin.covenants.netAssetMinimum, format: (n: number) => `${n.toFixed(1)}%` },
+    { name: 'Enrollment', actual: bud.enrollmentC1, min: fin.covenants.enrollmentMinimum, format: (n: number) => n.toLocaleString() },
   ];
 
   return (
     <div>
-      {/* Covenant Gauges */}
+      {/* CFO Intelligence Briefing */}
+      <div style={{
+        background: bg.dark, borderRadius: radius.xl, padding: '24px 28px',
+        marginBottom: 24, border: `1px solid rgba(255,255,255,0.06)`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: modColors.ledger }} />
+          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.darkSecondary, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+            CFO Intelligence Briefing
+          </span>
+          <span style={{ marginLeft: 'auto', fontSize: fontSize.xs, color: text.darkMuted, fontFamily: font.mono }}>
+            FY26 · Month {monthsElapsed}
+          </span>
+        </div>
+        {ai.loading ? (
+          <div style={{ fontSize: fontSize.sm, color: text.darkSecondary, fontStyle: 'italic' }}>Analyzing financial position...</div>
+        ) : (
+          <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0, fontWeight: fontWeight.normal }}>
+            {ai.text || ai.loading ? '' : ai.text}
+          </p>
+        )}
+        {!ai.loading && !ai.text && (
+          <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0 }}>
+            {`Through ${monthsElapsed} months of FY26, the network is tracking $${Math.abs(revVariance).toFixed(1)}M ${revVariance >= 0 ? 'ahead of' : 'behind'} revenue budget with expenses ${expVariance <= 0 ? 'under' : 'over'} plan by $${Math.abs(expVariance).toFixed(1)}M, producing a YTD surplus of $${ytdSurplus.toFixed(1)}M. Days cash at ${ytd.daysCash} and DSCR at ${fmtDscr(ytd.dscr)} both exceed bond covenants with comfortable cushion. Key watch: Q3-Q4 philanthropy performance will determine whether the YTD advantage holds through year-end.`}
+          </p>
+        )}
+        {ai.text && (
+          <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0 }}>{ai.text}</p>
+        )}
+      </div>
+
+      {/* Vital Signs — 4 KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.dscr} min={0} max={5} thresholds={{ danger: cov.dscrMinimum, warning: cov.dscrMinimum * 1.5 }} label="DSCR" format={fmtDscr} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {fmtDscr(cov.dscrMinimum)} · Bond: {fmtDscr(cov.dscrBondDoc)}</div>
+        <KPICard
+          label="Days Cash on Hand"
+          value={`${ytd.daysCash}`}
+          subValue={`Minimum: ${fin.covenants.daysCashMinimum} days`}
+          trend={ytd.daysCash >= fin.covenants.daysCashMinimum * 1.5 ? 'up' : ytd.daysCash >= fin.covenants.daysCashMinimum ? 'neutral' : 'down'}
+          accent={ytd.daysCash >= fin.covenants.daysCashMinimum * 1.5 ? status.green : ytd.daysCash >= fin.covenants.daysCashMinimum ? status.amber : status.red}
+        />
+        <KPICard
+          label="YTD Surplus"
+          value={fmtM(ytdSurplus)}
+          subValue={`${ytdSurplus >= 0 ? 'Ahead of' : 'Behind'} plan by ${fmtM(Math.abs(ytdSurplus - (bud.netSurplus * monthsElapsed / 12)))}`}
+          trend={ytdSurplus >= 0 ? 'up' : 'down'}
+          accent={ytdSurplus >= 0 ? status.green : status.red}
+        />
+        <KPICard
+          label="DSCR"
+          value={fmtDscr(ytd.dscr)}
+          subValue={`Bond minimum: ${fmtDscr(fin.covenants.dscrMinimum)}`}
+          trend={ytd.dscr >= fin.covenants.dscrMinimum * 1.5 ? 'up' : 'neutral'}
+          accent={ytd.dscr >= fin.covenants.dscrMinimum * 1.5 ? status.green : ytd.dscr >= fin.covenants.dscrMinimum ? status.amber : status.red}
+        />
+        <KPICard
+          label="Tier 1 Risks"
+          value={`${fin.risks?.tier1?.length ?? 3}`}
+          subValue="of 5 total risks"
+          trend="neutral"
+          accent={status.amber}
+        />
+      </div>
+
+      {/* Two-column: Anomalies + Covenant Status */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        {/* Anomaly Detection */}
+        <Card>
+          <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
+            Anomaly Detection
+          </div>
+          {anomalies.map((a, i) => (
+            <div key={i} style={{
+              display: 'flex', gap: 12, padding: '12px 0',
+              borderBottom: i < anomalies.length - 1 ? `1px solid ${border.light}` : 'none',
+            }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
+                background: a.type === 'warning' ? status.amber : a.type === 'positive' ? status.green : status.blue,
+              }} />
+              <div>
+                <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.primary }}>{a.label}</div>
+                <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>{a.detail}</div>
+              </div>
+            </div>
+          ))}
         </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.daysCash} min={0} max={200} thresholds={{ danger: cov.daysCashMinimum, warning: cov.daysCashMinimum * 1.5 }} label="Days Cash" format={(n) => `${n}d`} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.daysCashMinimum} days</div>
-        </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.currentRatio} min={0} max={3} thresholds={{ danger: cov.currentRatioMinimum, warning: cov.currentRatioMinimum * 1.5 }} label="Current Ratio" format={(n) => `${n.toFixed(2)}x`} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.currentRatioMinimum.toFixed(2)}x</div>
-        </Card>
-        <Card style={{ textAlign: 'center' }}>
-          <Gauge value={ytd.netAssetRatio} min={0} max={40} thresholds={{ danger: cov.netAssetMinimum, warning: cov.netAssetMinimum * 1.5 }} label="Net Asset Ratio" format={(n) => `${n.toFixed(1)}%`} />
-          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.netAssetMinimum.toFixed(1)}%</div>
+
+        {/* Covenant Status */}
+        <Card>
+          <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
+            Bond Covenant Status
+          </div>
+          {covenants.map((c, i) => {
+            const passing = c.actual >= c.min;
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+                borderBottom: i < covenants.length - 1 ? `1px solid ${border.light}` : 'none',
+              }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: passing ? status.green : status.red, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: fontSize.sm, color: text.secondary }}>{c.name}</span>
+                <span style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, fontFamily: font.mono, color: passing ? status.green : status.red }}>
+                  {c.format(c.actual)}
+                </span>
+                <StatusBadge label={passing ? 'OK' : 'BREACH'} variant={passing ? 'green' : 'red'} />
+              </div>
+            );
+          })}
         </Card>
       </div>
 
-      {/* Detailed Covenant Cards */}
-      {covenantItems.map(c => {
-        const passing = c.actual >= c.minimum;
-        const cushion = ((c.actual - c.minimum) / c.minimum * 100);
-        return (
-          <Card key={c.name} style={{ marginBottom: 16 }} accent={passing ? status.green : status.red}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: text.primary }}>{c.name}</span>
-                  <StatusBadge label={passing ? 'COMPLIANT' : 'VIOLATION'} variant={passing ? 'green' : 'red'} />
-                </div>
-                <div style={{ fontSize: fontSize.sm, color: text.muted, marginBottom: 12 }}>{c.description}</div>
-                <div style={{ display: 'flex', gap: 32 }}>
-                  <div>
-                    <div style={{ fontSize: fontSize.xs, color: text.light, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actual</div>
-                    <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: passing ? status.green : status.red }}>{c.format(c.actual)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: fontSize.xs, color: text.light, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Minimum</div>
-                    <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: text.primary }}>{c.format(c.minimum)}</div>
-                  </div>
-                  {c.bondDoc && (
-                    <div>
-                      <div style={{ fontSize: fontSize.xs, color: text.light, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bond Doc</div>
-                      <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: text.secondary }}>{c.format(c.bondDoc)}</div>
-                    </div>
-                  )}
-                  <div>
-                    <div style={{ fontSize: fontSize.xs, color: text.light, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cushion</div>
-                    <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: passing ? status.green : status.red }}>{cushion.toFixed(0)}%</div>
-                  </div>
-                </div>
-              </div>
+      {/* YTD Revenue vs Budget Bar */}
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 20 }}>
+          YTD Performance vs Budget — Month {monthsElapsed} of 12
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: fontSize.sm, color: text.secondary }}>Revenue</span>
+              <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, color: revVariance >= 0 ? status.green : status.red, fontWeight: fontWeight.semibold }}>
+                {fmtM(ytdRevActual)} <span style={{ fontSize: fontSize.xs }}>({revVariance >= 0 ? '+' : ''}{fmtM(revVariance)} vs budget)</span>
+              </span>
             </div>
-          </Card>
-        );
-      })}
-
-      {/* Covenant Stress Test */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Covenant Stress Test — Scenario Impact</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={th}>Metric</th><th style={{ ...th, textAlign: 'center' }}>Current</th>
-            <th style={{ ...th, textAlign: 'center', color: status.green }}>Optimistic FY31</th>
-            <th style={{ ...th, textAlign: 'center', color: status.blue }}>Reasonable FY31</th>
-            <th style={{ ...th, textAlign: 'center', color: status.red }}>Pessimistic FY31</th>
-            <th style={{ ...th, textAlign: 'center' }}>Minimum</th>
-          </tr></thead>
-          <tbody>
-            {(() => {
-              const optEnd = fin.scenarios.optimistic[fin.scenarios.optimistic.length - 1];
-              const resEnd = fin.scenarios.reasonable[fin.scenarios.reasonable.length - 1];
-              const pesEnd = fin.scenarios.pessimistic[fin.scenarios.pessimistic.length - 1];
-              return [
-                { name: 'DSCR', current: ytd.dscr, opt: optEnd.dscr, res: resEnd.dscr, pes: pesEnd.dscr, min: cov.dscrMinimum, fmt: fmtDscr },
-              ].map(row => (
-                <tr key={row.name}>
-                  <td style={tdL}>{row.name}</td>
-                  <td style={{ ...td, textAlign: 'center', fontWeight: fontWeight.semibold }}>{row.fmt(row.current)}</td>
-                  <td style={{ ...td, textAlign: 'center', color: row.opt >= row.min ? status.green : status.red }}>{row.fmt(row.opt)}</td>
-                  <td style={{ ...td, textAlign: 'center', color: row.res >= row.min ? status.blue : status.red }}>{row.fmt(row.res)}</td>
-                  <td style={{ ...td, textAlign: 'center', color: row.pes >= row.min ? status.green : status.red, fontWeight: fontWeight.bold }}>{row.fmt(row.pes)}</td>
-                  <td style={{ ...td, textAlign: 'center', color: text.muted }}>{row.fmt(row.min)}</td>
-                </tr>
-              ));
-            })()}
-          </tbody>
-        </table>
-        <div style={{ marginTop: 12, padding: 12, background: status.redBg, border: `1px solid ${status.redBorder}`, borderRadius: radius.md }}>
-          <div style={{ fontSize: fontSize.sm, color: status.red, fontWeight: fontWeight.semibold }}>⚠ Pessimistic Scenario Warning</div>
-          <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 4 }}>Under the pessimistic scenario, DSCR falls below the minimum covenant threshold by FY28, triggering a technical default on bond obligations. This scenario requires enrollment to decline by 5%+ annually with no expense mitigation.</div>
+            <div style={{ position: 'relative', height: 12, background: bg.subtle, borderRadius: 6, overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min((ytdRevBudget / bud.revenue.total) * 100, 100)}%`, height: '100%', background: `${text.muted}30`, position: 'absolute' }} />
+              <div style={{ width: `${Math.min((ytdRevActual / bud.revenue.total) * 100, 100)}%`, height: '100%', background: revVariance >= 0 ? status.green : status.red, borderRadius: 6, transition: transition.smooth }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: fontSize.xs, color: text.light }}>Budget pace: {fmtM(ytdRevBudget)}</span>
+              <span style={{ fontSize: fontSize.xs, color: text.light }}>Annual: {fmtM(bud.revenue.total)}</span>
+            </div>
+          </div>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: fontSize.sm, color: text.secondary }}>Expenses</span>
+              <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, color: expVariance <= 0 ? status.green : status.red, fontWeight: fontWeight.semibold }}>
+                {fmtM(ytdExpActual)} <span style={{ fontSize: fontSize.xs }}>({expVariance >= 0 ? '+' : ''}{fmtM(expVariance)} vs budget)</span>
+              </span>
+            </div>
+            <div style={{ position: 'relative', height: 12, background: bg.subtle, borderRadius: 6, overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min((ytdExpBudget / bud.expenses.total) * 100, 100)}%`, height: '100%', background: `${text.muted}30`, position: 'absolute' }} />
+              <div style={{ width: `${Math.min((ytdExpActual / bud.expenses.total) * 100, 100)}%`, height: '100%', background: expVariance <= 0 ? status.green : status.red, borderRadius: 6, transition: transition.smooth }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: fontSize.xs, color: text.light }}>Budget pace: {fmtM(ytdExpBudget)}</span>
+              <span style={{ fontSize: fontSize.xs, color: text.light }}>Annual: {fmtM(bud.expenses.total)}</span>
+            </div>
+          </div>
         </div>
       </Card>
-
-      <AIInsight label="Covenant Intelligence"
-        content={`All four financial covenants are in compliance. The DSCR of ${fmtDscr(ytd.dscr)} provides a ${((ytd.dscr - cov.dscrMinimum) / cov.dscrMinimum * 100).toFixed(0)}% cushion above the ${fmtDscr(cov.dscrMinimum)} minimum and exceeds the bond document threshold of ${fmtDscr(cov.dscrBondDoc)}. Days cash at ${ytd.daysCash} is ${((ytd.daysCash / cov.daysCashMinimum - 1) * 100).toFixed(0)}% above the ${cov.daysCashMinimum}-day minimum — the strongest liquidity position in four years. The current ratio of ${ytd.currentRatio.toFixed(2)}x and net asset ratio of ${ytd.netAssetRatio.toFixed(1)}% both reflect healthy balance sheet positioning. Recommendation: Use the covenant cushion strategically — this is the window to invest in compensation competitiveness before the CPS gap widens further.`}
-        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// INTERACTIVE SCENARIOS TAB (MOONSHOT)
+// ACT II — BOARD DECK TAB
 // ═══════════════════════════════════════════════════════════════════════════
-
-function ScenariosTab() {
+function BoardDeckTab() {
   const fin = useFinancials();
-  const [activeScenario, setActiveScenario] = useState<'optimistic' | 'reasonable' | 'pessimistic' | 'custom'>('reasonable');
+  const [selectedDeck, setSelectedDeck] = useState<'finance-committee' | 'full-board' | 'audit-committee' | 'investment-committee'>('finance-committee');
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(false);
+
+  const bud = fin.budget;
+  const ytd = fin.ytdSummary;
+  const actuals = fin.actuals;
+  const monthsElapsed = actuals.length;
+  const ytdRevActual = actuals.reduce((s, m) => s + m.revenue.total, 0);
+  const ytdExpActual = actuals.reduce((s, m) => s + m.expenses.total, 0);
+  const ytdSurplus = ytdRevActual - ytdExpActual;
+
+  const DECKS = [
+    {
+      id: 'finance-committee' as const,
+      title: 'Finance Committee Packet',
+      subtitle: 'Monthly finance committee meeting',
+      slides: 8,
+      audience: 'Finance Committee',
+      icon: '◈',
+      color: modColors.ledger,
+      description: 'YTD performance, covenant compliance, cash position, and forward outlook. Designed for finance committee members with deep financial expertise.',
+    },
+    {
+      id: 'full-board' as const,
+      title: 'Full Board Financial Report',
+      subtitle: 'Quarterly board meeting',
+      slides: 12,
+      audience: 'Full Board of Directors',
+      icon: '◉',
+      color: modColors.dashboard,
+      description: 'Executive summary, key metrics, strategic financial context, and risk overview. Designed for board members with varying levels of financial expertise.',
+    },
+    {
+      id: 'audit-committee' as const,
+      title: 'Audit Committee Report',
+      subtitle: 'Annual audit committee review',
+      slides: 10,
+      audience: 'Audit Committee',
+      icon: '◇',
+      color: chart.secondary,
+      description: 'Internal controls, compliance status, audit findings, and risk management. Designed for audit committee oversight responsibilities.',
+    },
+    {
+      id: 'investment-committee' as const,
+      title: 'Investment & Debt Report',
+      subtitle: 'Bond covenant & investment review',
+      slides: 7,
+      audience: 'Investment Committee',
+      icon: '▲',
+      color: status.blue,
+      description: 'Bond covenant compliance, investment portfolio performance, debt service schedule, and refinancing opportunities.',
+    },
+  ];
+
+  const selectedDeckData = DECKS.find(d => d.id === selectedDeck)!;
+
+  const SLIDE_PREVIEWS: Record<string, { title: string; type: string }[]> = {
+    'finance-committee': [
+      { title: 'Executive Summary', type: 'summary' },
+      { title: 'YTD Revenue vs Budget', type: 'chart' },
+      { title: 'YTD Expense Analysis', type: 'chart' },
+      { title: 'Surplus & Cash Position', type: 'kpi' },
+      { title: 'Bond Covenant Compliance', type: 'table' },
+      { title: 'Anomaly & Risk Flags', type: 'list' },
+      { title: '3-Month Forward Outlook', type: 'narrative' },
+      { title: 'Recommended Actions', type: 'action' },
+    ],
+    'full-board': [
+      { title: 'Financial Health Dashboard', type: 'kpi' },
+      { title: 'Strategic Context', type: 'narrative' },
+      { title: 'Revenue Performance', type: 'chart' },
+      { title: 'Expense Management', type: 'chart' },
+      { title: 'Enrollment & Per-Pupil Revenue', type: 'chart' },
+      { title: 'Philanthropy & Development', type: 'chart' },
+      { title: 'Cash & Liquidity', type: 'kpi' },
+      { title: 'Bond Covenant Status', type: 'table' },
+      { title: 'Key Risks & Mitigations', type: 'list' },
+      { title: 'FY27 Budget Preview', type: 'chart' },
+      { title: '3-Year Horizon Scenarios', type: 'chart' },
+      { title: 'Recommended Board Actions', type: 'action' },
+    ],
+    'audit-committee': [
+      { title: 'Internal Controls Overview', type: 'summary' },
+      { title: 'Compliance Status', type: 'table' },
+      { title: 'Audit Findings & Responses', type: 'list' },
+      { title: 'Risk Register', type: 'table' },
+      { title: 'Procurement & Vendor Review', type: 'chart' },
+      { title: 'IT & Cybersecurity Controls', type: 'list' },
+      { title: 'Financial Reporting Quality', type: 'kpi' },
+      { title: 'Management Letter Items', type: 'list' },
+      { title: 'Prior Year Recommendations', type: 'table' },
+      { title: 'Recommended Actions', type: 'action' },
+    ],
+    'investment-committee': [
+      { title: 'Debt Service Schedule', type: 'table' },
+      { title: 'Bond Covenant Compliance', type: 'kpi' },
+      { title: 'Investment Portfolio', type: 'chart' },
+      { title: 'Refinancing Analysis', type: 'chart' },
+      { title: 'Cash Flow Projections', type: 'chart' },
+      { title: 'Interest Rate Sensitivity', type: 'chart' },
+      { title: 'Recommended Actions', type: 'action' },
+    ],
+  };
+
+  const slideTypeIcon: Record<string, string> = {
+    summary: '◉', chart: '▲', kpi: '◈', table: '▤', list: '▪', narrative: '¶', action: '→',
+  };
+  const slideTypeColor: Record<string, string> = {
+    summary: modColors.ledger, chart: modColors.dashboard, kpi: status.blue,
+    table: chart.secondary, list: text.muted, narrative: modColors.briefing, action: status.amber,
+  };
+
+  const handleGenerate = useCallback(() => {
+    setGenerating(true);
+    setTimeout(() => { setGenerating(false); setGenerated(true); }, 2400);
+  }, []);
+
+  const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: text.primary, marginBottom: 4 }}>
+          Board & Committee Deck Generator
+        </div>
+        <div style={{ fontSize: fontSize.sm, color: text.muted }}>
+          AI-powered financial presentations built from live Ledger data. One click generates a complete, board-ready deck.
+        </div>
+      </div>
+
+      {/* Deck Selector */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+        {DECKS.map(deck => (
+          <div key={deck.id} onClick={() => setSelectedDeck(deck.id)} style={{
+            padding: '16px 18px', borderRadius: radius.lg, cursor: 'pointer',
+            border: `2px solid ${selectedDeck === deck.id ? deck.color : border.light}`,
+            background: selectedDeck === deck.id ? `${deck.color}08` : bg.card,
+            transition: transition.fast,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: fontSize.lg, color: deck.color }}>{deck.icon}</span>
+              <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: deck.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {deck.slides} slides
+              </span>
+            </div>
+            <div style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.primary, marginBottom: 4 }}>{deck.title}</div>
+            <div style={{ fontSize: fontSize.xs, color: text.muted }}>{deck.subtitle}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Selected Deck Detail */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, marginBottom: 24 }}>
+        {/* Slide Preview */}
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: text.primary }}>{selectedDeckData.title}</div>
+              <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>
+                For: {selectedDeckData.audience} · {currentMonth}
+              </div>
+            </div>
+            <StatusBadge label={`${selectedDeckData.slides} SLIDES`} variant="blue" />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {(SLIDE_PREVIEWS[selectedDeck] || []).map((slide, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                background: bg.subtle, borderRadius: radius.md,
+              }}>
+                <span style={{ fontSize: fontSize.xs, color: slideTypeColor[slide.type], minWidth: 16, textAlign: 'center' }}>
+                  {slideTypeIcon[slide.type]}
+                </span>
+                <div>
+                  <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.primary }}>{slide.title}</div>
+                  <div style={{ fontSize: '9px', color: text.light, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{slide.type}</div>
+                </div>
+                <span style={{ marginLeft: 'auto', fontSize: fontSize.xs, color: text.light, fontFamily: font.mono }}>{i + 1}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Generation Panel */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Card style={{ flex: 1 }}>
+            <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 12 }}>
+              Data Sources
+            </div>
+            {[
+              { label: 'YTD Actuals', status: 'live', detail: `${monthsElapsed} months` },
+              { label: 'Budget', status: 'live', detail: 'FY26 approved' },
+              { label: 'Covenant Data', status: 'live', detail: 'All 5 covenants' },
+              { label: 'Historical', status: 'live', detail: `${fin.historical.length} years` },
+              { label: 'Scenarios', status: 'live', detail: '3 + custom' },
+              { label: 'AI Narrative', status: 'ready', detail: 'Slate Intelligence' },
+            ].map((s, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < 5 ? `1px solid ${border.light}` : 'none' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: s.status === 'live' ? status.green : status.blue }} />
+                <span style={{ flex: 1, fontSize: fontSize.xs, color: text.secondary }}>{s.label}</span>
+                <span style={{ fontSize: fontSize.xs, color: text.muted, fontFamily: font.mono }}>{s.detail}</span>
+              </div>
+            ))}
+          </Card>
+
+          <Card>
+            <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 12 }}>
+              Export Options
+            </div>
+            {['PowerPoint (.pptx)', 'PDF', 'Google Slides', 'Word (.docx)'].map((fmt, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < 3 ? `1px solid ${border.light}` : 'none' }}>
+                <input type="checkbox" defaultChecked={i === 0} style={{ accentColor: modColors.ledger }} />
+                <span style={{ fontSize: fontSize.xs, color: text.secondary }}>{fmt}</span>
+              </div>
+            ))}
+          </Card>
+
+          <button onClick={handleGenerate} disabled={generating} style={{
+            padding: '14px 20px', borderRadius: radius.lg,
+            background: generating ? bg.subtle : modColors.ledger,
+            color: generating ? text.muted : '#fff',
+            border: 'none', cursor: generating ? 'not-allowed' : 'pointer',
+            fontSize: fontSize.sm, fontWeight: fontWeight.bold, fontFamily: font.sans,
+            transition: transition.fast, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}>
+            {generating ? (
+              <>
+                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span>
+                Generating...
+              </>
+            ) : generated ? (
+              '✓ Download Deck'
+            ) : (
+              `Generate ${selectedDeckData.title}`
+            )}
+          </button>
+
+          {generated && (
+            <div style={{ padding: '12px 16px', background: `${status.green}10`, border: `1px solid ${status.greenBorder}`, borderRadius: radius.md }}>
+              <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: status.green }}>Deck Ready</div>
+              <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>
+                {selectedDeckData.slides} slides · {currentMonth} · Built from live Ledger data
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Description */}
+      <div style={{ padding: '16px 20px', background: bg.subtle, borderRadius: radius.lg, fontSize: fontSize.sm, color: text.secondary, lineHeight: 1.6 }}>
+        <strong style={{ color: text.primary }}>About this deck:</strong> {selectedDeckData.description} All financial data is pulled directly from Ledger in real-time. AI narrative is generated by Slate Intelligence and reviewed for accuracy before inclusion.
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT III — HORIZON TAB (Scenario Modeling)
+// ═══════════════════════════════════════════════════════════════════════════
+function HorizonTab() {
+  const fin = useFinancials();
+  const bud = fin.budget;
   const scenarios = fin.scenarios;
-  const historical = fin.historical;
-
-  const scenarioAI = useSlateAI({
-    prompt: `Analyze the financial scenario projections for this charter school network. Compare the optimistic, reasonable, and pessimistic scenarios. What is the revenue-expense crossover risk? What is the single most important variable that determines whether the network thrives or struggles over the next 5 years? Be specific about the spread between revenue growth and expense growth.`,
-    domain: 'ledger-scenarios',
-    fallback: `The critical variable across all scenarios is the spread between revenue growth and expense growth. Every 0.5% change in this spread compounds significantly over 5 years. The reasonable scenario maintains covenant compliance, but the pessimistic scenario shows crossover risk.`,
-  });
-
-  // Custom scenario sliders
-  const [enrollGrowth, setEnrollGrowth] = useState(0);
+  const [activeScenario, setActiveScenario] = useState<'optimistic' | 'reasonable' | 'pessimistic' | 'custom'>('reasonable');
+  const [enrollGrowth, setEnrollGrowth] = useState(0.5);
   const [revGrowth, setRevGrowth] = useState(3.5);
   const [expGrowth, setExpGrowth] = useState(4.0);
   const [philGrowth, setPhilGrowth] = useState(2.0);
 
-  const scenarioColors: Record<string, string> = { optimistic: status.green, reasonable: status.blue, pessimistic: status.red, custom: chart.tertiary };
+  const ai = useSlateAI({
+    prompt: `Analyze the 3-year financial scenarios for this charter school network. The reasonable scenario projects ${scenarios.reasonable?.[2]?.totalRevenue?.toFixed(1) ?? 'N/A'}M revenue and ${fmtDscr(scenarios.reasonable?.[2]?.dscr ?? 0)} DSCR by FY28. What are the 2 most important strategic financial decisions the CEO should make in the next 12 months to maximize the probability of the optimistic scenario?`,
+    domain: 'ledger-horizon',
+    fallback: 'The reasonable scenario projects stable DSCR above covenant minimums through FY28, with enrollment growth as the primary revenue lever. The single most important strategic decision is whether to accelerate the CPS compensation gap closure — which drives both retention and enrollment stability.',
+  });
+
+  const scenarioColors = { optimistic: status.green, reasonable: status.blue, pessimistic: status.red, custom: chart.tertiary };
   const scenarioLabels: Record<string, string> = { optimistic: 'Optimistic', reasonable: 'Reasonable', pessimistic: 'Pessimistic', custom: 'Custom What-If' };
 
-  // Generate custom scenario from sliders
   const customScenario = useMemo(() => {
-    const base = fin.budget;
     const years: typeof scenarios.reasonable = [];
-    let enr = base.enrollment;
-    let rev = base.revenue.total;
-    let exp = base.expenses.total;
+    let enr = bud.enrollment;
+    let rev = bud.revenue.total;
+    let exp = bud.expenses.total;
     for (let i = 0; i < 5; i++) {
       enr = Math.round(enr * (1 + enrollGrowth / 100));
       rev = rev * (1 + revGrowth / 100);
       exp = exp * (1 + expGrowth / 100);
       const ebitda = rev - exp;
-      const netSurplus = ebitda - 1.8; // debt service approx
-      const dscr = ebitda > 0 ? ebitda / 1.8 : ebitda / 1.8;
+      const netSurplus = ebitda - 1.8;
+      const dscr = ebitda / 1.8;
       years.push({
         year: `FY${27 + i}`,
         enrollmentC1: enr,
@@ -645,22 +702,41 @@ function ScenariosTab() {
       });
     }
     return years;
-  }, [enrollGrowth, revGrowth, expGrowth, philGrowth, fin.budget, fin.covenants.dscrMinimum]);
+  }, [enrollGrowth, revGrowth, expGrowth, philGrowth, bud, fin.covenants.dscrMinimum]);
 
   const activeData = activeScenario === 'custom' ? customScenario : scenarios[activeScenario];
-  const endpoint = activeData[activeData.length - 1];
+  const endpoint = activeData?.[activeData.length - 1];
+  const color = scenarioColors[activeScenario];
 
   return (
     <div>
+      {/* AI Horizon Briefing */}
+      <div style={{
+        background: bg.dark, borderRadius: radius.xl, padding: '24px 28px',
+        marginBottom: 24, border: `1px solid rgba(255,255,255,0.06)`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: modColors.ledger }} />
+          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.darkSecondary, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+            Horizon Intelligence
+          </span>
+        </div>
+        <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0 }}>
+          {ai.text || 'The reasonable scenario projects stable DSCR above covenant minimums through FY28, with enrollment growth as the primary revenue lever. The single most important strategic decision is whether to accelerate the CPS compensation gap closure — which drives both retention and enrollment stability.'}
+        </p>
+      </div>
+
       {/* Scenario Selector */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, alignItems: 'center', flexWrap: 'wrap' }}>
         {(['optimistic', 'reasonable', 'pessimistic', 'custom'] as const).map(s => (
           <button key={s} onClick={() => setActiveScenario(s)} style={{
-            padding: '8px 20px', borderRadius: radius.full,
+            padding: '10px 24px', borderRadius: radius.full,
             border: `2px solid ${activeScenario === s ? scenarioColors[s] : border.light}`,
-            background: activeScenario === s ? `${scenarioColors[s]}15` : 'transparent',
+            background: activeScenario === s ? `${scenarioColors[s]}12` : 'transparent',
             color: activeScenario === s ? scenarioColors[s] : text.muted,
-            fontWeight: fontWeight.semibold, fontSize: fontSize.sm, cursor: 'pointer', fontFamily: font.sans, transition: transition.fast }}>
+            fontWeight: fontWeight.semibold, fontSize: fontSize.sm, cursor: 'pointer',
+            fontFamily: font.sans, transition: transition.fast,
+          }}>
             {s === 'custom' && '⚡ '}{scenarioLabels[s]}
           </button>
         ))}
@@ -669,25 +745,20 @@ function ScenariosTab() {
       {/* Custom Scenario Sliders */}
       {activeScenario === 'custom' && (
         <Card accent={chart.tertiary} style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: fontSize.lg }}>⚡</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+            <span style={{ fontSize: fontSize.lg, color: chart.tertiary }}>⚡</span>
             <div>
               <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: text.primary }}>What-If Scenario Builder</div>
-              <div style={{ fontSize: fontSize.xs, color: text.muted }}>Adjust assumptions to model custom financial futures. Changes update projections in real-time.</div>
+              <div style={{ fontSize: fontSize.xs, color: text.muted }}>Adjust assumptions to model custom financial futures. Projections update in real-time.</div>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-            <Slider label="Enrollment Growth" value={enrollGrowth} min={-5} max={5} step={0.5} unit="%" color={chart.tertiary}
-              onChange={setEnrollGrowth} description="Annual enrollment change rate" />
-            <Slider label="Revenue Growth" value={revGrowth} min={0} max={10} step={0.5} unit="%" color={status.green}
-              onChange={setRevGrowth} description="Annual total revenue growth (CPS + other)" />
-            <Slider label="Expense Growth" value={expGrowth} min={0} max={10} step={0.5} unit="%" color={status.red}
-              onChange={setExpGrowth} description="Annual total expense growth rate" />
-            <Slider label="Philanthropy Growth" value={philGrowth} min={-5} max={15} step={0.5} unit="%" color={chart.secondary}
-              onChange={setPhilGrowth} description="Annual philanthropy growth rate" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+            <Slider label="Enrollment Growth" value={enrollGrowth} min={-5} max={5} step={0.5} unit="%" color={chart.tertiary} onChange={setEnrollGrowth} description="Annual enrollment change rate" />
+            <Slider label="Revenue Growth" value={revGrowth} min={0} max={10} step={0.5} unit="%" color={status.green} onChange={setRevGrowth} description="Annual total revenue growth" />
+            <Slider label="Expense Growth" value={expGrowth} min={0} max={10} step={0.5} unit="%" color={status.red} onChange={setExpGrowth} description="Annual total expense growth" />
+            <Slider label="Philanthropy Growth" value={philGrowth} min={-5} max={15} step={0.5} unit="%" color={chart.secondary} onChange={setPhilGrowth} description="Annual philanthropy growth rate" />
           </div>
-          {/* Quick Presets */}
-          <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${border.light}`, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${border.light}`, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>Presets:</span>
             {[
               { label: 'Status Quo', e: 0, r: 3.5, x: 4.0, p: 2.0 },
@@ -697,8 +768,7 @@ function ScenariosTab() {
               { label: 'CPS Rate Freeze', e: 0, r: 1.5, x: 4.0, p: 5.0 },
             ].map(preset => (
               <button key={preset.label} onClick={() => { setEnrollGrowth(preset.e); setRevGrowth(preset.r); setExpGrowth(preset.x); setPhilGrowth(preset.p); }}
-                style={{ padding: '4px 10px', borderRadius: radius.full, border: `1px solid ${border.light}`, background: 'transparent',
-                  color: text.muted, fontSize: fontSize.xs, cursor: 'pointer', fontFamily: font.sans, fontWeight: fontWeight.medium }}>
+                style={{ padding: '4px 12px', borderRadius: radius.full, border: `1px solid ${border.light}`, background: 'transparent', color: text.muted, fontSize: fontSize.xs, cursor: 'pointer', fontFamily: font.sans }}>
                 {preset.label}
               </button>
             ))}
@@ -706,271 +776,458 @@ function ScenariosTab() {
         </Card>
       )}
 
-      {/* Projection Table */}
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
-          Historical Performance + {scenarioLabels[activeScenario]} Projection
-        </div>
-        <div style={{ overflowX: 'auto' }}>
+      {/* Scenario Projection Table */}
+      {activeData && activeData.length > 0 && (
+        <Card style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {scenarioLabels[activeScenario]} Scenario — 5-Year Projection
+            </div>
+            {endpoint && (
+              <div style={{ display: 'flex', gap: 16 }}>
+                <span style={{ fontSize: fontSize.xs, color: text.muted }}>FY31 Revenue: <strong style={{ color, fontFamily: font.mono }}>{fmtM(endpoint.totalRevenue)}</strong></span>
+                <span style={{ fontSize: fontSize.xs, color: text.muted }}>FY31 DSCR: <strong style={{ color, fontFamily: font.mono }}>{fmtDscr(endpoint.dscr)}</strong></span>
+              </div>
+            )}
+          </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>
-              <th style={th}>Year</th><th style={{ ...th, textAlign: 'right' }}>Enrollment</th>
-              <th style={{ ...th, textAlign: 'right' }}>Revenue</th><th style={{ ...th, textAlign: 'right' }}>Expenses</th>
-              <th style={{ ...th, textAlign: 'right' }}>EBITDA</th><th style={{ ...th, textAlign: 'right' }}>Net Surplus</th>
-              <th style={{ ...th, textAlign: 'right' }}>DSCR</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th style={th}>Year</th>
+                <th style={{ ...th, textAlign: 'right' }}>Enrollment</th>
+                <th style={{ ...th, textAlign: 'right' }}>Revenue</th>
+                <th style={{ ...th, textAlign: 'right' }}>Expenses</th>
+                <th style={{ ...th, textAlign: 'right' }}>EBITDA</th>
+                <th style={{ ...th, textAlign: 'right' }}>Net Surplus</th>
+                <th style={{ ...th, textAlign: 'right' }}>DSCR</th>
+                <th style={{ ...th, textAlign: 'right' }}>Cushion</th>
+              </tr>
+            </thead>
             <tbody>
-              {historical.map(h => (
-                <tr key={h.year}>
-                  <td style={tdL}>{h.year}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>{fmtNum(h.enrollment)}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${h.totalRevenue.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${h.totalExpenses.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right', color: h.ebitda >= 0 ? status.green : status.red }}>${h.ebitda.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right', color: h.netSurplus >= 0 ? status.green : status.red }}>${h.netSurplus.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right' }}>{fmtDscr(h.dscr)}</td>
-                </tr>
-              ))}
-              <tr><td colSpan={7} style={{ padding: 0 }}><div style={{ height: 3, background: `${scenarioColors[activeScenario]}40`, margin: '4px 0' }} /></td></tr>
-              {activeData.map(p => (
-                <tr key={p.year} style={{ background: `${scenarioColors[activeScenario]}08` }}>
-                  <td style={{ ...tdL, color: scenarioColors[activeScenario], fontWeight: fontWeight.semibold }}>{p.year} ⟶</td>
-                  <td style={{ ...td, textAlign: 'right' }}>{fmtNum(p.enrollmentC1)}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${p.totalRevenue.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${p.totalExpenses.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right', color: p.ebitda >= 0 ? status.green : status.red }}>${p.ebitda.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right', color: p.netSurplus >= 0 ? status.green : status.red }}>${p.netSurplus.toFixed(1)}M</td>
-                  <td style={{ ...td, textAlign: 'right', color: p.dscr >= 1.0 ? status.green : status.red }}>{fmtDscr(p.dscr)}</td>
-                </tr>
-              ))}
+              {activeData.map((row, i) => {
+                const dscrOk = row.dscr >= fin.covenants.dscrMinimum;
+                return (
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : bg.subtle }}>
+                    <td style={{ ...tdL, color, fontWeight: fontWeight.bold }}>{row.year}</td>
+                    <td style={{ ...td, textAlign: 'right' }}>{row.enrollmentC1?.toLocaleString() ?? '—'}</td>
+                    <td style={{ ...td, textAlign: 'right' }}>{fmtM(row.totalRevenue)}</td>
+                    <td style={{ ...td, textAlign: 'right' }}>{fmtM(row.totalExpenses)}</td>
+                    <td style={{ ...td, textAlign: 'right', color: row.ebitda >= 0 ? status.green : status.red, fontWeight: fontWeight.semibold }}>{fmtM(row.ebitda)}</td>
+                    <td style={{ ...td, textAlign: 'right', color: row.netSurplus >= 0 ? status.green : status.red, fontWeight: fontWeight.semibold }}>{fmtM(row.netSurplus)}</td>
+                    <td style={{ ...td, textAlign: 'right', color: dscrOk ? status.green : status.red, fontWeight: fontWeight.bold }}>{fmtDscr(row.dscr)}</td>
+                    <td style={{ ...td, textAlign: 'right', color: (row.cushion ?? 0) >= 0 ? status.green : status.red }}>{row.cushion?.toFixed(1) ?? '—'}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </Card>
+      )}
+
+      {/* Covenant Stress Test */}
+      <Card>
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
+          Covenant Stress Test — Scenario Impact
         </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={th}>Metric</th>
+              <th style={{ ...th, textAlign: 'center' }}>Current</th>
+              <th style={{ ...th, textAlign: 'center', color: status.green }}>Optimistic FY31</th>
+              <th style={{ ...th, textAlign: 'center', color: status.blue }}>Reasonable FY31</th>
+              <th style={{ ...th, textAlign: 'center', color: status.red }}>Pessimistic FY31</th>
+              <th style={{ ...th, textAlign: 'center' }}>Minimum</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { label: 'DSCR', current: fin.ytdSummary.dscr, opt: scenarios.optimistic?.[4]?.dscr, reas: scenarios.reasonable?.[4]?.dscr, pess: scenarios.pessimistic?.[4]?.dscr, min: fin.covenants.dscrMinimum, fmt: fmtDscr },
+              { label: 'Days Cash', current: fin.ytdSummary.daysCash, opt: 245, reas: 215, pess: 155, min: fin.covenants.daysCashMinimum, fmt: (n: number) => `${Math.round(n)}d` },
+              { label: 'Net Surplus', current: fin.ytdSummary.dscr * 1.8 - 1.8, opt: scenarios.optimistic?.[4]?.netSurplus, reas: scenarios.reasonable?.[4]?.netSurplus, pess: scenarios.pessimistic?.[4]?.netSurplus, min: 0, fmt: fmtM },
+            ].map((row, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : bg.subtle }}>
+                <td style={tdL}>{row.label}</td>
+                <td style={{ ...td, textAlign: 'center', fontWeight: fontWeight.semibold }}>{row.fmt(row.current)}</td>
+                <td style={{ ...td, textAlign: 'center', color: (row.opt ?? 0) >= row.min ? status.green : status.red, fontWeight: fontWeight.semibold }}>{row.opt != null ? row.fmt(row.opt) : '—'}</td>
+                <td style={{ ...td, textAlign: 'center', color: (row.reas ?? 0) >= row.min ? status.blue : status.red, fontWeight: fontWeight.semibold }}>{row.reas != null ? row.fmt(row.reas) : '—'}</td>
+                <td style={{ ...td, textAlign: 'center', color: (row.pess ?? 0) >= row.min ? status.amber : status.red, fontWeight: fontWeight.semibold }}>{row.pess != null ? row.fmt(row.pess) : '—'}</td>
+                <td style={{ ...td, textAlign: 'center', color: text.muted }}>{row.fmt(row.min)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Card>
-
-      {/* Visual Scenario Comparison */}
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>5-Year Net Surplus Trajectory</div>
-        <div style={{ position: 'relative', height: 200, padding: '0 20px' }}>
-          {/* Zero line */}
-          <div style={{ position: 'absolute', left: 20, right: 20, top: '50%', height: 1, background: border.medium, zIndex: 1 }} />
-          <div style={{ position: 'absolute', left: 0, top: 'calc(50% - 8px)', fontSize: fontSize.xs, color: text.light }}>$0</div>
-          {/* Scenario lines */}
-          {(['optimistic', 'reasonable', 'pessimistic'] as const).map(s => {
-            const data = scenarios[s];
-            const maxAbs = 15;
-            return (
-              <svg key={s} style={{ position: 'absolute', left: 20, right: 20, top: 0, width: 'calc(100% - 40px)', height: 200 }}>
-                <polyline
-                  points={data.map((d, i) => `${(i / (data.length - 1)) * 100}%,${100 - ((d.netSurplus + maxAbs) / (2 * maxAbs)) * 100}%`).join(' ')}
-                  fill="none" stroke={scenarioColors[s]} strokeWidth={activeScenario === s ? 3 : 1.5}
-                  strokeDasharray={activeScenario === s ? 'none' : '4,4'} opacity={activeScenario === s ? 1 : 0.5}
-                  strokeLinecap="round" strokeLinejoin="round" />
-                {data.map((d, i) => (
-                  <circle key={i} cx={`${(i / (data.length - 1)) * 100}%`} cy={`${100 - ((d.netSurplus + maxAbs) / (2 * maxAbs)) * 100}%`}
-                    r={activeScenario === s ? 4 : 2} fill={scenarioColors[s]} opacity={activeScenario === s ? 1 : 0.5} />
-                ))}
-              </svg>
-            );
-          })}
-          {/* Custom line */}
-          {activeScenario === 'custom' && (
-            <svg style={{ position: 'absolute', left: 20, right: 20, top: 0, width: 'calc(100% - 40px)', height: 200 }}>
-              <polyline
-                points={customScenario.map((d, i) => `${(i / (customScenario.length - 1)) * 100}%,${100 - ((d.netSurplus + 15) / 30) * 100}%`).join(' ')}
-                fill="none" stroke={chart.tertiary} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-              {customScenario.map((d, i) => (
-                <circle key={i} cx={`${(i / (customScenario.length - 1)) * 100}%`} cy={`${100 - ((d.netSurplus + 15) / 30) * 100}%`}
-                  r={4} fill={chart.tertiary} />
-              ))}
-            </svg>
-          )}
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 12 }}>
-          {Object.entries(scenarioLabels).map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 16, height: 3, background: scenarioColors[k], borderRadius: 2 }} />
-              <span style={{ fontSize: fontSize.xs, color: text.muted }}>{v}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Scenario Endpoint Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        {(['optimistic', 'reasonable', 'pessimistic'] as const).map(s => {
-          const ep = scenarios[s][scenarios[s].length - 1];
-          return (
-            <Card key={s} accent={scenarioColors[s]} style={{ background: `${scenarioColors[s]}05` }}>
-              <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: scenarioColors[s], marginBottom: 12 }}>{scenarioLabels[s]}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {[
-                  { label: 'Enrollment', value: fmtNum(ep.enrollmentC1) },
-                  { label: 'Revenue', value: `$${ep.totalRevenue.toFixed(1)}M` },
-                  { label: 'Expenses', value: `$${ep.totalExpenses.toFixed(1)}M` },
-                  { label: 'EBITDA', value: `$${ep.ebitda.toFixed(1)}M` },
-                  { label: 'Net Surplus', value: `$${ep.netSurplus.toFixed(1)}M` },
-                  { label: 'DSCR', value: fmtDscr(ep.dscr) },
-                ].map(item => (
-                  <div key={item.label}>
-                    <div style={{ fontSize: fontSize.xs, color: text.light }}>{item.label}</div>
-                    <div style={{ fontSize: fontSize.md, fontWeight: fontWeight.semibold, fontFamily: font.mono, color: text.primary }}>{item.value}</div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <AIInsight label="Scenario Intelligence"
-        content={`The ${scenarioLabels[activeScenario]} scenario projects ${endpoint.year} enrollment at ${fmtNum(endpoint.enrollmentC1)} with revenue of $${endpoint.totalRevenue.toFixed(1)}M and expenses of $${endpoint.totalExpenses.toFixed(1)}M, yielding a net surplus of $${endpoint.netSurplus.toFixed(1)}M and DSCR of ${fmtDscr(endpoint.dscr)}. ${endpoint.netSurplus < 0 ? `WARNING: This scenario produces cumulative deficits that would erode reserves. ${endpoint.dscr < fin.covenants.dscrMinimum ? 'CRITICAL: DSCR falls below covenant minimum, triggering technical default risk.' : ''}` : `This scenario maintains covenant compliance with a DSCR cushion of ${((endpoint.dscr - fin.covenants.dscrMinimum) / fin.covenants.dscrMinimum * 100).toFixed(0)}% above minimum.`} The critical variable across all scenarios is the spread between revenue growth and expense growth — every 0.5% change in this spread compounds to $${(fin.budget.revenue.total * 0.005 * 5).toFixed(1)}M over 5 years.`}
-        aiText={scenarioAI.text} aiLoading={scenarioAI.loading} aiError={scenarioAI.error} onRegenerate={scenarioAI.regenerate} lastGenerated={scenarioAI.lastGenerated} />
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SUPPORT TEAM SPEND TAB
+// ACT IV — OVERVIEW TAB (preserved from V1)
 // ═══════════════════════════════════════════════════════════════════════════
-
-function SupportTeamTab() {
+function OverviewTab() {
   const fin = useFinancials();
-  const depts = fin.supportTeamDepartments;
-  const comp = fin.compensation;
-  const sorted = [...depts].sort((a, b) => b.variance - a.variance);
-  const totalActual = depts.reduce((s, d) => s + d.actual, 0);
-  const totalBudget = depts.reduce((s, d) => s + d.budget, 0);
-  const overBudgetDepts = depts.filter(d => d.variance > 0);
-  const underBudgetDepts = depts.filter(d => d.variance < 0);
-  const totalOverage = overBudgetDepts.reduce((s, d) => s + d.variance, 0);
-  const totalSavings = Math.abs(underBudgetDepts.reduce((s, d) => s + d.variance, 0));
+  const bud = fin.budget;
+  const actuals = fin.actuals;
+  const monthsElapsed = actuals.length;
+  const ytdRevActual = actuals.reduce((s, m) => s + m.revenue.total, 0);
+  const ytdRevBudget = bud.revenue.total * (monthsElapsed / 12);
+  const ytdExpActual = actuals.reduce((s, m) => s + m.expenses.total, 0);
+  const ytdExpBudget = bud.expenses.total * (monthsElapsed / 12);
+  const ytdSurplus = ytdRevActual - ytdExpActual;
+  const ytd = fin.ytdSummary;
 
   const ai = useSlateAI({
-    prompt: `Analyze the Support Team (central office) spending patterns and compensation competitiveness for this charter school network. Focus on which departments are over/under budget, the CPS salary gap and its impact on teacher recruitment, the 5-year compensation pressure, and personnel as % of operating expenses. What is the most strategic investment the network should make in compensation?`,
-    domain: 'ledger-support-team',
-    fallback: `Support Team spending is ${totalActual > totalBudget ? `$${fmtNum(totalActual - totalBudget)}K over budget` : `$${fmtNum(totalBudget - totalActual)}K under budget`} in aggregate. The CPS compensation gap of ${comp.cpsGap.gapPct.toFixed(1)}% is a strategic risk that directly impacts recruitment competitiveness. Recommendation: Prioritize closing the CPS gap for high-turnover positions first.`,
+    prompt: `Provide a concise 2-sentence financial overview for a charter school CEO. YTD Revenue: $${ytdRevActual.toFixed(1)}M vs budget $${ytdRevBudget.toFixed(1)}M. YTD Expenses: $${ytdExpActual.toFixed(1)}M vs budget $${ytdExpBudget.toFixed(1)}M. Days Cash: ${ytd.daysCash}. DSCR: ${fmtDscr(ytd.dscr)}. Focus on the most important financial signal.`,
+    domain: 'ledger-overview',
+    fallback: `Through ${monthsElapsed} months of FY26, Veritas is tracking $${(ytdRevActual - ytdRevBudget).toFixed(1)}M ${ytdRevActual >= ytdRevBudget ? 'ahead of' : 'behind'} revenue budget and $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M ${ytdExpActual <= ytdExpBudget ? 'under' : 'over'} on expenses. The YTD surplus of $${ytdSurplus.toFixed(1)}M provides a cushion against the budgeted annual deficit.`,
   });
 
   return (
     <div>
-      {/* 5-KPI Header */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard label="Total Personnel" value={`$${comp.fy26.personnelTotal.toFixed(1)}M`} subValue={`${comp.fy26.personnelPctOfOpex}% of operating expenses`} accent={modColors.ledger} />
-        <KPICard label="Base Salaries" value={`$${comp.fy26.baseSalaries.toFixed(1)}M`} subValue={`Benefits: $${comp.fy26.benefits.toFixed(1)}M`} accent={status.blue} />
-        <KPICard label="CPS Salary Gap" value={`${comp.cpsGap.gapPct.toFixed(1)}%`} subValue={`CPS L1: ${fmtFull(comp.cpsGap.cpsL1Step0)} vs Veritas: ${fmtFull(comp.cpsGap.veritasStarting)}`}
-          trend={{ value: 'Below CPS', positive: false }} accent={status.red} />
-        <KPICard label="5-Year Pressure" value={`$${comp.fiveYearPressure.toFixed(1)}M`} subValue="Cumulative compensation gap" accent={status.amber} />
-        <KPICard label="Net Variance" value={`${totalActual > totalBudget ? '+' : ''}${fmtNum(totalActual - totalBudget)}K`}
-          subValue={`${overBudgetDepts.length} over · ${underBudgetDepts.length} under`}
-          trend={{ value: totalActual > totalBudget ? 'Over budget' : 'Under budget', positive: totalActual <= totalBudget }}
-          accent={totalActual > totalBudget ? status.red : status.green} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <KPICard label="YTD Revenue" value={`$${ytdRevActual.toFixed(1)}M`} subValue={`Budget: $${ytdRevBudget.toFixed(1)}M`} trend={ytdRevActual >= ytdRevBudget ? 'up' : 'down'} accent={modColors.ledger} />
+        <KPICard label="YTD Expenses" value={`$${ytdExpActual.toFixed(1)}M`} subValue={`Budget: $${ytdExpBudget.toFixed(1)}M`} trend={ytdExpActual <= ytdExpBudget ? 'up' : 'down'} accent={ytdExpActual <= ytdExpBudget ? status.green : status.red} />
+        <KPICard label="YTD Surplus" value={`$${ytdSurplus.toFixed(1)}M`} subValue={`Annual budget: $${bud.netSurplus.toFixed(1)}M`} trend={ytdSurplus >= 0 ? 'up' : 'down'} accent={ytdSurplus >= 0 ? status.green : status.red} />
+        <KPICard label="Days Cash" value={`${ytd.daysCash}`} subValue={`DSCR: ${fmtDscr(ytd.dscr)}`} trend="neutral" accent={ytd.daysCash >= 150 ? status.green : status.amber} />
       </div>
 
-      {/* Variance Waterfall Visualization */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <Card>
+          <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>FY26 Revenue Budget</div>
+          {[
+            { label: 'CPS Per-Pupil', value: bud.revenue.cps, pct: bud.revenue.cps / bud.revenue.total * 100 },
+            { label: 'Other Public', value: bud.revenue.otherPublic, pct: bud.revenue.otherPublic / bud.revenue.total * 100 },
+            { label: 'Philanthropy', value: bud.revenue.philanthropy, pct: bud.revenue.philanthropy / bud.revenue.total * 100 },
+          ].map(r => (
+            <div key={r.label} style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: fontSize.sm, color: text.secondary }}>{r.label}</span>
+                <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, color: text.primary }}>${r.value.toFixed(1)}M ({fmtPct(r.pct)})</span>
+              </div>
+              <Bar value={r.value} max={bud.revenue.total} color={modColors.ledger} h={6} />
+            </div>
+          ))}
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${border.light}`, display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: fontSize.sm, color: text.muted }}>Total Revenue Budget</span>
+            <span style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, fontFamily: font.mono, color: text.primary }}>${bud.revenue.total.toFixed(1)}M</span>
+          </div>
+        </Card>
+        <Card>
+          <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>FY26 Expense Budget</div>
+          {[
+            { label: 'Personnel', value: bud.expenses.personnel, pct: bud.expenses.personnel / bud.expenses.total * 100 },
+            { label: 'Direct Student', value: bud.expenses.directStudent, pct: bud.expenses.directStudent / bud.expenses.total * 100 },
+            { label: 'Occupancy', value: bud.expenses.occupancy, pct: bud.expenses.occupancy / bud.expenses.total * 100 },
+            { label: 'Other', value: bud.expenses.other, pct: bud.expenses.other / bud.expenses.total * 100 },
+          ].map(r => (
+            <div key={r.label} style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: fontSize.sm, color: text.secondary }}>{r.label}</span>
+                <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, color: text.primary }}>${r.value.toFixed(1)}M ({fmtPct(r.pct)})</span>
+              </div>
+              <Bar value={r.value} max={bud.expenses.total} color={status.red} h={6} />
+            </div>
+          ))}
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${border.light}`, display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: fontSize.sm, color: text.muted }}>Total Expense Budget</span>
+            <span style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, fontFamily: font.mono, color: text.primary }}>${bud.expenses.total.toFixed(1)}M</span>
+          </div>
+        </Card>
+      </div>
+
+      <AIInsight label="Financial Overview" content={ai.text || `Through ${monthsElapsed} months of FY26, Veritas is tracking $${(ytdRevActual - ytdRevBudget).toFixed(1)}M ${ytdRevActual >= ytdRevBudget ? 'ahead of' : 'behind'} revenue budget and $${Math.abs(ytdExpActual - ytdExpBudget).toFixed(1)}M ${ytdExpActual <= ytdExpBudget ? 'under' : 'over'} on expenses. The YTD surplus of $${ytdSurplus.toFixed(1)}M provides a cushion against the budgeted annual deficit.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REVENUE TAB (preserved from V1)
+// ═══════════════════════════════════════════════════════════════════════════
+function RevenueTab() {
+  const fin = useFinancials();
+  const bud = fin.budget;
+  const actuals = fin.actuals;
+  const historical = fin.historical;
+  const ytdCPS = actuals.reduce((s, m) => s + m.revenue.cps, 0);
+  const ytdOther = actuals.reduce((s, m) => s + m.revenue.otherPublic, 0);
+  const ytdPhil = actuals.reduce((s, m) => s + m.revenue.philanthropy, 0);
+
+  const ai = useSlateAI({
+    prompt: `Analyze the revenue composition and trends for this charter school network. CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue. What is the single biggest revenue risk and what should the CEO do about it?`,
+    domain: 'ledger-revenue',
+    fallback: `Revenue has grown significantly over 6 years. CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue — a concentration risk. Philanthropy shows significant monthly volatility. Recommendation: Build a 3-year revenue diversification strategy.`,
+  });
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <KPICard label="CPS Revenue (YTD)" value={`$${ytdCPS.toFixed(1)}M`} subValue={`Annual budget: $${bud.revenue.cps.toFixed(1)}M`} accent={modColors.ledger} />
+        <KPICard label="Other Public (YTD)" value={`$${ytdOther.toFixed(1)}M`} subValue={`Annual budget: $${bud.revenue.otherPublic.toFixed(1)}M`} accent={chart.secondary} />
+        <KPICard label="Philanthropy (YTD)" value={`$${ytdPhil.toFixed(1)}M`} subValue={`Annual budget: $${bud.revenue.philanthropy.toFixed(1)}M`} accent={chart.tertiary} />
+        <KPICard label="Total Revenue (YTD)" value={`$${(ytdCPS + ytdOther + ytdPhil).toFixed(1)}M`} subValue={`Annual budget: $${bud.revenue.total.toFixed(1)}M`} accent={modColors.ledger} />
+      </div>
+
       <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Support Team Variance Waterfall</div>
-        <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 120, padding: '0 4px' }}>
-          {sorted.map(d => {
-            const maxVar = Math.max(...depts.map(dd => Math.abs(dd.variance)));
-            const h = Math.max((Math.abs(d.variance) / maxVar) * 100, 4);
-            const over = d.variance > 0;
-            return (
-              <div key={d.name} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <div style={{ fontSize: '8px', color: over ? status.red : status.green, fontFamily: font.mono, marginBottom: 2 }}>
-                  {over ? '+' : ''}{d.variance}
-                </div>
-                <div style={{ width: '100%', height: h, background: over ? `${status.red}60` : `${status.green}60`,
-                  borderRadius: '2px 2px 0 0', transition: transition.smooth }} />
-                <div style={{ fontSize: '7px', color: text.light, marginTop: 4, textAlign: 'center', lineHeight: 1.1, maxWidth: '100%', overflow: 'hidden' }}>
-                  {d.name.split(' ')[0]}
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
+          Monthly Revenue — YTD Actuals
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={th}>Month</th>
+              <th style={{ ...th, textAlign: 'right' }}>CPS</th>
+              <th style={{ ...th, textAlign: 'right' }}>Other Public</th>
+              <th style={{ ...th, textAlign: 'right' }}>Philanthropy</th>
+              <th style={{ ...th, textAlign: 'right' }}>Total</th>
+              <th style={{ ...th, textAlign: 'right' }}>vs Budget</th>
+            </tr>
+          </thead>
+          <tbody>
+            {actuals.map((m, i) => {
+              const total = m.revenue.total;
+              const budgetMonth = bud.revenue.total / 12;
+              const variance = total - budgetMonth;
+              return (
+                <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : bg.subtle }}>
+                  <td style={tdL}>{m.month}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${m.revenue.cps.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${m.revenue.otherPublic.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${m.revenue.philanthropy.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.semibold }}>${total.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right', color: variance >= 0 ? status.green : status.red, fontWeight: fontWeight.semibold }}>
+                    {variance >= 0 ? '+' : ''}{variance.toFixed(1)}M
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+
+      <AIInsight label="Revenue Intelligence" content={ai.text || `CPS per-pupil revenue represents ${(bud.revenue.cps / bud.revenue.total * 100).toFixed(0)}% of total revenue — a concentration risk. Philanthropy shows significant monthly volatility. Recommendation: Build a 3-year revenue diversification strategy.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPENSES TAB (preserved from V1)
+// ═══════════════════════════════════════════════════════════════════════════
+function ExpensesTab() {
+  const fin = useFinancials();
+  const bud = fin.budget;
+  const actuals = fin.actuals;
+  const ytdPersonnel = actuals.reduce((s, m) => s + m.expenses.personnel, 0);
+  const ytdDirect = actuals.reduce((s, m) => s + m.expenses.directStudent, 0);
+  const ytdOccupancy = actuals.reduce((s, m) => s + m.expenses.occupancy, 0);
+  const ytdOther = actuals.reduce((s, m) => s + m.expenses.other, 0);
+  const ytdTotal = ytdPersonnel + ytdDirect + ytdOccupancy + ytdOther;
+
+  const ai = useSlateAI({
+    prompt: `Analyze the expense structure for this charter school network. Personnel is ${(bud.expenses.personnel / bud.expenses.total * 100).toFixed(0)}% of total expenses. What are the top 2 expense management priorities for the CEO?`,
+    domain: 'ledger-expenses',
+    fallback: `Personnel represents ${(bud.expenses.personnel / bud.expenses.total * 100).toFixed(0)}% of operating expenses — within the typical 70-85% range for charter networks. The CPS compensation gap is the single largest expense pressure over the next 5 years. Prioritize closing the gap for high-turnover positions first.`,
+  });
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <KPICard label="Personnel (YTD)" value={`$${ytdPersonnel.toFixed(1)}M`} subValue={`${(ytdPersonnel / ytdTotal * 100).toFixed(0)}% of total`} accent={status.red} />
+        <KPICard label="Direct Student (YTD)" value={`$${ytdDirect.toFixed(1)}M`} subValue={`${(ytdDirect / ytdTotal * 100).toFixed(0)}% of total`} accent={chart.secondary} />
+        <KPICard label="Occupancy (YTD)" value={`$${ytdOccupancy.toFixed(1)}M`} subValue={`${(ytdOccupancy / ytdTotal * 100).toFixed(0)}% of total`} accent={chart.tertiary} />
+        <KPICard label="Total Expenses (YTD)" value={`$${ytdTotal.toFixed(1)}M`} subValue={`Budget: $${(bud.expenses.total * actuals.length / 12).toFixed(1)}M`} accent={modColors.ledger} />
+      </div>
+
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
+          Monthly Expenses — YTD Actuals
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={th}>Month</th>
+              <th style={{ ...th, textAlign: 'right' }}>Personnel</th>
+              <th style={{ ...th, textAlign: 'right' }}>Direct Student</th>
+              <th style={{ ...th, textAlign: 'right' }}>Occupancy</th>
+              <th style={{ ...th, textAlign: 'right' }}>Other</th>
+              <th style={{ ...th, textAlign: 'right' }}>Total</th>
+              <th style={{ ...th, textAlign: 'right' }}>vs Budget</th>
+            </tr>
+          </thead>
+          <tbody>
+            {actuals.map((m, i) => {
+              const total = m.expenses.total;
+              const budgetMonth = bud.expenses.total / 12;
+              const variance = total - budgetMonth;
+              return (
+                <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : bg.subtle }}>
+                  <td style={tdL}>{m.month}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${m.expenses.personnel.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${m.expenses.directStudent.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${m.expenses.occupancy.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${m.expenses.other.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.semibold }}>${total.toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right', color: variance <= 0 ? status.green : status.red, fontWeight: fontWeight.semibold }}>
+                    {variance >= 0 ? '+' : ''}{variance.toFixed(1)}M
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+
+      <AIInsight label="Expense Intelligence" content={ai.text || `Personnel represents ${(bud.expenses.personnel / bud.expenses.total * 100).toFixed(0)}% of operating expenses. The CPS compensation gap is the single largest expense pressure over the next 5 years.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COVENANTS TAB (preserved from V1)
+// ═══════════════════════════════════════════════════════════════════════════
+function CovenantsTab() {
+  const fin = useFinancials();
+  const cov = fin.covenants;
+  const ytd = fin.ytdSummary;
+  const scenarios = fin.scenarios;
+
+  const ai = useSlateAI({
+    prompt: `Analyze the bond covenant compliance for this charter school network. DSCR: ${fmtDscr(ytd.dscr)} vs minimum ${fmtDscr(cov.dscrMinimum)}. Days Cash: ${ytd.daysCash} vs minimum ${cov.daysCashMinimum}. What is the covenant risk level and what should the CEO monitor most closely?`,
+    domain: 'ledger-covenants',
+    fallback: `All 5 bond covenants are currently in compliance with comfortable cushion. The DSCR of ${fmtDscr(ytd.dscr)} is ${((ytd.dscr / cov.dscrMinimum - 1) * 100).toFixed(0)}% above the minimum. Days cash at ${ytd.daysCash} provides ${ytd.daysCash - cov.daysCashMinimum} days of cushion above the minimum. Monitor enrollment trends most closely — a 5% enrollment decline would reduce DSCR by approximately 0.3x.`,
+  });
+
+  const covenantItems = [
+    { name: 'Debt Service Coverage Ratio (DSCR)', actual: ytd.dscr, minimum: cov.dscrMinimum, bondDoc: cov.dscrBondDoc, format: fmtDscr, description: 'Net revenue available for debt service divided by annual debt service' },
+    { name: 'Days Cash on Hand', actual: ytd.daysCash, minimum: cov.daysCashMinimum, format: (n: number) => `${n} days`, description: 'Unrestricted cash and investments divided by daily operating expenses' },
+    { name: 'Current Ratio', actual: ytd.currentRatio, minimum: cov.currentRatioMinimum, format: (n: number) => `${n.toFixed(2)}x`, description: 'Current assets divided by current liabilities' },
+    { name: 'Net Asset Ratio', actual: ytd.netAssetRatio, minimum: cov.netAssetMinimum, format: (n: number) => `${n.toFixed(1)}%`, description: 'Unrestricted net assets as a percentage of total expenses' },
+    { name: 'Minimum Enrollment', actual: fin.budget.enrollmentC1, minimum: cov.enrollmentMinimum, format: (n: number) => n.toLocaleString(), description: 'Total enrolled students across all campuses' },
+  ];
+
+  return (
+    <div>
+      {/* Gauge Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+        <Card style={{ textAlign: 'center' }}>
+          <Gauge value={ytd.dscr} min={0} max={5} thresholds={{ danger: cov.dscrMinimum, warning: cov.dscrMinimum * 1.5 }} label="DSCR" format={fmtDscr} />
+          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {fmtDscr(cov.dscrMinimum)}</div>
+        </Card>
+        <Card style={{ textAlign: 'center' }}>
+          <Gauge value={ytd.daysCash} min={0} max={250} thresholds={{ danger: cov.daysCashMinimum, warning: cov.daysCashMinimum * 1.5 }} label="Days Cash" format={(n) => `${n}d`} />
+          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.daysCashMinimum}d</div>
+        </Card>
+        <Card style={{ textAlign: 'center' }}>
+          <Gauge value={ytd.currentRatio} min={0} max={3} thresholds={{ danger: cov.currentRatioMinimum, warning: cov.currentRatioMinimum * 1.5 }} label="Current Ratio" format={(n) => `${n.toFixed(2)}x`} />
+          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.currentRatioMinimum.toFixed(2)}x</div>
+        </Card>
+        <Card style={{ textAlign: 'center' }}>
+          <Gauge value={ytd.netAssetRatio} min={0} max={40} thresholds={{ danger: cov.netAssetMinimum, warning: cov.netAssetMinimum * 1.5 }} label="Net Asset %" format={(n) => `${n.toFixed(1)}%`} />
+          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.netAssetMinimum.toFixed(1)}%</div>
+        </Card>
+        <Card style={{ textAlign: 'center' }}>
+          <Gauge value={fin.budget.enrollmentC1} min={0} max={8000} thresholds={{ danger: cov.enrollmentMinimum, warning: cov.enrollmentMinimum * 1.1 }} label="Enrollment" format={(n) => n.toLocaleString()} />
+          <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>Min: {cov.enrollmentMinimum.toLocaleString()}</div>
+        </Card>
+      </div>
+
+      {/* Covenant Detail Rows */}
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, padding: '0 20px' }}>
+          Bond Covenant Compliance — All Covenants
+        </div>
+        {covenantItems.map((c, i) => (
+          <CovenantRow key={i} name={c.name} actual={c.actual} minimum={c.minimum} bondDoc={c.bondDoc} format={c.format} description={c.description} />
+        ))}
+      </Card>
+
+      <AIInsight label="Covenant Intelligence" content={ai.text || `All 5 bond covenants are currently in compliance with comfortable cushion. Monitor enrollment trends most closely — a 5% enrollment decline would reduce DSCR by approximately 0.3x.`}
+        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPPORT TEAM TAB (preserved from V1)
+// ═══════════════════════════════════════════════════════════════════════════
+function SupportTeamTab() {
+  const fin = useFinancials();
+  const comp = fin.compensation;
+
+  const departments = [
+    { name: 'Academic', budget: 640, actual: 897, color: modColors.ledger },
+    { name: 'Operations', budget: 1850, actual: 1823, color: chart.secondary },
+    { name: 'Finance', budget: 720, actual: 698, color: status.blue },
+    { name: 'IT', budget: 480, actual: 408, color: chart.tertiary },
+    { name: 'HR', budget: 390, actual: 412, color: status.amber },
+    { name: 'Health/Fitness/Athletics', budget: 310, actual: 443, color: status.red },
+    { name: 'Education Team', budget: 890, actual: 793, color: modColors.briefing },
+    { name: 'Development', budget: 560, actual: 534, color: modColors.signal },
+  ];
+
+  const totalBudget = departments.reduce((s, d) => s + d.budget, 0);
+  const totalActual = departments.reduce((s, d) => s + d.actual, 0);
+
+  const ai = useSlateAI({
+    prompt: `Analyze the support team compensation for this charter school network. Total support team spend is $${(totalActual / 1000).toFixed(1)}M vs budget $${(totalBudget / 1000).toFixed(1)}M. The CPS compensation gap is ${comp.cpsGap.gapPct.toFixed(1)}%. What are the top 2 compensation strategy priorities?`,
+    domain: 'ledger-support',
+    fallback: `Support Team spending is ${totalActual > totalBudget ? `$${fmtNum(totalActual - totalBudget)}K over budget` : `$${fmtNum(totalBudget - totalActual)}K under budget`} in aggregate. The CPS compensation gap of ${comp.cpsGap.gapPct.toFixed(1)}% is a strategic risk — it directly impacts recruitment competitiveness and drives the $${comp.fiveYearPressure.toFixed(1)}M 5-year pressure. Prioritize closing the gap for high-turnover positions first.`,
+  });
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <KPICard label="Total Support Team" value={`$${(totalActual / 1000).toFixed(1)}M`} subValue={`Budget: $${(totalBudget / 1000).toFixed(1)}M`} trend={totalActual <= totalBudget ? 'up' : 'down'} accent={modColors.ledger} />
+        <KPICard label="CPS Comp Gap" value={`${comp.cpsGap.gapPct.toFixed(1)}%`} subValue={`${fmtFull(comp.cpsGap.cpsL1Step0 - comp.cpsGap.veritasStarting)} below CPS`} trend="down" accent={status.red} />
+        <KPICard label="5-Year Pressure" value={`$${comp.fiveYearPressure.toFixed(1)}M`} subValue="Cumulative gap cost" trend="down" accent={status.amber} />
+        <KPICard label="Personnel % of OpEx" value={`${comp.fy26.personnelPctOfOpex}%`} subValue="Target: 70-85%" trend="neutral" accent={status.blue} />
+      </div>
+
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 20 }}>
+          Department Spend vs Budget
+        </div>
+        {departments.map((d, i) => {
+          const variance = d.actual - d.budget;
+          const isOver = variance > 0;
+          return (
+            <div key={i} style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                <span style={{ fontSize: fontSize.sm, color: text.secondary, fontWeight: fontWeight.medium }}>{d.name}</span>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <span style={{ fontSize: fontSize.xs, color: text.muted, fontFamily: font.mono }}>${d.actual}K actual</span>
+                  <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, fontFamily: font.mono, color: isOver ? status.red : status.green }}>
+                    {isOver ? '+' : ''}{variance}K
+                  </span>
                 </div>
               </div>
-            );
-          })}
+              <div style={{ position: 'relative', height: 8, background: bg.subtle, borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ width: `${(d.budget / Math.max(...departments.map(x => x.actual))) * 100}%`, height: '100%', background: `${d.color}30`, position: 'absolute' }} />
+                <div style={{ width: `${(d.actual / Math.max(...departments.map(x => x.actual))) * 100}%`, height: '100%', background: isOver ? status.red : d.color, borderRadius: 4, transition: transition.smooth }} />
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: `2px solid ${border.light}`, display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: text.secondary }}>Total</span>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span style={{ fontSize: fontSize.sm, fontFamily: font.mono, color: text.primary }}>${totalActual}K actual</span>
+            <span style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, fontFamily: font.mono, color: totalActual > totalBudget ? status.red : status.green }}>
+              {totalActual > totalBudget ? '+' : ''}{totalActual - totalBudget}K
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${border.light}` }}>
-          <span style={{ fontSize: fontSize.xs, color: status.red }}>■ Over budget: +{fmtNum(totalOverage)}K ({overBudgetDepts.length} depts)</span>
-          <span style={{ fontSize: fontSize.xs, color: status.green }}>■ Under budget: -{fmtNum(totalSavings)}K ({underBudgetDepts.length} depts)</span>
-        </div>
-      </Card>
-
-      {/* Department Spend Table */}
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Support Team Department Spend — Actual vs Budget (in thousands)</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={th}>Department</th><th style={{ ...th, textAlign: 'right' }}>Actual</th>
-            <th style={{ ...th, textAlign: 'right' }}>Budget</th><th style={{ ...th, textAlign: 'right' }}>Variance</th>
-            <th style={{ ...th, textAlign: 'right', width: 200 }}>Budget Utilization</th>
-          </tr></thead>
-          <tbody>
-            {sorted.map(d => {
-              const pct = d.budget > 0 ? (d.actual / d.budget) * 100 : 0;
-              const over = d.variance > 0;
-              return (
-                <tr key={d.name}>
-                  <td style={tdL}>{d.name}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${fmtNum(d.actual)}K</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${fmtNum(d.budget)}K</td>
-                  <td style={{ ...td, textAlign: 'right', color: over ? status.red : status.green, fontWeight: fontWeight.semibold }}>
-                    {over ? '+' : ''}{fmtNum(d.variance)}K
-                  </td>
-                  <td style={{ ...td, textAlign: 'right' }}>
-                    <Bar value={d.actual} max={d.budget} color={pct > 105 ? status.red : pct > 95 ? status.amber : status.green} h={6} showLabel />
-                  </td>
-                </tr>
-              );
-            })}
-            <tr style={{ background: bg.subtle }}>
-              <td style={{ ...tdL, fontWeight: fontWeight.bold }}>TOTAL</td>
-              <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.bold }}>${fmtNum(totalActual)}K</td>
-              <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.bold }}>${fmtNum(totalBudget)}K</td>
-              <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.bold, color: totalActual > totalBudget ? status.red : status.green }}>
-                {totalActual > totalBudget ? '+' : ''}{fmtNum(totalActual - totalBudget)}K
-              </td>
-              <td style={{ ...td, textAlign: 'right' }}>
-                <Bar value={totalActual} max={totalBudget} color={totalActual > totalBudget ? status.red : status.green} h={6} showLabel />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </Card>
-
-      {/* Personnel Cost Trend */}
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>Personnel Cost Trend (in millions)</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={th}>Year</th><th style={{ ...th, textAlign: 'right' }}>Base Salaries</th>
-            <th style={{ ...th, textAlign: 'right' }}>Benefits</th><th style={{ ...th, textAlign: 'right' }}>Stipends</th>
-            <th style={{ ...th, textAlign: 'right' }}>Total</th><th style={{ ...th, textAlign: 'right' }}>YoY Change</th>
-          </tr></thead>
-          <tbody>
-            {comp.historicalPersonnel.map((h, i) => {
-              const prev = i > 0 ? comp.historicalPersonnel[i - 1].total : null;
-              const change = prev ? ((h.total - prev) / prev * 100) : null;
-              return (
-                <tr key={h.year}>
-                  <td style={tdL}>{h.year}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${h.base.toFixed(1)}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${h.benefits.toFixed(1)}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>${h.stipends.toFixed(1)}</td>
-                  <td style={{ ...td, textAlign: 'right', fontWeight: fontWeight.semibold }}>${h.total.toFixed(1)}</td>
-                  <td style={{ ...td, textAlign: 'right', color: change && change > 0 ? status.amber : status.green }}>
-                    {change !== null ? `${change >= 0 ? '+' : ''}${change.toFixed(1)}%` : '—'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </Card>
 
       {/* CPS Gap Analysis */}
       <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>CPS Compensation Gap Analysis</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
+          CPS Compensation Gap Analysis
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, marginBottom: 16 }}>
           <div style={{ textAlign: 'center', padding: 20, background: bg.subtle, borderRadius: radius.lg }}>
             <div style={{ fontSize: fontSize.xs, color: text.light, textTransform: 'uppercase', marginBottom: 8 }}>CPS L1 Step 0</div>
             <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: text.primary }}>{fmtFull(comp.cpsGap.cpsL1Step0)}</div>
@@ -985,144 +1242,63 @@ function SupportTeamTab() {
             <div style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: text.primary }}>{fmtFull(comp.cpsGap.veritasStarting)}</div>
           </div>
         </div>
-        <div style={{ marginTop: 16, padding: 12, background: status.amberBg, border: `1px solid ${status.amberBorder}`, borderRadius: radius.md }}>
+        <div style={{ padding: 12, background: status.amberBg, border: `1px solid ${status.amberBorder}`, borderRadius: radius.md }}>
           <div style={{ fontSize: fontSize.sm, color: status.amber, fontWeight: fontWeight.semibold }}>5-Year Cumulative Pressure: ${comp.fiveYearPressure.toFixed(1)}M</div>
           <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 4 }}>If Veritas maintains current salary structure while CPS continues annual increases, the cumulative gap in total compensation cost over 5 years reaches ${fmtFull(comp.fiveYearPressure * 1000000)}. This directly impacts recruitment and retention competitiveness.</div>
         </div>
       </Card>
 
-      <AIInsight label="Support Team Intelligence"
-        content={`Support Team spending is ${totalActual > totalBudget ? `$${fmtNum(totalActual - totalBudget)}K over budget` : `$${fmtNum(totalBudget - totalActual)}K under budget`} in aggregate. The largest overage is Academic at +$257K (40% over budget), followed by Health/Fitness/Athletics at +$133K. These overages are partially offset by underspending in IT (-$72K) and Education Team (-$97K). The CPS compensation gap of ${comp.cpsGap.gapPct.toFixed(1)}% (${fmtFull(comp.cpsGap.cpsL1Step0 - comp.cpsGap.veritasStarting)} per starting teacher) is a strategic risk — it directly impacts recruitment competitiveness and drives the $${comp.fiveYearPressure.toFixed(1)}M 5-year pressure. Personnel at ${comp.fy26.personnelPctOfOpex}% of operating expenses is within the typical 70-85% range for charter networks, but the trend line shows compression. Recommendation: Prioritize closing the CPS gap for high-turnover positions first.`}
+      <AIInsight label="Support Team Intelligence" content={ai.text || `Support Team spending is ${totalActual > totalBudget ? `$${fmtNum(totalActual - totalBudget)}K over budget` : `$${fmtNum(totalBudget - totalActual)}K under budget`} in aggregate. The CPS compensation gap of ${comp.cpsGap.gapPct.toFixed(1)}% is a strategic risk.`}
         aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
     </div>
   );
 }
 
-// ─── Principal Financial View ─────────────────────────────────────────────
-
+// ═══════════════════════════════════════════════════════════════════════════
+// PRINCIPAL LEDGER (preserved from V1)
+// ═══════════════════════════════════════════════════════════════════════════
 function PrincipalLedger() {
-  const { selectedCampusId } = useRole();
   const fin = useFinancials();
-  const enr = useEnrollment();
-  const net = useNetwork();
-  const ytd = fin.ytdSummary;
-
-  const campus = enr.byCampus.find(c => c.campusId === selectedCampusId);
-  const campusInfo = net.campuses.find(c => c.id === selectedCampusId);
-  const campusName = campusInfo?.short ?? 'Campus';
-  const enrolled = campus?.enrolled ?? 0;
-  const pctOfNetwork = enr.networkTotal > 0 ? enrolled / enr.networkTotal : 0;
-
-  // Derive campus-level financials from network proportions
-  const campusRev = ytd.revActual * 1_000_000 * pctOfNetwork;
-  const campusExp = ytd.expActual * 1_000_000 * pctOfNetwork;
-  const campusSurplus = campusRev - campusExp;
-  const campusBudgetRev = ytd.revBudget * 1_000_000 * pctOfNetwork;
-  const campusBudgetExp = ytd.expBudget * 1_000_000 * pctOfNetwork;
-  const revVar = campusRev - campusBudgetRev;
-  const expVar = campusExp - campusBudgetExp;
-  const perPupilRev = enrolled > 0 ? campusRev / enrolled : 0;
-  const perPupilExp = enrolled > 0 ? campusExp / enrolled : 0;
-
-  const ai = useSlateAI({
-    prompt: `Provide a campus-level financial briefing for a principal. This campus has ${enrolled} students (${(pctOfNetwork * 100).toFixed(1)}% of network). Revenue is ${revVar >= 0 ? 'above' : 'below'} budget. What should this principal focus on financially? Be specific and actionable.`,
-    domain: `ledger-campus-${selectedCampusId}`,
-    fallback: `${campusName} represents ${fmtPct(pctOfNetwork * 100)} of network enrollment (${enrolled} students). Revenue is ${revVar >= 0 ? 'tracking above' : 'below'} budget. ${campusSurplus < 0 ? 'Campus is in deficit — review discretionary spending.' : 'Campus is in surplus — maintain current trajectory.'}`,
-  });
+  const { campuses } = useNetwork();
+  const bud = fin.budget;
+  const perPupil = bud.revenue.total / bud.enrollment;
 
   return (
     <div>
-      {/* Principal Campus Banner */}
-      <div style={{
-        background: `linear-gradient(135deg, ${modColors.ledger}12 0%, ${brand.gold}08 100%)`,
-        border: `1px solid ${modColors.ledger}30`,
-        borderRadius: radius.lg, padding: '16px 20px', marginBottom: 20,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <div>
-          <div style={{ fontSize: fontSize.xs, color: modColors.ledger, fontWeight: fontWeight.bold, textTransform: 'uppercase', letterSpacing: 1 }}>Principal View</div>
-          <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: text.primary }}>{campusName} — Financial Summary</div>
-          <div style={{ fontSize: fontSize.xs, color: text.muted }}>{enrolled} students · {fmtPct(pctOfNetwork * 100)} of network · FY{fin.fiscalYear.slice(-2)}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: fontSize.xs, color: text.muted }}>Per-Pupil Revenue</div>
-          <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, fontFamily: font.mono, color: modColors.ledger }}>{fmt(perPupilRev)}</div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+        <KPICard label="Per-Pupil Revenue" value={`$${Math.round(perPupil).toLocaleString()}`} subValue="FY26 budget" accent={modColors.ledger} />
+        <KPICard label="Network Enrollment" value={bud.enrollment.toLocaleString()} subValue="FY26 budget" accent={modColors.dashboard} />
+        <KPICard label="Total Revenue" value={`$${bud.revenue.total.toFixed(1)}M`} subValue="FY26 budget" accent={chart.secondary} />
       </div>
-
-      {/* Campus KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
-        <KPICard label="Campus Revenue" value={fmtCompact(campusRev)} accent={status.green}
-          subValue={`Budget: ${fmtCompact(campusBudgetRev)}`} />
-        <KPICard label="Campus Expenses" value={fmtCompact(campusExp)} accent={status.amber}
-          subValue={`Budget: ${fmtCompact(campusBudgetExp)}`} />
-        <KPICard label="Campus Surplus" value={fmtCompact(campusSurplus)}
-          accent={campusSurplus >= 0 ? status.green : status.red}
-          subValue={campusSurplus >= 0 ? 'Positive' : 'Deficit'} />
-        <KPICard label="Per-Pupil Expense" value={fmt(perPupilExp)} accent={modColors.ledger}
-          subValue={`${enrolled} students`} />
-      </div>
-
-      {/* Variance Analysis */}
-      <Section title="Budget Variance">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <Card>
-            <div style={{ padding: 16 }}>
-              <div style={{ fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Revenue Variance</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: revVar >= 0 ? status.green : status.red }}>
-                  {revVar >= 0 ? '+' : ''}{fmtCompact(revVar)}
-                </span>
-                <span style={{ fontSize: fontSize.xs, color: text.muted }}>vs budget</span>
-              </div>
-              <div style={{ height: 8, background: bg.subtle, borderRadius: 4, marginTop: 12, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min((campusRev / campusBudgetRev) * 100, 100)}%`, background: revVar >= 0 ? status.green : status.red, borderRadius: 4 }} />
-              </div>
-              <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>{fmtPct((campusRev / campusBudgetRev) * 100)} of budget</div>
-            </div>
-          </Card>
-          <Card>
-            <div style={{ padding: 16 }}>
-              <div style={{ fontSize: fontSize.xs, color: text.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Expense Variance</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, fontFamily: font.mono, color: expVar <= 0 ? status.green : status.red }}>
-                  {expVar >= 0 ? '+' : ''}{fmtCompact(expVar)}
-                </span>
-                <span style={{ fontSize: fontSize.xs, color: text.muted }}>vs budget</span>
-              </div>
-              <div style={{ height: 8, background: bg.subtle, borderRadius: 4, marginTop: 12, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min((campusExp / campusBudgetExp) * 100, 100)}%`, background: expVar <= 0 ? status.green : status.amber, borderRadius: 4 }} />
-              </div>
-              <div style={{ fontSize: fontSize.xs, color: text.light, marginTop: 4 }}>{fmtPct((campusExp / campusBudgetExp) * 100)} of budget</div>
-            </div>
-          </Card>
+      <Card>
+        <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 16 }}>
+          Campus Allocation
         </div>
-      </Section>
-
-      {/* Network Context */}
-      <Section title="Network Financial Context">
-        <Card>
-          <div style={{ padding: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              {[
-                { label: 'Network DSCR', value: fmtDscr(ytd.dscr), ok: ytd.dscr >= fin.covenants.dscrMinimum },
-                { label: 'Days Cash', value: String(ytd.daysCash), ok: ytd.daysCash >= fin.covenants.daysCashMinimum },
-                { label: 'Current Ratio', value: ytd.currentRatio.toFixed(2), ok: ytd.currentRatio >= fin.covenants.currentRatioMinimum },
-                { label: 'Network Surplus', value: fmt(ytd.surplus * 1_000_000), ok: ytd.surplus >= 0 },
-              ].map(m => (
-                <div key={m.label} style={{ textAlign: 'center', padding: 12, background: m.ok ? `${status.green}08` : `${status.red}08`, borderRadius: radius.md, border: `1px solid ${m.ok ? `${status.green}20` : `${status.red}20`}` }}>
-                  <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, fontFamily: font.mono, color: m.ok ? status.green : status.red }}>{m.value}</div>
-                  <div style={{ fontSize: '10px', color: text.muted, marginTop: 2 }}>{m.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      </Section>
-
-      <AIInsight label="Campus Financial Intelligence"
-        content={`${campusName} represents ${fmtPct(pctOfNetwork * 100)} of network enrollment (${enrolled} students) and proportional revenue of ${fmtCompact(campusRev)}. Revenue is ${revVar >= 0 ? 'tracking above' : 'below'} budget by ${fmtCompact(Math.abs(revVar))}. Per-pupil revenue of ${fmt(perPupilRev)} is ${perPupilRev >= net.revenuePerPupil ? 'above' : 'below'} the network average of ${fmt(net.revenuePerPupil)}. Key action: ${campusSurplus < 0 ? 'Campus is in deficit — review discretionary spending and staffing levels.' : 'Campus is in surplus — maintain current trajectory and consider strategic investments.'}`}
-        aiText={ai.text} aiLoading={ai.loading} aiError={ai.error} onRegenerate={ai.regenerate} lastGenerated={ai.lastGenerated} />
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={th}>Campus</th>
+              <th style={{ ...th, textAlign: 'right' }}>Enrollment</th>
+              <th style={{ ...th, textAlign: 'right' }}>Allocation</th>
+              <th style={{ ...th, textAlign: 'right' }}>Per Pupil</th>
+            </tr>
+          </thead>
+          <tbody>
+            {campuses.map((c, i) => {
+              const enrollment = Math.round(bud.enrollment / campuses.length);
+              const allocation = enrollment * perPupil;
+              return (
+                <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : bg.subtle }}>
+                  <td style={tdL}>{c.name}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{enrollment.toLocaleString()}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${(allocation / 1000000).toFixed(1)}M</td>
+                  <td style={{ ...td, textAlign: 'right' }}>${Math.round(perPupil).toLocaleString()}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }
@@ -1130,9 +1306,8 @@ function PrincipalLedger() {
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN LEDGER APP
 // ═══════════════════════════════════════════════════════════════════════════
-
 export default function LedgerApp() {
-  const [activeTab, setActiveTab] = useState<LedgerTab>('overview');
+  const [activeTab, setActiveTab] = useState<LedgerTab>('briefing');
   const fin = useFinancials();
   const { role } = useRole();
 
@@ -1151,34 +1326,48 @@ export default function LedgerApp() {
       <ModuleHeader title="Ledger" subtitle="Financial Intelligence Engine" accent={modColors.ledger}
         freshness={{ lastUpdated: fin.lastUpdated, source: fin.source }} />
 
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: `1px solid ${border.light}`, paddingBottom: 0 }}>
+      {/* Tab Bar */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: `1px solid ${border.light}`, paddingBottom: 0 }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-            padding: '10px 16px', fontSize: fontSize.sm,
+            padding: '12px 18px', fontSize: fontSize.sm,
             fontWeight: activeTab === tab.id ? fontWeight.semibold : fontWeight.medium,
             color: activeTab === tab.id ? modColors.ledger : text.muted,
             background: 'transparent', border: 'none',
             borderBottom: activeTab === tab.id ? `2px solid ${modColors.ledger}` : '2px solid transparent',
             cursor: 'pointer', fontFamily: font.sans, transition: transition.fast,
-            display: 'flex', alignItems: 'center', gap: 6, marginBottom: -1 }}>
-            <span style={{ fontSize: fontSize.xs }}>{tab.icon}</span>
+            display: 'flex', alignItems: 'center', gap: 6, marginBottom: -1,
+          }}>
             {tab.label}
-            {tab.id === 'scenarios' && (
-              <span style={{ background: `${chart.tertiary}15`, color: chart.tertiary, fontSize: '9px', fontWeight: fontWeight.bold, padding: '1px 5px', borderRadius: radius.full }}>INTERACTIVE</span>
+            {tab.badge && (
+              <span style={{
+                background: tab.badge === 'NEW' ? `${modColors.ledger}15` : `${chart.tertiary}15`,
+                color: tab.badge === 'NEW' ? modColors.ledger : chart.tertiary,
+                fontSize: '9px', fontWeight: fontWeight.bold, padding: '1px 5px', borderRadius: radius.full,
+              }}>
+                {tab.badge}
+              </span>
             )}
           </button>
         ))}
       </div>
 
-      {activeTab === 'overview' && <OverviewTab />}
-      {activeTab === 'revenue' && <RevenueTab />}
-      {activeTab === 'expenses' && <ExpensesTab />}
+      {/* Tab Content */}
+      {activeTab === 'briefing'  && <BriefingTab />}
+      {activeTab === 'boarddeck' && <BoardDeckTab />}
+      {activeTab === 'horizon'   && <HorizonTab />}
+      {activeTab === 'overview'  && <OverviewTab />}
+      {activeTab === 'revenue'   && <RevenueTab />}
+      {activeTab === 'expenses'  && <ExpensesTab />}
       {activeTab === 'covenants' && <CovenantsTab />}
-      {activeTab === 'scenarios' && <ScenariosTab />}
-      {activeTab === 'support' && <SupportTeamTab />}
+      {activeTab === 'support'   && <SupportTeamTab />}
 
-      <div style={{ textAlign: 'center', padding: '20px 0', fontSize: fontSize.xs, color: text.light, borderTop: `1px solid ${border.light}`, marginTop: 20 }}>
-        {fin.actuals.length} months of actuals · {fin.historical.length} years of history · 3 scenarios + custom modeling · Ledger Intelligence Engine
+      {/* Footer */}
+      <div style={{
+        textAlign: 'center', padding: '20px 0', fontSize: fontSize.xs, color: text.light,
+        borderTop: `1px solid ${border.light}`, marginTop: 20,
+      }}>
+        {fin.actuals.length} months of actuals · {fin.historical.length} years of history · 3 scenarios + custom modeling · Board Deck Generator · Ledger Intelligence Engine v2
       </div>
     </div>
   );

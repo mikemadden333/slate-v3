@@ -378,7 +378,7 @@ Provide a concise risk intelligence analysis (3-4 paragraphs):
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: fontSize.xs, color: textColor.muted, fontFamily: font.mono, marginBottom: 4 }}>{risk.id}</div>
-            <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: textColor.primary, fontFamily: font.serif }}>{risk.name}</div>
+            <div style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: textColor.primary, fontFamily: font.body }}>{risk.name}</div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <LensBadge lens={risk.lens} />

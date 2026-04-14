@@ -297,7 +297,7 @@ export default function ScoreExplainer({ open, onClose, campus, risk, incidents,
             <div style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
               SCORE ANALYSIS
             </div>
-            <div style={{ fontSize: '22px', fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.serif }}>
+            <div style={{ fontSize: '22px', fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.body }}>
               {campus.name}
             </div>
             <div style={{ fontSize: fontSize.sm, color: text.muted, marginTop: 2 }}>

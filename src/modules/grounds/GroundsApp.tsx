@@ -149,7 +149,7 @@ function ProjectDetailDrawer({ project, onClose }: { project: CapitalProject; on
                 )}
                 <StatusBadge label={s.label} variant={s.v} />
               </div>
-              <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.serif }}>{project.name}</div>
+              <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.body }}>{project.name}</div>
               <div style={{ fontSize: fontSize.sm, color: text.muted, marginTop: 4 }}>{project.campus} · {project.category || 'Capital Project'}</div>
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer',
@@ -858,7 +858,7 @@ function EmergencyTab() {
     return (
       <div style={{ textAlign: 'center', padding: '60px 24px' }}>
         <div style={{ width: 80, height: 80, borderRadius: '50%', background: status.greenBg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '36px', color: status.green }}>✓</div>
-        <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: text.primary, marginBottom: 8, fontFamily: font.serif }}>Emergency Project Created</div>
+        <div style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: text.primary, marginBottom: 8, fontFamily: font.body }}>Emergency Project Created</div>
         <div style={{ fontSize: fontSize.sm, color: text.muted, maxWidth: 500, margin: '0 auto', lineHeight: 1.6 }}>Emergency work order and capital project created. Notifications sent to:</div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap' }}>
           {['Facilities Director', 'Campus Principal', 'COO', 'Watch Module', 'Briefing Module'].map(r => (

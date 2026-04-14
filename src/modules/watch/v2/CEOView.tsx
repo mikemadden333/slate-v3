@@ -1601,7 +1601,7 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
           animation: 'spin 1s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ fontFamily: font.display, fontSize: fontSize.xl, color: text.secondary, fontWeight: fontWeight.light }}>
+        <div style={{ fontFamily: font.body, fontSize: fontSize.xl, color: text.secondary, fontWeight: fontWeight.light }}>
           Scanning all sources...
         </div>
         <div style={{ fontSize: fontSize.sm, color: text.muted, fontFamily: font.body }}>
@@ -1706,7 +1706,7 @@ export const CEOView: React.FC<CEOViewProps> = ({ data, onSelectCampus }) => {
               width: 10, height: 10, borderRadius: '50%',
               background: threatColor, boxShadow: `0 0 8px ${threatColor}60`,
             }} />
-            <span style={{ fontFamily: font.display, fontSize: fontSize.lg, fontWeight: fontWeight.light, color: text.primary }}>
+            <span style={{ fontFamily: font.body, fontSize: fontSize.lg, fontWeight: fontWeight.light, color: text.primary }}>
               Network: {threatLabel}
             </span>
             {/* Network Pulse */}

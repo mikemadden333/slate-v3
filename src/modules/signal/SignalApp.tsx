@@ -537,8 +537,25 @@ Generate 6-8 warnings distributed across all 5 layers (at least 1 from each laye
 
       const d = await res.json();
       const raw = d.content?.find((b: any) => b.type === 'text')?.text || '';
-      const clean = raw.replace(/```json\s*|```\s*/g, '').trim();
-      const parsed = JSON.parse(clean);
+      // Robust JSON extraction — handles truncated responses and markdown fences
+      let clean = raw.replace(/```json\s*|```\s*/g, '').trim();
+      // Extract just the JSON object if there's surrounding text
+      const jsonMatch = clean.match(/\{[\s\S]*\}/);
+      if (jsonMatch) clean = jsonMatch[0];
+      let parsed: any;
+      try {
+        parsed = JSON.parse(clean);
+      } catch {
+        // Attempt to repair truncated JSON by balancing brackets
+        let repaired = clean.replace(/,\s*$/, '');
+        const openBrackets = (repaired.match(/\[/g) || []).length;
+        const closeBrackets = (repaired.match(/\]/g) || []).length;
+        const openBraces = (repaired.match(/\{/g) || []).length;
+        const closeBraces = (repaired.match(/\}/g) || []).length;
+        for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += ']';
+        for (let i = 0; i < openBraces - closeBraces; i++) repaired += '}';
+        parsed = JSON.parse(repaired);
+      }
       setData({ ...parsed, generatedAt: new Date().toISOString() });
       if (parsed.warnings?.length > 0) setSelected(parsed.warnings[0]);
     } catch (err) {
@@ -936,7 +953,7 @@ Generate 6-8 warnings distributed across all 5 layers (at least 1 from each laye
                       color: textColor.primary,
                       lineHeight: 1.5,
                       marginBottom: 8,
-                      fontFamily: font.serif,
+                      fontFamily: font.body,
                     }}>
                       {selected.headline}
                     </div>

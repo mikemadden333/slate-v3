@@ -1,168 +1,168 @@
 /**
- * Slate v3 — Unified Design System
- * MEA Brand Guide v2.0 — "Deep navy frame. Light content workspace. Warm gold accents."
- * Split approach: dark sidebar/topbar chrome + light content area for maximum readability.
- * 
- * TYPOGRAPHY v2: IBM Plex family — designed for data-dense intelligence interfaces.
- * IBM Plex Sans for body/data, IBM Plex Serif for display headings, IBM Plex Mono for timestamps.
- * Optimized for legibility at small sizes with excellent tabular figures.
- * 
+ * Slate v4 — Unified Design System
+ * Slate Redesign Brief v4.0 — "Clarity itself appearing on the screen."
+ *
+ * Design principles:
+ * - 80% neutral, 15% blue family, 5% semantic color
+ * - Inter only inside the product (Playfair Display for splash/brand mark only)
+ * - White surfaces, soft borders, 16px radius cards
+ * - No colored card borders. No gold inside the product UI.
+ * - Whitespace is a feature — 30-40% of every screen should breathe
+ * - Motion: glide, not bounce. 120ms hover, 200ms transitions.
+ *
  * Every color, spacing, and typography token lives here.
  * No module defines its own colors. Ever.
  */
 
 // ─── Brand Colors ─────────────────────────────────────────────────────────
-
 export const brand = {
-  navy:     '#0A1628',   // Deep Navy — sidebar, topbar, splash
-  gold:     '#C9A54E',   // Warm Gold — headlines, accent lines, buttons
-  mutedGold:'#D4B978',   // Muted Gold — secondary buttons, hover
-  ivory:    '#E8DCC8',   // Soft Ivory — pull quotes, warm emphasis
-  white:    '#F0F2F5',   // Signal White — headlines on dark surfaces
-  iceBlue:  '#B8C9DB',   // Ice Blue — labels on dark surfaces
-  slateBlue:'#2A3F5F',   // Slate Blue — reserved for dark chrome accents
+  navy:      '#0A1628',   // Deep Navy — splash background only
+  gold:      '#C9A54E',   // Warm Gold — splash accent, brand mark period only
+  mutedGold: '#D4B978',   // Muted Gold — secondary brand use
+  ivory:     '#E8DCC8',   // Soft Ivory — splash pull quotes
+  white:     '#F0F2F5',   // Signal White — headlines on dark surfaces
+  iceBlue:   '#B8C9DB',   // Ice Blue — labels on dark surfaces
 } as const;
 
 // ─── Backgrounds ──────────────────────────────────────────────────────────
-
 export const bg = {
-  // Dark chrome (sidebar, topbar, splash)
-  app:      '#F5F3EF',   // Warm off-white — main content area
-  sidebar:  '#0A1628',   // Deep Navy — sidebar frame
-  sidebarGlass: 'linear-gradient(180deg, #122040 0%, #0E1A32 30%, #0A1628 70%, #081220 100%)',
-  header:   '#0A1628',   // Deep Navy — topbar
-  // Light content area
-  card:     '#FFFFFF',   // White cards on warm off-white
-  cardGlass:'#FFFFFF',   // White cards (no glass needed on light bg)
-  hover:    'rgba(0, 0, 0, 0.04)',   // Subtle hover on light bg
-  selected: 'rgba(201, 165, 78, 0.10)',
-  subtle:   '#EDE9E3',   // Slightly darker than off-white for sections
-  gradient: 'linear-gradient(180deg, #F5F3EF 0%, #EDE9E3 100%)',
-  surface:  '#F5F3EF',   // Light surface fallback
+  // App shell
+  app:      '#F6F8FB',   // Primary content canvas — cool near-white
+  sidebar:  '#111827',   // Deep charcoal — sidebar
+  sidebarGlass: 'linear-gradient(180deg, #1a2234 0%, #111827 40%, #0d1420 100%)',
+  header:   '#111827',   // Deep charcoal — topbar (matches sidebar)
+  // Content surfaces
+  card:     '#FFFFFF',   // Pure white cards on cool canvas
+  cardGlass:'#FFFFFF',
+  hover:    'rgba(79, 124, 255, 0.04)',
+  selected: 'rgba(79, 124, 255, 0.08)',
+  subtle:   '#EEF1F6',   // Section dividers, subtle backgrounds
+  gradient: 'linear-gradient(180deg, #F6F8FB 0%, #EEF1F6 100%)',
+  surface:  '#F6F8FB',
+  // Dark surfaces (Watch instrument mode)
+  dark:     '#1C2333',
+  darkCard: '#242D3E',
+  darkHover:'rgba(255, 255, 255, 0.04)',
 } as const;
 
 // ─── Text Colors ──────────────────────────────────────────────────────────
-
 export const text = {
-  primary:   '#1A1A2E',  // Dark charcoal — headlines, critical text on light bg
-  secondary: '#3D4A5C',  // Deeper medium gray — body text, labels on light bg (was #4A5568 — too light)
-  muted:     '#5A6A7E',  // Muted gray — secondary info on light bg (was #718096 — too light)
-  light:     '#8494A7',  // Subdued — tertiary info on light bg (was #A0AEC0 — too light)
-  inverse:   '#F0F2F5',  // Signal White — text on dark chrome
-  accent:    '#C9A54E',  // Warm Gold
+  primary:   '#111827',  // Near-black — headlines, critical text
+  secondary: '#374151',  // Dark gray — body text, labels
+  muted:     '#6B7280',  // Medium gray — secondary info
+  light:     '#9CA3AF',  // Light gray — tertiary info
+  inverse:   '#F9FAFB',  // Near-white — text on dark surfaces
+  accent:    '#4F7CFF',  // Blue accent — links, active states
+  gold:      '#C9A54E',  // Gold — brand mark only
   ivory:     '#E8DCC8',  // Soft Ivory — pull quotes on dark bg
-  link:      '#2B6CB0',  // Deeper blue for links on light bg
+  link:      '#2563EB',  // Blue for links
+  // Dark surface text
+  darkPrimary:   '#F1F5F9',
+  darkSecondary: '#94A3B8',
+  darkMuted:     '#64748B',
 } as const;
 
-// ─── Semantic / Functional Colors (Slate Product Only) ────────────────────
-
+// ─── Semantic / Status Colors ─────────────────────────────────────────────
 export const status = {
-  // Positive — Sage Green (slightly deeper for light bg readability)
-  green:     '#2F855A',
-  greenBg:   'rgba(47, 133, 90, 0.08)',
-  greenBorder: 'rgba(47, 133, 90, 0.20)',
-
-  // Negative — Ember Red
-  red:       '#C53030',
-  redBg:     'rgba(197, 48, 48, 0.08)',
-  redBorder: 'rgba(197, 48, 48, 0.20)',
-
-  // Warning — Amber (slightly deeper for light bg)
-  amber:     '#C07C1E',
-  amberBg:   'rgba(192, 124, 30, 0.08)',
-  amberBorder: 'rgba(192, 124, 30, 0.20)',
-
-  // Info — Steel Blue
-  blue:      '#2B6CB0',
-  blueBg:    'rgba(43, 108, 176, 0.08)',
-  blueBorder: 'rgba(43, 108, 176, 0.20)',
-
+  // Positive — Green
+  green:        '#16A34A',
+  greenBg:      'rgba(22, 163, 74, 0.08)',
+  greenBorder:  'rgba(22, 163, 74, 0.20)',
+  // Negative — Red
+  red:          '#DC2626',
+  redBg:        'rgba(220, 38, 38, 0.08)',
+  redBorder:    'rgba(220, 38, 38, 0.20)',
+  // Warning — Amber
+  amber:        '#D97706',
+  amberBg:      'rgba(217, 119, 6, 0.08)',
+  amberBorder:  'rgba(217, 119, 6, 0.20)',
+  // Info — Blue
+  blue:         '#2563EB',
+  blueBg:       'rgba(37, 99, 235, 0.08)',
+  blueBorder:   'rgba(37, 99, 235, 0.20)',
   // Neutral
-  gray:      '#718096',
-  grayBg:    'rgba(113, 128, 150, 0.08)',
-  grayBorder: 'rgba(113, 128, 150, 0.20)',
+  gray:         '#6B7280',
+  grayBg:       'rgba(107, 114, 128, 0.08)',
+  grayBorder:   'rgba(107, 114, 128, 0.20)',
+  // Backward compat aliases
+  neutral:      '#6B7280',
+  neutralBg:    'rgba(107, 114, 128, 0.08)',
+  neutralBorder:'rgba(107, 114, 128, 0.20)',
 } as const;
 
 // ─── Module Accent Colors ─────────────────────────────────────────────────
-// Slightly deeper for readability on light backgrounds
-
 export const modules = {
-  watch:    '#2F855A',  // Sage Green — safety, vigilance
-  ledger:   '#2B6CB0',  // Steel Blue — financial clarity
-  scholar:  '#6B46C1',  // Violet — academic, enrollment
-  shield:   '#C07C1E',  // Amber — risk, protection
-  fund:     '#2B6CB0',  // Steel Blue — fundraising, growth
-  grounds:  '#5A6F88',  // Muted — facilities, physical
-  civic:    '#B83280',  // Rose — public affairs
-  signal:   '#B7931E',  // Deep Gold — network health
-  draft:    '#4C51BF',  // Indigo — communications
-  reports:  '#2C7A7B',  // Teal — reporting
-  briefing: '#C9A54E',  // Warm Gold — executive intelligence
-  datahub:  '#2F855A',  // Sage Green — data management
+  dashboard: '#4F7CFF',  // Blue
+  briefing:  '#4F7CFF',  // Blue
+  watch:     '#DC2626',  // Red — safety/urgency
+  signal:    '#7C3AED',  // Violet
+  ledger:    '#16A34A',  // Green — finance
+  scholar:   '#2563EB',  // Blue — academics
+  grounds:   '#D97706',  // Amber — facilities
+  shield:    '#DC2626',  // Red — compliance
+  fund:      '#059669',  // Emerald — fundraising
+  civic:     '#0891B2',  // Cyan — civic
+  reports:   '#6B7280',  // Gray
+  draft:     '#6B7280',  // Gray
+  datahub:   '#16A34A',  // Green
 } as const;
 
-// ─── Borders & Dividers ──────────────────────────────────────────────────
-
+// ─── Borders ──────────────────────────────────────────────────────────────
 export const border = {
-  light:    'rgba(0, 0, 0, 0.06)',    // Subtle border on light bg
-  medium:   'rgba(0, 0, 0, 0.10)',
-  dark:     'rgba(0, 0, 0, 0.15)',
-  focus:    '#C9A54E',  // Gold focus ring
-  glass:    'rgba(0, 0, 0, 0.06)',    // Card edge on light bg
+  light:       '#E6EBF2',
+  medium:      '#D1D9E6',
+  dark:        '#B8C4D4',
+  focus:       'rgba(79, 124, 255, 0.45)',
+  glass:       '#E6EBF2',
   // Dark chrome borders (sidebar, topbar)
-  chromLight: 'rgba(255, 255, 255, 0.08)',
+  chromLight:  'rgba(255, 255, 255, 0.07)',
   chromMedium: 'rgba(255, 255, 255, 0.12)',
 } as const;
 
 // ─── Shadows ──────────────────────────────────────────────────────────────
-
 export const shadow = {
-  sm:   '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
-  md:   '0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04)',
-  lg:   '0 10px 15px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.04)',
-  xl:   '0 20px 25px rgba(0, 0, 0, 0.08), 0 10px 10px rgba(0, 0, 0, 0.04)',
-  glow: (color: string) => `0 0 12px ${color}20`,
-  glassInset: 'none',  // No inset glow needed on light bg
+  sm:   '0 1px 2px rgba(16, 24, 40, 0.05)',
+  md:   '0 2px 8px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.04)',
+  lg:   '0 8px 24px rgba(16, 24, 40, 0.08), 0 2px 8px rgba(16, 24, 40, 0.04)',
+  xl:   '0 16px 40px rgba(16, 24, 40, 0.10), 0 4px 12px rgba(16, 24, 40, 0.06)',
+  glow: (color: string) => `0 0 0 3px ${color}`,
+  glassInset: 'none',
 } as const;
 
 // ─── Typography ───────────────────────────────────────────────────────────
-// v2: IBM Plex family — intelligence-grade legibility.
-// IBM Plex Sans: body, data, labels — optimized for small sizes, excellent tabular figures
-// IBM Plex Serif: display headings only — authoritative, institutional
-// IBM Plex Mono: timestamps, codes, status — crisp monospace
-
+// v4: Inter only inside the product.
+// Playfair Display reserved for splash screen brand mark ONLY.
+// JetBrains Mono for numbers, timestamps, codes.
 export const font = {
-  display: "'IBM Plex Serif', Georgia, serif",
-  body:    "'IBM Plex Sans', system-ui, -apple-system, sans-serif",
-  mono:    "'IBM Plex Mono', 'Fira Code', monospace",
-  // Backward compat aliases
-  sans:    "'IBM Plex Sans', system-ui, -apple-system, sans-serif",
-  serif:   "'IBM Plex Serif', Georgia, serif",
+  display: "'Playfair Display', Georgia, serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', 'Fira Code', 'IBM Plex Mono', monospace",
+  sans:    "'Inter', system-ui, -apple-system, sans-serif",
+  serif:   "'Playfair Display', Georgia, serif",
 } as const;
 
 export const fontSize = {
-  xs:   '11px',    // Was 10px — too small for labels. 11px is the legibility floor.
-  sm:   '12.5px',  // Was 12px — slight bump for better readability
-  base: '14px',    // Was 13px — standard body text
-  md:   '15px',    // Was 14px — emphasized body
-  lg:   '17px',    // Was 16px — section headings
-  xl:   '20px',    // Was 18px — card headings
-  '2xl':'24px',    // Was 22px — page headings
-  '3xl':'30px',    // Was 28px — display headings
-  '4xl':'38px',    // Was 36px — hero headings
+  xs:   '11px',
+  sm:   '12px',
+  base: '14px',
+  md:   '15px',
+  lg:   '16px',
+  xl:   '18px',
+  '2xl':'22px',
+  '3xl':'28px',
+  '4xl':'36px',
 } as const;
 
 export const fontWeight = {
-  light:    300,  // Display headings (Plex Serif)
-  normal:   400,  // Body text (Plex Sans)
-  medium:   500,  // Labels, emphasis (Plex Sans)
-  semibold: 600,  // Strong emphasis — KPI values, critical data
-  bold:     600,  // Mapped to semibold — used sparingly for alerts
-  black:    600,  // Mapped to semibold — no heavier weight needed
+  light:    300,
+  normal:   400,
+  medium:   500,
+  semibold: 600,
+  bold:     700,
+  black:    800,
 } as const;
 
 // ─── Spacing ──────────────────────────────────────────────────────────────
-
 export const space = {
   xs:   '4px',
   sm:   '8px',
@@ -175,71 +175,58 @@ export const space = {
 } as const;
 
 // ─── Border Radius ────────────────────────────────────────────────────────
-
 export const radius = {
-  sm:   '4px',
-  md:   '8px',
-  lg:   '12px',
+  sm:   '6px',
+  md:   '10px',
+  lg:   '14px',
   xl:   '16px',
   full: '9999px',
 } as const;
 
 // ─── Transitions ──────────────────────────────────────────────────────────
-
 export const transition = {
-  fast:   'all 0.15s ease',
-  normal: 'all 0.25s ease',
-  smooth: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  fast:   'all 0.12s ease',
+  normal: 'all 0.20s ease-out',
+  smooth: 'all 0.24s cubic-bezier(0.4, 0, 0.2, 1)',
 } as const;
 
 // ─── Risk Level Colors (Watch) ────────────────────────────────────────────
-
 export const risk = {
-  critical: { color: '#C53030', bg: 'rgba(197, 48, 48, 0.08)', label: 'CRITICAL' },
-  high:     { color: '#C05621', bg: 'rgba(192, 86, 33, 0.08)', label: 'HIGH' },
-  elevated: { color: '#C07C1E', bg: 'rgba(192, 124, 30, 0.08)', label: 'ELEVATED' },
-  low:      { color: '#2F855A', bg: 'rgba(47, 133, 90, 0.08)', label: 'LOW' },
-  clear:    { color: '#718096', bg: 'rgba(113, 128, 150, 0.08)', label: 'CLEAR' },
+  critical: { color: '#DC2626', bg: 'rgba(220, 38, 38, 0.08)', label: 'CRITICAL' },
+  high:     { color: '#EA580C', bg: 'rgba(234, 88, 12, 0.08)', label: 'HIGH' },
+  elevated: { color: '#D97706', bg: 'rgba(217, 119, 6, 0.08)', label: 'ELEVATED' },
+  low:      { color: '#16A34A', bg: 'rgba(22, 163, 74, 0.08)', label: 'LOW' },
+  clear:    { color: '#6B7280', bg: 'rgba(107, 114, 128, 0.08)', label: 'CLEAR' },
 } as const;
 
 // ─── Chart Colors ─────────────────────────────────────────────────────────
-
 export const chart = {
-  primary:   '#C9A54E',  // Warm Gold
-  secondary: '#2B6CB0',  // Steel Blue
-  tertiary:  '#6B46C1',  // Violet
-  quaternary:'#2F855A',  // Sage Green
-  danger:    '#C53030',  // Ember Red
-  muted:     '#A0AEC0',
-  grid:      'rgba(0, 0, 0, 0.06)',  // Light grid lines
-  bars: ['#C9A54E', '#2B6CB0', '#6B46C1', '#2F855A', '#B7931E', '#C53030', '#2C7A7B', '#B83280'],
+  primary:    '#4F7CFF',
+  secondary:  '#16A34A',
+  tertiary:   '#7C3AED',
+  quaternary: '#D97706',
+  danger:     '#DC2626',
+  muted:      '#9CA3AF',
+  grid:       'rgba(0, 0, 0, 0.05)',
+  bars: ['#4F7CFF', '#16A34A', '#7C3AED', '#D97706', '#2563EB', '#DC2626', '#059669', '#0891B2'],
 } as const;
 
 // ─── Convenience: Flat "C" object for quick access (backward compat) ─────
-
 export const C = {
-  // Backgrounds
   bg: bg.app,
   white: bg.card,
   subtle: bg.subtle,
-
-  // Text
+  dark: bg.dark,
   deep: text.primary,
-  rock: '#1A1A2E',
+  rock: '#111827',
   mid: text.secondary,
   light: text.muted,
   muted: text.light,
-
-  // Brand
   brass: brand.gold,
   gold: brand.gold,
   navy: brand.navy,
-
-  // Borders
   chalk: border.light,
   border: border.light,
-
-  // Status
   green: status.green,
   greenBg: status.greenBg,
   red: status.red,
@@ -248,8 +235,6 @@ export const C = {
   amberBg: status.amberBg,
   blue: status.blue,
   blueBg: status.blueBg,
-
-  // Typography
   fontSans: font.body,
   fontSerif: font.display,
   fontMono: font.mono,

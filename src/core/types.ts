@@ -143,6 +143,7 @@ export interface CovenantConfig {
   daysCashMinimum: number;
   currentRatioMinimum: number;
   netAssetMinimum: number;
+  enrollmentMinimum: number;
   depreciation: number;
   interestExpense: number;
 }

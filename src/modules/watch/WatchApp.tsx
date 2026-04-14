@@ -849,7 +849,7 @@ function WatchIntelligence({ allRisks, incidents, networkSummary }: {
           fontSize: fontSize.md,
           color: text.secondary,
           lineHeight: 1.8,
-          fontFamily: font.serif,
+          fontFamily: font.body,
         }}>
           Ask Slate anything about your network's safety posture. This module provides
           AI-powered analysis of all {incidents.length} incidents across {allRisks.length} campuses,

@@ -83,12 +83,12 @@ const C = {
   blue:    '#3B82F6',
 };
 
-const serif = "Playfair Display, Georgia, 'Times New Roman', serif";
+const serif = "'Inter', system-ui, sans-serif";
 const sans  = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
 const mono  = "JetBrains Mono, 'SF Mono', Menlo, monospace";
 
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
   @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
   @keyframes pulseRing{0%{transform:scale(1);opacity:.45}100%{transform:scale(2.1);opacity:0}}
@@ -385,7 +385,7 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h, a
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <h1 style={{
-            fontFamily: serif, fontSize: 32, fontWeight: 900,
+            fontFamily: "'Inter', system-ui, sans-serif", fontSize: 32, fontWeight: 900,
             color: C.deep, letterSpacing: '-.02em', margin: 0,
           }}>
             {campus.short.toUpperCase()}
@@ -409,7 +409,7 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h, a
           {!isWeekend && schoolPeriod !== 'AFTER_HOURS' && schoolPeriod !== 'WEEKEND' && (
             <div style={{ textAlign: 'right' }}>
               <div style={{
-                fontSize: 18, fontWeight: 900, fontFamily: serif,
+                fontSize: 18, fontWeight: 900, fontFamily: "'Inter', system-ui, sans-serif",
                 color: minsToD <= 30 ? C.watch : C.deep, lineHeight: 1,
               }}>
                 {minsToD > 0 ? (
@@ -454,7 +454,7 @@ const CampusHeader = ({ campus, risk, incidents, tempF, violent7d, violent24h, a
         ].map(kpi => (
           <div key={kpi.label} style={{ textAlign: 'center' }}>
             <div style={{
-              fontFamily: serif, fontSize: 30, fontWeight: 900,
+              fontFamily: "'Inter', system-ui, sans-serif", fontSize: 30, fontWeight: 900,
               color: kpi.color, lineHeight: 1,
             }}>
               {kpi.value}
@@ -525,7 +525,7 @@ const AIBriefing = ({ briefing, campus, onNotifyDeans, onContactLegal }: {
         </div>
       ) : (
         <div style={{
-          fontFamily: serif, fontSize: 16, lineHeight: 1.85,
+          fontFamily: "'Inter', system-ui, sans-serif", fontSize: 16, lineHeight: 1.85,
           color: C.deep, whiteSpace: 'pre-wrap',
         }}>
           {briefing.text || 'Generating campus intelligence briefing…'}
@@ -923,7 +923,7 @@ const ForecastStrip = ({ forecast, campus }: { forecast: ForecastDay[]; campus: 
                 {i === 0 ? 'Today' : day.dayName}
               </div>
               <div style={{
-                fontSize: 16, fontWeight: 900, fontFamily: serif,
+                fontSize: 16, fontWeight: 900, fontFamily: "'Inter', system-ui, sans-serif",
                 color: lc.text, margin: '6px 0 2px',
               }}>
                 {day.label}
@@ -1154,7 +1154,7 @@ const AskSlate = ({ campus, risk }: { campus: Campus; risk: CampusRisk }) => {
           marginTop: 16, padding: '16px 18px',
           background: '#FFFDF8', borderRadius: 8,
           border: `1px solid ${C.chalk}`,
-          fontFamily: serif, fontSize: 14, lineHeight: 1.8,
+          fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, lineHeight: 1.8,
           color: C.deep, whiteSpace: 'pre-wrap',
         }}>
           {answer}

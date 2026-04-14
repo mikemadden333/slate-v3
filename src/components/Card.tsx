@@ -59,7 +59,7 @@ interface KPICardProps {
   onClick?: () => void;
 }
 
-export function KPICard({ label, value, subValue, trend, icon, accent = brand.gold, onClick }: KPICardProps) {
+export function KPICard({ label, value, subValue, trend, icon, accent = 'transparent', onClick }: KPICardProps) {
   return (
     <Card accent={accent} onClick={onClick} hover={!!onClick}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -77,9 +77,9 @@ export function KPICard({ label, value, subValue, trend, icon, accent = brand.go
           </div>
           <div style={{
             fontSize: fontSize['3xl'],
-            fontWeight: fontWeight.light,
+            fontWeight: fontWeight.semibold,
             color: text.primary,
-            fontFamily: font.display,
+            fontFamily: font.mono,
             lineHeight: 1,
           }}>
             {value}
@@ -232,10 +232,10 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
 
   return (
     <div style={{
-      background: `linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%)`,
-      border: `1px solid ${isLive ? brand.gold + '50' : brand.gold + '30'}`,
+      background: bg.dark,
+      border: `1px solid rgba(255,255,255,0.07)`,
       borderRadius: radius.lg,
-      padding: 16,
+      padding: 20,
       position: 'relative',
       transition: transition.fast,
     }}>
@@ -246,13 +246,13 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
         marginBottom: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ color: brand.gold, fontSize: fontSize.md }}>✦</span>
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: fontSize.md }}>✦</span>
           <span style={{
             fontSize: fontSize.xs,
             fontWeight: fontWeight.medium,
-            color: '#8B6914',
+            color: 'rgba(255,255,255,0.5)',
             textTransform: 'uppercase',
-            letterSpacing: '1px',
+            letterSpacing: '1.5px',
             fontFamily: font.body,
           }}>
             {label}
@@ -308,16 +308,16 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
             display: 'inline-block',
             width: 8, height: 8,
             borderRadius: '50%',
-            background: brand.gold,
+            background: status.blue,
             animation: 'slatePulse 1.5s ease-in-out infinite',
           }} />
-          Slate is analyzing your data...
+          <span style={{ color: 'rgba(255,255,255,0.5)' }}>Slate is analyzing your data...</span>
         </div>
       ) : (
         <div style={{
           fontSize: fontSize.sm,
-          color: '#4A3D1E',
-          lineHeight: 1.7,
+          color: 'rgba(255,255,255,0.85)',
+          lineHeight: 1.75,
           whiteSpace: 'pre-wrap',
           fontFamily: font.body,
           fontWeight: fontWeight.normal,
@@ -362,9 +362,9 @@ export function ModuleHeader({ title, subtitle, accent = brand.gold, actions, fr
       <div>
         <h1 style={{
           fontSize: fontSize['2xl'],
-          fontWeight: fontWeight.light,
+          fontWeight: fontWeight.semibold,
           color: text.primary,
-          fontFamily: font.display,
+          fontFamily: font.body,
           margin: 0,
           lineHeight: 1.2,
         }}>

@@ -53,7 +53,7 @@ function ModulePlaceholder({ moduleId }: { moduleId: string }) {
         fontSize: fontSize.xl,
         fontWeight: 600,
         color: text.secondary,
-        fontFamily: font.serif,
+        fontFamily: font.body,
         marginBottom: 8,
       }}>
         {moduleId.charAt(0).toUpperCase() + moduleId.slice(1)}

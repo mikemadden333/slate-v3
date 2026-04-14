@@ -967,7 +967,7 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
           width: 12, height: 12, borderRadius: '50%',
           background: brand.gold, animation: 'pulse 1.5s ease-in-out infinite',
         }} />
-        <div style={{ color: text.muted, fontSize: fontSize.sm, fontFamily: font.display }}>Loading safety intelligence...</div>
+        <div style={{ color: text.muted, fontSize: fontSize.sm, fontFamily: font.body }}>Loading safety intelligence...</div>
         <style>{`@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } }`}</style>
       </div>
     );
@@ -1025,7 +1025,7 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
               width: 10, height: 10, borderRadius: '50%',
               background: config.color, boxShadow: `0 0 8px ${config.color}60`,
             }} />
-            <span style={{ fontFamily: font.display, fontSize: fontSize.base, fontWeight: fontWeight.light, color: text.primary }}>
+            <span style={{ fontFamily: font.body, fontSize: fontSize.base, fontWeight: fontWeight.light, color: text.primary }}>
               {config.label}
             </span>
             <NetworkPulse lastRefresh={data.lastRefresh} />
@@ -1146,7 +1146,7 @@ export const PrincipalView: React.FC<PrincipalViewProps> = ({ data, campusId, on
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h2 style={{
-                fontFamily: font.display, fontSize: fontSize['2xl'],
+                fontFamily: font.body, fontSize: fontSize['2xl'],
                 fontWeight: fontWeight.light, color: text.primary, margin: 0,
               }}>
                 {campusInfo.name}

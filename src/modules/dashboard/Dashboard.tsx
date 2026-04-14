@@ -226,7 +226,7 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
     <div>
       {/* Time-Aware Greeting */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: fontSize['3xl'], fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.serif, margin: 0 }}>
+        <h1 style={{ fontSize: fontSize['3xl'], fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.body, margin: 0 }}>
           Good {(() => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; })()}
         </h1>
         <p style={{ fontSize: fontSize.md, color: text.muted, margin: '4px 0 0 0' }}>
@@ -488,7 +488,7 @@ function PrincipalDashboard({ onNavigate }: { onNavigate: (id: string) => void }
     <div>
       {/* Campus Header */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: fontSize['3xl'], fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.serif, margin: 0 }}>{campus.name}</h1>
+        <h1 style={{ fontSize: fontSize['3xl'], fontWeight: fontWeight.bold, color: text.primary, fontFamily: font.body, margin: 0 }}>{campus.name}</h1>
         <p style={{ fontSize: fontSize.md, color: text.muted, margin: '4px 0 0 0' }}>{campus.communityArea} · {campus.addr}</p>
       </div>
 
