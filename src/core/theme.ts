@@ -109,6 +109,7 @@ export const modules = {
   reports:   '#6B7A94',
   draft:     '#6B7A94',
   datahub:   '#17B26A',
+  roster:    '#7C5CBF',
 } as const;
 
 // ─── Borders ──────────────────────────────────────────────────────────────

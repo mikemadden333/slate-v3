@@ -20,6 +20,7 @@ import ShieldApp from './modules/shield/ShieldApp';
 import FundApp from './modules/fund/FundApp';
 import GroundsApp from './modules/grounds/GroundsApp';
 import CivicApp from './modules/civic/CivicApp';
+import RosterApp from './modules/roster/RosterApp';
 import DraftApp from './modules/draft/DraftApp';
 import ReportsApp from './modules/reports/ReportsApp';
 import { bg, text, brand, font, fontSize } from './core/theme';
@@ -120,6 +121,8 @@ function AppContent() {
         return <GroundsApp />;
       case 'civic':
         return <CivicApp />;
+      case 'roster':
+        return <RosterApp />;
       case 'draft':
         return <DraftApp />;
       case 'reports':

@@ -113,6 +113,14 @@ export const MODULES: ModuleMeta[] = [
     category: 'operations',
     description: 'Data management and upload center',
   },
+  {
+    id: 'roster',
+    label: 'Roster',
+    icon: '◫',
+    color: modules.roster,
+    category: 'operations',
+    description: 'Staff roster, vacancy tracking, and people AI',
+  },
 ];
 
 // ─── Navigation Groups ────────────────────────────────────────────────────
@@ -124,7 +132,7 @@ export const NAV_GROUPS = [
   },
   {
     label: 'Operations',
-    modules: ['ledger', 'scholar', 'grounds'],
+    modules: ['ledger', 'scholar', 'grounds', 'roster'],
   },
   {
     label: 'Strategy',
