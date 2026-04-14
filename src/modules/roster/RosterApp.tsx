@@ -534,7 +534,7 @@ Answer questions about benefits, PTO, retirement (CTPF and 401k), health insuran
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 260px)', minHeight: 500 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '62vh', minHeight: 480 }}>
       {/* Suggested questions */}
       {messages.length <= 1 && (
         <div style={{ marginBottom: 16 }}>
@@ -570,7 +570,7 @@ Answer questions about benefits, PTO, retirement (CTPF and 401k), health insuran
       </div>
 
       {/* Input */}
-      <div style={{ display: 'flex', gap: 10, borderTop: `1px solid ${border.light}`, paddingTop: 12 }}>
+      <div style={{ display: 'flex', gap: 10, borderTop: `1px solid ${border.light}`, paddingTop: 12, flexShrink: 0 }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}

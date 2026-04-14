@@ -614,6 +614,7 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
   const [expandedIncId, setExpandedIncId] = useState<string | null>(null);
   const [incAiText, setIncAiText] = useState<Record<string, string>>({});
   const [incAiLoading, setIncAiLoading] = useState<Record<string, boolean>>({});
+  const [selectedCampusId, setSelectedCampusId] = useState<number | null>(null);
 
   const handleIncidentAi = async (e: React.MouseEvent, inc: WatchIncident) => {
     e.stopPropagation();
@@ -651,8 +652,9 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
       : data.incidents;
     return all
       .filter(i => (i.crimeType === 'HOMICIDE' || i.crimeType === 'SHOOTING') && i.ageMinutes <= 1440)
+      .filter(i => selectedCampusId == null || i.nearestCampusId === selectedCampusId)
       .slice(0, 12);
-  }, [data.incidents, demoIncident]);
+  }, [data.incidents, demoIncident, selectedCampusId]);
 
   const activeContagionZones = contagionZones.filter(z => z.phase === 'ACUTE' || z.phase === 'ACTIVE').length;
 
@@ -772,9 +774,11 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
               <div
                 key={ct.campusId}
                 className="v3-campus-card"
+                onClick={() => setSelectedCampusId(selectedCampusId === ct.campusId ? null : ct.campusId)}
                 style={{
-                  background: W.bgCard,
-                  border: `1px solid ${W.border}`,
+                  background: selectedCampusId === ct.campusId ? W.bgSurface : W.bgCard,
+                  border: `1px solid ${selectedCampusId === ct.campusId ? W.goldBorder : W.border}`,
+                  borderTop: `3px solid ${cfg.color}`,
                   borderRadius: 10, padding: '12px 14px',
                   cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
@@ -823,9 +827,9 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
           color: W.textMuted, marginBottom: 14,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span>Critical Incidents — Last 24 Hours</span>
+          <span>Critical Incidents — Last 24 Hours{selectedCampusId ? ` · ${sortedThreats.find(c => c.campusId === selectedCampusId)?.campusShort ?? ''}` : ''}</span>
           <span style={{ color: W.textDim, fontSize: '11px', fontWeight: 400 }}>
-            Shootings & Homicides Only
+            {selectedCampusId ? <span onClick={() => setSelectedCampusId(null)} style={{ cursor: 'pointer', color: W.gold }}>Clear filter ×</span> : 'Tap campus to filter · Tap card to expand'}
           </span>
         </div>
         {criticalIncidents.length === 0 ? (
@@ -854,6 +858,7 @@ function BriefingTab({ data, demoIncident, contagionZones }: BriefingTabProps) {
                   style={{
                     background: isDemo ? 'rgba(224, 82, 82, 0.08)' : W.bgCard,
                     border: `1px solid ${isDemo ? W.redBorder : isExpanded ? W.goldBorder : W.border}`,
+                    borderLeft: `4px solid ${incColor}`,
                     borderRadius: 10,
                     animation: isDemo ? 'v3FadeIn 0.4s ease-out' : undefined,
                     overflow: 'hidden',
