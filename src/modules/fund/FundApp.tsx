@@ -697,7 +697,7 @@ Provide: (1) Application fit analysis — what's strong, what's a risk, (2) the 
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
           <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: textColor.muted, textTransform: 'uppercase' }}>FY26 Goal Progress</span>
-          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: modColors.fund, fontFamily: font.mono }}>{fmtFull(closedYTD)} / {fmtFull(GOAL)}</span>
+          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: modColors.fund, fontFamily: font.mono }}>{fmt(closedYTD)} / {fmt(GOAL)}</span>
         </div>
         <div style={{ height: 12, background: border.light, borderRadius: radius.full, overflow: 'hidden', position: 'relative' }}>
           <div style={{ width: `${Math.min(pctToGoal * 100, 100)}%`, height: '100%', background: statusColor.green, borderRadius: radius.full, transition: 'width 0.5s ease' }} />

@@ -129,10 +129,10 @@ function TrendIndicator({ trend }: { trend: string }) {
 function ScoreBadge({ score }: { score: number }) {
   return (
     <div style={{
-      width: 36, height: 36, borderRadius: radius.md,
-      background: `${heatColor(score)}12`, border: `2px solid ${heatColor(score)}`,
+      width: 48, height: 48, borderRadius: radius.md,
+      background: `${heatColor(score)}18`, border: `2px solid ${heatColor(score)}`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: font.mono, fontWeight: fontWeight.bold, fontSize: fontSize.sm, color: heatColor(score),
+      fontFamily: font.mono, fontWeight: fontWeight.bold, fontSize: fontSize.base, color: heatColor(score),
     }}>
       {score}
     </div>
@@ -768,7 +768,7 @@ Be direct, specific, and connect dots. No hedging.`,
                     key={r.id}
                     onClick={() => handleSelectRisk(r)}
                     style={{
-                      display: 'grid', gridTemplateColumns: '44px 1fr 90px 90px 90px 120px',
+                      display: 'grid', gridTemplateColumns: '52px 1fr 90px 90px 90px 120px',
                       alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: radius.md,
                       cursor: 'pointer', background: bg.subtle, border: `1px solid ${border.light}`,
                       marginBottom: 6, transition: transition.fast,
@@ -822,7 +822,7 @@ Be direct, specific, and connect dots. No hedging.`,
 
             {/* Register header */}
             <div style={{
-              display: 'grid', gridTemplateColumns: '44px 1fr 90px 90px 90px 90px 120px',
+              display: 'grid', gridTemplateColumns: '52px 1fr 90px 90px 90px 90px 120px',
               gap: 12, padding: '8px 16px', marginBottom: 4,
             }}>
               {['Score', 'Risk', 'Lens', 'Tier', 'Velocity', 'Trend', 'Mitigation'].map(h => (
@@ -841,7 +841,7 @@ Be direct, specific, and connect dots. No hedging.`,
                     key={r.id}
                     onClick={() => handleSelectRisk(r)}
                     style={{
-                      display: 'grid', gridTemplateColumns: '44px 1fr 90px 90px 90px 90px 120px',
+                      display: 'grid', gridTemplateColumns: '52px 1fr 90px 90px 90px 90px 120px',
                       alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: radius.md,
                       cursor: 'pointer', border: `1px solid ${border.light}`, marginBottom: 4,
                       transition: transition.fast,

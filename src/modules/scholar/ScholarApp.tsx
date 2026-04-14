@@ -61,7 +61,7 @@ function UtilBar({ value, max, color }: { value: number; max: number; color: str
   const pct = Math.min((value / max) * 100, 100);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flex: 1, height: 6, background: `${color}15`, borderRadius: 6, overflow: 'hidden' }}>
+      <div style={{ flex: 1, height: 10, background: `${color}15`, borderRadius: 6, overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 6, transition: transition.smooth }} />
       </div>
       <span style={{ fontSize: fontSize.xs, fontFamily: font.mono, color: textColor.muted, minWidth: 36, textAlign: 'right' }}>

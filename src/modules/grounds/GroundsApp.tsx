@@ -617,9 +617,11 @@ function WorkOrdersTab() {
           return (
             <div key={wo.id} onClick={() => setSelectedWO(wo)} style={{
               display: 'grid', gridTemplateColumns: '1fr 100px 100px 120px 100px 80px', alignItems: 'center', gap: 8, padding: '12px 16px',
-              borderBottom: `1px solid ${border.light}`, borderLeft: `3px solid ${p.color}`, cursor: 'pointer', transition: transition.fast }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = `${modColors.grounds}08`; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}>
+              borderBottom: `1px solid ${border.light}`, borderLeft: `3px solid ${p.color}`,
+              background: wo.priority === 'urgent' ? `${status.red}06` : 'transparent',
+              cursor: 'pointer', transition: transition.fast }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = wo.priority === 'urgent' ? `${status.red}12` : `${modColors.grounds}08`; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = wo.priority === 'urgent' ? `${status.red}06` : 'transparent'; }}>
               <div>
                 <div style={{ fontWeight: fontWeight.medium, fontSize: fontSize.sm, color: text.primary }}>{wo.description}</div>
                 <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: 2 }}>{wo.campus} · {wo.id}</div>

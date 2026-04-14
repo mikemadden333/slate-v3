@@ -201,7 +201,7 @@ function StageProgress({ stage, total = 6 }: { stage: number; total?: number }) 
     <div style={{ display: 'flex', gap: 2 }}>
       {Array.from({ length: total }, (_, i) => (
         <div key={i} style={{
-          width: 16, height: 4, borderRadius: 2,
+          width: 16, height: 6, borderRadius: 2,
           background: i < stage ? modColors.civic : border.light,
         }} />
       ))}
@@ -221,12 +221,13 @@ function BillCard({ bill, selected, onSelect }: { bill: ExtendedBill; selected: 
     <div
       onClick={onSelect}
       style={{
-        background: bg.card, borderRadius: radius.lg,
-        border: `1px solid ${selected ? modColors.civic : border.light}`,
+        background: bill.risk === 'THREAT' ? `${statusColor.red}06` : bg.card,
+        borderRadius: radius.lg,
+        border: `1px solid ${selected ? modColors.civic : bill.risk === 'THREAT' ? `${statusColor.red}30` : border.light}`,
         borderLeft: `4px solid ${riskColor}`,
         padding: '16px 18px', cursor: 'pointer',
         transition: transition.fast, marginBottom: 8,
-        boxShadow: selected ? `0 0 0 1px ${modColors.civic}40` : 'none',
+        boxShadow: bill.risk === 'THREAT' ? `0 2px 8px ${statusColor.red}15` : selected ? `0 0 0 1px ${modColors.civic}40` : 'none',
       }}
       onMouseEnter={e => { if (!selected) e.currentTarget.style.borderColor = `${modColors.civic}60`; }}
       onMouseLeave={e => { if (!selected) e.currentTarget.style.borderColor = border.light; }}
