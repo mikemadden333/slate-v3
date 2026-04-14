@@ -150,7 +150,7 @@ export default function App() {
   };
 
   if (showSplash) {
-    return <SplashScreen onEnter={handleEnter} />;
+    return <SplashScreen onComplete={handleEnter} />;
   }
 
   return (
