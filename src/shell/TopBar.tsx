@@ -1,12 +1,11 @@
 /**
- * Slate v3 — TopBar
- * Dark chrome header: deep navy background, light text.
- * Typography v2: IBM Plex Sans — crystal clear on dark backgrounds.
+ * Slate — TopBar
+ * Redesign Brief: white header, 64px height, page title + subtitle + command search + timestamp.
+ * Inter only. No dark backgrounds. No gold.
  */
-
 import React, { useState, useEffect } from 'react';
 import { MODULES } from '../core/constants';
-import { bg, text, brand, border, font, fontSize, fontWeight, shadow, radius, transition } from '../core/theme';
+import { bg, text, border, font, fontSize, fontWeight, radius, transition, status } from '../core/theme';
 import { useNetwork, useRole, useEmergencies } from '../data/DataStore';
 import { usePresentationMode } from '../core/PresentationMode';
 
@@ -17,15 +16,12 @@ interface TopBarProps {
 
 export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
   const network = useNetwork();
-  const { role, selectedCampusId } = useRole();
+  const { role } = useRole();
   const { activeEvents } = useEmergencies();
-  const { isPresentationMode, togglePresentationMode } = usePresentationMode();
+  const { isPresentationMode } = usePresentationMode();
   const mod = MODULES.find(m => m.id === activeModule);
-  const campus = role === 'principal' ? network.campuses.find(c => c.id === selectedCampusId) : null;
-
-  const activeEmergencies = activeEvents;
-
   const [now, setNow] = useState(new Date());
+
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(interval);
@@ -33,154 +29,175 @@ export default function TopBar({ activeModule, onAskSlate }: TopBarProps) {
 
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-
-  const pulseKeyframes = `
-    @keyframes slatePulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 155, 110, 0.4); }
-      50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(74, 155, 110, 0); }
-    }
-    @keyframes emergencyPulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(217, 79, 79, 0.5); }
-      50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(217, 79, 79, 0); }
-    }
-  `;
-
-  const hasEmergency = activeEmergencies.length > 0;
+  const hasEmergency = activeEvents.length > 0;
 
   return (
     <div style={{
-      height: 56,
-      minHeight: 56,
-      background: brand.navy,
-      borderBottom: `1px solid ${border.chromLight}`,
+      height: 64,
+      minHeight: 64,
+      background: bg.header,
+      borderBottom: `1px solid ${border.light}`,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
       padding: '0 24px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      gap: 16,
+      flexShrink: 0,
     }}>
-      <style>{pulseKeyframes}</style>
-
-      {/* Left: Module identity */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* Module icon + title */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
         {mod && (
-          <>
-            <span style={{ fontSize: fontSize.xl, color: mod.color }}>
-              {mod.icon}
-            </span>
-            <div>
-              <div style={{
-                fontSize: fontSize.lg, fontWeight: fontWeight.medium,
-                color: '#FFFFFF', fontFamily: font.body,
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}>
-                {mod.label}
-                {campus && (
-                  <span style={{ fontSize: fontSize.base, fontWeight: fontWeight.normal, color: '#C8D5E3' }}>
-                    / {campus.short}
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: fontSize.sm, color: '#8FA3B8', marginTop: -1, fontFamily: font.body }}>
-                {mod.description}
-              </div>
-            </div>
-          </>
+          <span style={{
+            fontSize: fontSize.lg,
+            color: text.muted,
+            flexShrink: 0,
+          }}>{mod.icon}</span>
         )}
+        <div style={{ minWidth: 0 }}>
+          <div style={{
+            fontSize: fontSize.lg,
+            fontWeight: fontWeight.semibold,
+            color: text.primary,
+            fontFamily: font.body,
+            letterSpacing: '-0.2px',
+            lineHeight: 1.2,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {mod?.label || 'Slate'}
+          </div>
+          <div style={{
+            fontSize: fontSize.sm,
+            color: text.muted,
+            fontFamily: font.body,
+            lineHeight: 1.2,
+            whiteSpace: 'nowrap',
+          }}>
+            {mod?.description || 'Intelligence Platform for School Systems'}
+          </div>
+        </div>
       </div>
 
-      {/* Center: Pulse + Date/Time */}
-      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: hasEmergency ? '#D94F4F' : '#4A9B6E',
-            animation: hasEmergency ? 'emergencyPulse 1.5s ease-in-out infinite' : 'slatePulse 3s ease-in-out infinite',
-          }} />
-          <div style={{ fontSize: fontSize.base, fontWeight: fontWeight.normal, color: '#C8D5E3', fontFamily: font.body }}>
-            {dateStr}
-          </div>
-          {hasEmergency && (
-            <div style={{
-              padding: '2px 8px', borderRadius: radius.full,
-              background: 'rgba(217, 79, 79, 0.15)', border: '1px solid rgba(217, 79, 79, 0.30)',
-              fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: '#D94F4F',
-              letterSpacing: 0.5, fontFamily: font.body,
-            }}>
-              {activeEmergencies.length} ALERT{activeEmergencies.length > 1 ? 'S' : ''}
-            </div>
-          )}
-        </div>
+      {/* Center: date/time */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexShrink: 0,
+      }}>
         <div style={{
-          fontSize: fontSize.sm, color: '#8FA3B8', fontFamily: font.mono,
-          letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: fontSize.sm,
+          color: text.muted,
+          fontFamily: font.body,
+          textAlign: 'center',
         }}>
+          <span style={{ color: text.secondary, fontWeight: fontWeight.medium }}>{dateStr}</span>
+          <span style={{ margin: '0 6px', color: border.medium }}>·</span>
           <span>{timeStr} CDT</span>
-          <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
-          <span style={{ color: hasEmergency ? '#D94F4F' : '#4A9B6E', fontWeight: fontWeight.medium }}>
-            {hasEmergency ? 'EMERGENCY ACTIVE' : 'AI MONITORING'}
+        </div>
+
+        {/* AI Monitoring indicator */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '4px 10px',
+          borderRadius: radius.full,
+          background: hasEmergency ? 'rgba(229,72,77,0.08)' : 'rgba(23,178,106,0.08)',
+          border: `1px solid ${hasEmergency ? 'rgba(229,72,77,0.20)' : 'rgba(23,178,106,0.20)'}`,
+        }}>
+          <div style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: hasEmergency ? status.red : status.green,
+            animation: 'topbarPulse 2.5s ease-in-out infinite',
+          }} />
+          <span style={{
+            fontSize: fontSize.xs,
+            fontWeight: fontWeight.medium,
+            color: hasEmergency ? status.red : status.green,
+            fontFamily: font.body,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+          }}>
+            {hasEmergency ? `${activeEvents.length} Alert${activeEvents.length > 1 ? 's' : ''}` : 'AI Monitoring'}
           </span>
         </div>
       </div>
 
-      {/* Right: DEMO badge + Role badge + Ask Slate */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {isPresentationMode && (
-          <button
-            onClick={togglePresentationMode}
-            title="Presentation Mode active — click to exit (or Ctrl+Shift+P)"
-            style={{
-              padding: '3px 10px', borderRadius: radius.full,
-              background: 'rgba(79,124,255,0.18)',
-              border: '1px solid rgba(79,124,255,0.45)',
-              fontSize: fontSize.xs, fontWeight: fontWeight.bold,
-              color: '#7FA8FF', textTransform: 'uppercase', letterSpacing: '1.5px',
-              fontFamily: font.body, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 5,
-            }}
-          >
-            <span style={{ fontSize: 7, color: '#7FA8FF' }}>●</span>
-            DEMO
-          </button>
-        )}
+      {/* Right: role badge + Ask Slate */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{
-          padding: '5px 14px', borderRadius: radius.full,
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          fontSize: fontSize.sm, fontWeight: fontWeight.medium,
-          color: '#C8D5E3', textTransform: 'uppercase', letterSpacing: '1px',
+          fontSize: fontSize.sm,
+          fontWeight: fontWeight.medium,
+          color: text.secondary,
           fontFamily: font.body,
+          padding: '5px 12px',
+          borderRadius: radius.sm,
+          background: bg.subtle,
+          border: `1px solid ${border.light}`,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
         }}>
-          {role === 'ceo' ? 'CEO View' : `Principal · ${campus?.short || ''}`}
+          {role === 'ceo' ? 'CEO View' : 'Principal View'}
         </div>
 
-        <button onClick={onAskSlate} style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 16px', borderRadius: radius.lg,
-          border: `1px solid rgba(255,255,255,0.15)`, background: 'rgba(255,255,255,0.06)',
-          cursor: 'pointer', transition: transition.fast,
-          fontFamily: font.body, fontSize: fontSize.base, color: '#C8D5E3',
-        }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(79,124,255,0.5)';
-            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(79,124,255,0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-            e.currentTarget.style.boxShadow = 'none';
+        {isPresentationMode && (
+          <div style={{
+            fontSize: fontSize.xs,
+            fontWeight: fontWeight.medium,
+            color: status.amber,
+            fontFamily: font.body,
+            padding: '5px 10px',
+            borderRadius: radius.sm,
+            background: 'rgba(245,158,11,0.08)',
+            border: '1px solid rgba(245,158,11,0.20)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            Demo Mode
+          </div>
+        )}
+
+        <button
+          onClick={onAskSlate}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '7px 14px',
+            borderRadius: radius.sm,
+            border: `1px solid ${border.medium}`,
+            background: bg.card,
+            color: text.secondary,
+            fontSize: fontSize.sm,
+            fontFamily: font.body,
+            fontWeight: fontWeight.medium,
+            cursor: 'pointer',
+            transition: transition.fast,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
           }}
         >
-          <span style={{ fontSize: fontSize.md }}>✦</span>
-          Ask Slate
+          <span style={{ color: text.accent }}>✦</span>
+          <span>Ask Slate</span>
           <span style={{
-            fontSize: fontSize.sm, color: '#8FA3B8',
-            padding: '1px 6px', borderRadius: radius.sm, background: 'rgba(255,255,255,0.08)',
+            fontSize: '10px',
+            color: text.light,
+            background: bg.subtle,
+            padding: '1px 5px',
+            borderRadius: '4px',
             fontFamily: font.mono,
-          }}>
-            ⌘K
-          </span>
+          }}>⌘K</span>
         </button>
       </div>
+
+      <style>{`
+        @keyframes topbarPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }

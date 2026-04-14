@@ -24,16 +24,16 @@ import {
 } from '../../core/theme';
 
 // ─── Tab System ──────────────────────────────────────────────────────────
-type LedgerTab = 'briefing' | 'boarddeck' | 'horizon' | 'overview' | 'revenue' | 'expenses' | 'covenants' | 'support';
+type LedgerTab = 'overview' | 'revenue' | 'expenses' | 'covenants' | 'scenarios' | 'briefing' | 'boarddeck' | 'support';
 
 const TABS: { id: LedgerTab; label: string; subtitle: string; badge?: string }[] = [
-  { id: 'briefing',  label: 'Briefing',    subtitle: 'What is the picture?' },
-  { id: 'boarddeck', label: 'Board Deck',  subtitle: 'How do we explain it?', badge: 'NEW' },
-  { id: 'horizon',   label: 'Horizon',     subtitle: 'What happens next?', badge: 'INTERACTIVE' },
-  { id: 'overview',  label: 'Overview',    subtitle: 'Full financials' },
+  { id: 'overview',  label: 'Overview',    subtitle: 'Financial snapshot' },
   { id: 'revenue',   label: 'Revenue',     subtitle: 'Sources & trends' },
   { id: 'expenses',  label: 'Expenses',    subtitle: 'Spend & variance' },
   { id: 'covenants', label: 'Covenants',   subtitle: 'Bond compliance' },
+  { id: 'scenarios', label: 'Scenarios',   subtitle: 'What-if modeling', badge: 'INTERACTIVE' },
+  { id: 'briefing',  label: 'Briefing',    subtitle: 'AI narrative' },
+  { id: 'boarddeck', label: 'Board Deck',  subtitle: 'One-click decks', badge: 'NEW' },
   { id: 'support',   label: 'Support Team',subtitle: 'Compensation' },
 ];
 
@@ -240,32 +240,26 @@ function BriefingTab() {
     <div>
       {/* CFO Intelligence Briefing */}
       <div style={{
-        background: bg.dark, borderRadius: radius.xl, padding: '24px 28px',
-        marginBottom: 24, border: `1px solid rgba(255,255,255,0.06)`,
+        background: bg.card, borderRadius: radius.xl, padding: '24px 28px',
+        marginBottom: 24, border: `1px solid ${border.light}`,
+        borderLeft: `4px solid ${modColors.ledger}`,
+        boxShadow: '0 1px 4px rgba(16,24,40,0.04)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: modColors.ledger }} />
-          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.darkSecondary, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
             CFO Intelligence Briefing
           </span>
-          <span style={{ marginLeft: 'auto', fontSize: fontSize.xs, color: text.darkMuted, fontFamily: font.mono }}>
+          <span style={{ marginLeft: 'auto', fontSize: fontSize.xs, color: text.light, fontFamily: font.mono }}>
             FY26 · Month {monthsElapsed}
           </span>
         </div>
         {ai.loading ? (
-          <div style={{ fontSize: fontSize.sm, color: text.darkSecondary, fontStyle: 'italic' }}>Analyzing financial position...</div>
+          <div style={{ fontSize: fontSize.sm, color: text.muted, fontStyle: 'italic' }}>Analyzing financial position...</div>
         ) : (
-          <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0, fontWeight: fontWeight.normal }}>
-            {ai.text || ai.loading ? '' : ai.text}
+          <p style={{ fontSize: fontSize.md, color: text.secondary, lineHeight: 1.7, margin: 0, fontWeight: fontWeight.normal }}>
+            {ai.text || `Through ${monthsElapsed} months of FY26, the network is tracking $${Math.abs(revVariance).toFixed(1)}M ${revVariance >= 0 ? 'ahead of' : 'behind'} revenue budget with expenses ${expVariance <= 0 ? 'under' : 'over'} plan by $${Math.abs(expVariance).toFixed(1)}M, producing a YTD surplus of $${ytdSurplus.toFixed(1)}M. Days cash at ${ytd.daysCash} and DSCR at ${fmtDscr(ytd.dscr)} both exceed bond covenants with comfortable cushion. Key watch: Q3-Q4 philanthropy performance will determine whether the YTD advantage holds through year-end.`}
           </p>
-        )}
-        {!ai.loading && !ai.text && (
-          <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0 }}>
-            {`Through ${monthsElapsed} months of FY26, the network is tracking $${Math.abs(revVariance).toFixed(1)}M ${revVariance >= 0 ? 'ahead of' : 'behind'} revenue budget with expenses ${expVariance <= 0 ? 'under' : 'over'} plan by $${Math.abs(expVariance).toFixed(1)}M, producing a YTD surplus of $${ytdSurplus.toFixed(1)}M. Days cash at ${ytd.daysCash} and DSCR at ${fmtDscr(ytd.dscr)} both exceed bond covenants with comfortable cushion. Key watch: Q3-Q4 philanthropy performance will determine whether the YTD advantage holds through year-end.`}
-          </p>
-        )}
-        {ai.text && (
-          <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0 }}>{ai.text}</p>
         )}
       </div>
 
@@ -712,16 +706,18 @@ function HorizonTab() {
     <div>
       {/* AI Horizon Briefing */}
       <div style={{
-        background: bg.dark, borderRadius: radius.xl, padding: '24px 28px',
-        marginBottom: 24, border: `1px solid rgba(255,255,255,0.06)`,
+        background: bg.card, borderRadius: radius.xl, padding: '24px 28px',
+        marginBottom: 24, border: `1px solid ${border.light}`,
+        borderLeft: `4px solid ${chart.tertiary}`,
+        boxShadow: '0 1px 4px rgba(16,24,40,0.04)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: modColors.ledger }} />
-          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.darkSecondary, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: chart.tertiary }} />
+          <span style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: text.muted, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
             Horizon Intelligence
           </span>
         </div>
-        <p style={{ fontSize: fontSize.md, color: text.darkPrimary, lineHeight: 1.7, margin: 0 }}>
+        <p style={{ fontSize: fontSize.md, color: text.secondary, lineHeight: 1.7, margin: 0 }}>
           {ai.text || 'The reasonable scenario projects stable DSCR above covenant minimums through FY28, with enrollment growth as the primary revenue lever. The single most important strategic decision is whether to accelerate the CPS compensation gap closure — which drives both retention and enrollment stability.'}
         </p>
       </div>
@@ -1307,7 +1303,7 @@ function PrincipalLedger() {
 // MAIN LEDGER APP
 // ═══════════════════════════════════════════════════════════════════════════
 export default function LedgerApp() {
-  const [activeTab, setActiveTab] = useState<LedgerTab>('briefing');
+  const [activeTab, setActiveTab] = useState<LedgerTab>('overview');
   const fin = useFinancials();
   const { role } = useRole();
 
@@ -1353,13 +1349,13 @@ export default function LedgerApp() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'briefing'  && <BriefingTab />}
-      {activeTab === 'boarddeck' && <BoardDeckTab />}
-      {activeTab === 'horizon'   && <HorizonTab />}
       {activeTab === 'overview'  && <OverviewTab />}
       {activeTab === 'revenue'   && <RevenueTab />}
       {activeTab === 'expenses'  && <ExpensesTab />}
       {activeTab === 'covenants' && <CovenantsTab />}
+      {activeTab === 'scenarios' && <HorizonTab />}
+      {activeTab === 'briefing'  && <BriefingTab />}
+      {activeTab === 'boarddeck' && <BoardDeckTab />}
       {activeTab === 'support'   && <SupportTeamTab />}
 
       {/* Footer */}

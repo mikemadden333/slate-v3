@@ -232,9 +232,10 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
 
   return (
     <div style={{
-      background: bg.dark,
-      border: `1px solid rgba(255,255,255,0.07)`,
-      borderRadius: radius.lg,
+      background: bg.card,
+      border: `1px solid ${border.light}`,
+      borderLeft: `3px solid ${status.blue}`,
+      borderRadius: radius.md,
       padding: 20,
       position: 'relative',
       transition: transition.fast,
@@ -246,11 +247,11 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
         marginBottom: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: fontSize.md }}>✦</span>
+          <span style={{ color: status.blue, fontSize: fontSize.md }}>✦</span>
           <span style={{
             fontSize: fontSize.xs,
-            fontWeight: fontWeight.medium,
-            color: 'rgba(255,255,255,0.5)',
+            fontWeight: fontWeight.semibold,
+            color: text.muted,
             textTransform: 'uppercase',
             letterSpacing: '1.5px',
             fontFamily: font.body,
@@ -311,12 +312,12 @@ export function AIInsight({ content, loading, label = 'Slate Analysis', aiText, 
             background: status.blue,
             animation: 'slatePulse 1.5s ease-in-out infinite',
           }} />
-          <span style={{ color: 'rgba(255,255,255,0.5)' }}>Slate is analyzing your data...</span>
+          <span style={{ color: text.muted }}>Slate is analyzing your data...</span>
         </div>
       ) : (
         <div style={{
-          fontSize: fontSize.sm,
-          color: 'rgba(255,255,255,0.85)',
+          fontSize: fontSize.md,
+          color: text.secondary,
           lineHeight: 1.75,
           whiteSpace: 'pre-wrap',
           fontFamily: font.body,

@@ -1,12 +1,11 @@
 /**
- * Slate v3 — Sidebar
- * MEA Brand Guide v2.0 — Deep navy glass sidebar with gold accents.
- * Typography v2: IBM Plex Sans — improved legibility on dark backgrounds.
+ * Slate — Sidebar
+ * Redesign Brief: light, clean, white sidebar. Left rail 88 collapsed / 248 expanded.
+ * One accent state for active item. Inter only. No gold, no dark backgrounds.
  */
-
 import React, { useState } from 'react';
-import { MODULES, NAV_GROUPS, APP_NAME, APP_TAGLINE } from '../core/constants';
-import { bg, text, brand, border, modules as moduleColors, font, fontSize, fontWeight, shadow, radius, transition } from '../core/theme';
+import { MODULES, NAV_GROUPS, APP_NAME } from '../core/constants';
+import { bg, text, brand, border, modules as moduleColors, font, fontSize, fontWeight, radius, transition } from '../core/theme';
 import { useRole, useNetwork } from '../data/DataStore';
 
 interface SidebarProps {
@@ -20,137 +19,126 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
   const { role, setRole, selectedCampusId, setCampus } = useRole();
   const network = useNetwork();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-
   const moduleMap = Object.fromEntries(MODULES.map(m => [m.id, m]));
 
   return (
     <div style={{
-      width: collapsed ? 64 : 240,
-      minWidth: collapsed ? 64 : 240,
+      width: collapsed ? 88 : 248,
+      minWidth: collapsed ? 88 : 248,
       height: '100vh',
-      background: bg.sidebarGlass,
+      background: bg.sidebar,
+      borderRight: `1px solid ${border.light}`,
       display: 'flex',
       flexDirection: 'column',
       transition: transition.smooth,
       overflow: 'hidden',
       position: 'relative',
       zIndex: 100,
-      boxShadow: '1px 0 8px rgba(0,0,0,0.25)',
     }}>
+
       {/* ── Brand ── */}
       <div style={{
-        padding: collapsed ? '20px 12px' : '20px 20px',
-        borderBottom: `1px solid ${border.chromLight}`,
+        padding: collapsed ? '20px 0' : '20px 20px',
+        borderBottom: `1px solid ${border.light}`,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
+        justifyContent: collapsed ? 'center' : 'flex-start',
       }} onClick={onToggleCollapse}>
+        {/* Logo mark */}
         <div style={{
-          width: 34,
-          height: 34,
-          borderRadius: radius.md,
-          background: `linear-gradient(135deg, ${brand.gold} 0%, ${brand.mutedGold} 100%)`,
+          width: 32,
+          height: 32,
+          borderRadius: radius.sm,
+          background: text.primary,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: font.body,
-          fontSize: fontSize.xl,
-          fontWeight: fontWeight.light,
-          color: brand.navy,
           flexShrink: 0,
         }}>
-          S
+          <span style={{
+            fontFamily: font.body,
+            fontSize: '15px',
+            fontWeight: fontWeight.bold,
+            color: '#FFFFFF',
+            letterSpacing: '-0.5px',
+          }}>S</span>
         </div>
         {!collapsed && (
           <div>
             <div style={{
+              fontSize: fontSize.md,
+              fontWeight: fontWeight.semibold,
+              color: text.primary,
               fontFamily: font.body,
-              fontSize: fontSize.xl,
-              fontWeight: fontWeight.light,
-              color: '#FFFFFF',
-              letterSpacing: '0.5px',
-            }}>
-              {APP_NAME}
-            </div>
+              letterSpacing: '-0.3px',
+              lineHeight: 1.2,
+            }}>{APP_NAME}</div>
             <div style={{
               fontSize: fontSize.xs,
-              color: 'rgba(184,201,219,0.50)',
-              letterSpacing: '1.5px',
-              textTransform: 'uppercase',
-              marginTop: 2,
+              color: text.muted,
               fontFamily: font.body,
-              fontWeight: fontWeight.medium,
-            }}>
-              {APP_TAGLINE}
-            </div>
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px',
+              marginTop: 2,
+            }}>Intelligence Platform</div>
           </div>
         )}
       </div>
 
-      {/* ── Network Identity ── */}
+      {/* ── Network Context ── */}
       {!collapsed && (
         <div style={{
-          padding: '14px 20px',
-          borderBottom: `1px solid ${border.chromLight}`,
+          padding: '12px 20px',
+          borderBottom: `1px solid ${border.light}`,
         }}>
           <div style={{
             fontSize: fontSize.xs,
-            color: 'rgba(184,201,219,0.55)',
+            color: text.muted,
             textTransform: 'uppercase',
-            letterSpacing: '1px',
-            marginBottom: 6,
+            letterSpacing: '0.8px',
             fontFamily: font.body,
             fontWeight: fontWeight.medium,
-          }}>
-            Network
-          </div>
+            marginBottom: 4,
+          }}>Network</div>
           <div style={{
-            fontSize: fontSize.base,
-            color: '#E8ECF1',
-            fontWeight: fontWeight.normal,
+            fontSize: fontSize.md,
+            fontWeight: fontWeight.semibold,
+            color: text.primary,
             fontFamily: font.body,
-          }}>
-            {network.name}
-          </div>
+            lineHeight: 1.3,
+          }}>{network.name}</div>
           <div style={{
             fontSize: fontSize.sm,
-            color: 'rgba(184,201,219,0.65)',
-            marginTop: 3,
+            color: text.muted,
             fontFamily: font.body,
-          }}>
-            {network.campusCount} campuses · {network.city}, {network.state}
-          </div>
+            marginTop: 2,
+          }}>{network.campuses.length} campuses · {network.city}</div>
         </div>
       )}
 
-      {/* ── Navigation Groups ── */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: collapsed ? '12px 8px' : '12px 12px',
-      }}>
+      {/* ── Navigation ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: collapsed ? '12px 8px' : '12px 12px' }}>
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} style={{ marginBottom: 18 }}>
+          <div key={group.label} style={{ marginBottom: 4 }}>
             {!collapsed && (
               <div style={{
                 fontSize: fontSize.xs,
-                color: 'rgba(184,201,219,0.50)',
+                color: text.light,
                 textTransform: 'uppercase',
-                letterSpacing: '1.5px',
-                padding: '0 8px',
-                marginBottom: 6,
+                letterSpacing: '0.8px',
                 fontFamily: font.body,
                 fontWeight: fontWeight.medium,
-              }}>
-                {group.label}
-              </div>
+                padding: '8px 8px 4px',
+              }}>{group.label}</div>
             )}
             {group.modules.map((moduleId) => {
               const mod = moduleMap[moduleId];
               if (!mod) return null;
               const isActive = activeModule === moduleId;
               const isHovered = hoveredItem === moduleId;
+              const accentColor = moduleColors[moduleId as keyof typeof moduleColors] || text.accent;
 
               return (
                 <div
@@ -162,50 +150,49 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    padding: collapsed ? '10px 0' : '9px 10px',
-                    borderRadius: radius.md,
+                    padding: collapsed ? '9px 0' : '8px 10px',
+                    borderRadius: radius.sm,
                     cursor: 'pointer',
                     transition: transition.fast,
                     background: isActive
-                      ? 'rgba(79,124,255,0.12)'
+                      ? `${accentColor}10`
                       : isHovered
-                        ? 'rgba(255,255,255,0.05)'
+                        ? bg.hover
                         : 'transparent',
                     justifyContent: collapsed ? 'center' : 'flex-start',
                     position: 'relative',
+                    marginBottom: 1,
                   }}
                   title={collapsed ? mod.label : undefined}
                 >
-                  {isActive && (
+                  {/* Active indicator — left edge bar */}
+                  {isActive && !collapsed && (
                     <div style={{
                       position: 'absolute',
-                      left: collapsed ? '50%' : 0,
-                      top: collapsed ? 'auto' : '50%',
-                      bottom: collapsed ? -2 : 'auto',
-                      transform: collapsed ? 'translateX(-50%)' : 'translateY(-50%)',
-                      width: collapsed ? 20 : 3,
-                      height: collapsed ? 3 : 22,
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 3,
+                      height: 20,
                       borderRadius: radius.full,
-                      background: mod.color,
+                      background: accentColor,
                     }} />
                   )}
-
                   <span style={{
                     fontSize: collapsed ? fontSize.lg : fontSize.md,
-                    color: isActive ? mod.color : 'rgba(184,201,219,0.6)',
+                    color: isActive ? accentColor : text.muted,
                     transition: transition.fast,
-                    width: collapsed ? 'auto' : 22,
+                    width: collapsed ? 'auto' : 20,
                     textAlign: 'center',
                     flexShrink: 0,
                   }}>
                     {mod.icon}
                   </span>
-
                   {!collapsed && (
                     <span style={{
-                      fontSize: fontSize.base,
+                      fontSize: fontSize.md,
                       fontWeight: isActive ? fontWeight.medium : fontWeight.normal,
-                      color: isActive ? '#FFFFFF' : 'rgba(210,220,232,0.75)',
+                      color: isActive ? text.primary : text.secondary,
                       transition: transition.fast,
                       fontFamily: font.body,
                     }}>
@@ -222,26 +209,24 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
       {/* ── Role Switcher ── */}
       <div style={{
         padding: collapsed ? '12px 8px' : '16px',
-        borderTop: `1px solid ${border.chromLight}`,
+        borderTop: `1px solid ${border.light}`,
       }}>
         {!collapsed && (
           <div style={{
             fontSize: fontSize.xs,
-            color: 'rgba(184,201,219,0.50)',
+            color: text.muted,
             textTransform: 'uppercase',
-            letterSpacing: '1.5px',
+            letterSpacing: '0.8px',
             marginBottom: 8,
             fontFamily: font.body,
             fontWeight: fontWeight.medium,
-          }}>
-            View As
-          </div>
+          }}>View As</div>
         )}
         <div style={{
           display: 'flex',
           gap: 4,
-          background: 'rgba(255,255,255,0.06)',
-          borderRadius: radius.md,
+          background: bg.subtle,
+          borderRadius: radius.sm,
           padding: 3,
         }}>
           {(['ceo', 'principal'] as const).map((r) => (
@@ -250,25 +235,25 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
               onClick={() => setRole(r)}
               style={{
                 flex: 1,
-                padding: collapsed ? '7px 4px' : '7px 12px',
-                borderRadius: radius.sm,
+                padding: collapsed ? '7px 4px' : '6px 10px',
+                borderRadius: '9px',
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: fontSize.sm,
                 fontWeight: role === r ? fontWeight.semibold : fontWeight.normal,
-                color: role === r ? '#FFFFFF' : 'rgba(210,220,232,0.70)',
-                background: role === r ? 'rgba(79,124,255,0.25)' : 'transparent',
+                color: role === r ? text.primary : text.muted,
+                background: role === r ? bg.card : 'transparent',
                 transition: transition.fast,
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
                 fontFamily: font.body,
+                boxShadow: role === r ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}
             >
               {collapsed ? (r === 'ceo' ? 'C' : 'P') : (r === 'ceo' ? 'CEO' : 'Principal')}
             </button>
           ))}
         </div>
-
         {role === 'principal' && !collapsed && (
           <select
             value={selectedCampusId}
@@ -278,16 +263,16 @@ export default function Sidebar({ activeModule, onNavigate, collapsed, onToggleC
               marginTop: 8,
               padding: '7px 8px',
               borderRadius: radius.sm,
-              border: `1px solid ${border.chromMedium}`,
-              background: 'rgba(255,255,255,0.06)',
-              color: '#E8ECF1',
+              border: `1px solid ${border.medium}`,
+              background: bg.card,
+              color: text.primary,
               fontSize: fontSize.sm,
               fontFamily: font.body,
               outline: 'none',
             }}
           >
             {network.campuses.map((c) => (
-              <option key={c.id} value={c.id} style={{ background: brand.navy, color: '#E8ECF1' }}>
+              <option key={c.id} value={c.id}>
                 {c.short}
               </option>
             ))}

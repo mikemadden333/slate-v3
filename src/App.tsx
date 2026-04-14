@@ -142,8 +142,15 @@ function AppContent() {
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
 
+  const handleEnter = () => {
+    // Transition body background from splash dark navy to product light canvas
+    document.body.style.background = '#F6F8FB';
+    document.body.style.transition = 'background 0.4s ease';
+    setShowSplash(false);
+  };
+
   if (showSplash) {
-    return <SplashScreen onEnter={() => setShowSplash(false)} />;
+    return <SplashScreen onEnter={handleEnter} />;
   }
 
   return (
