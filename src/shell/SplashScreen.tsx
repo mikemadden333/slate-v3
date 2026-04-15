@@ -212,8 +212,8 @@ export default function SplashScreen({ onComplete }: Props) {
       setTimeout(() => setShowFooter(true),      5300),
       // Disclaimer fades in at 7s
       setTimeout(() => setShowDisclaimer(true),  7000),
-      // Auto-advance 2.5s after disclaimer appears — no click needed
-      setTimeout(() => onComplete(),            9500),
+      // Auto-advance 4s after disclaimer appears — linger a beat longer
+      setTimeout(() => onComplete(),            13000),
     ];
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
@@ -370,18 +370,18 @@ export default function SplashScreen({ onComplete }: Props) {
         <div style={{
           fontFamily: '"Inter", sans-serif',
           fontSize: '10px', letterSpacing: '3.5px', fontWeight: 600,
-          color: 'rgba(245,240,232,0.48)', textTransform: 'uppercase',
+          color: 'rgba(245,240,232,0.82)', textTransform: 'uppercase',
         }}>
-          MADDEN EDUCATION ADVISORY
+          MADDEN EDUCATION ADVISORY, LLC
         </div>
         <div style={{
           fontFamily: '"Inter", sans-serif',
           fontSize: '8.5px', letterSpacing: '1.8px', fontWeight: 400,
-          color: 'rgba(245,240,232,0.22)', textTransform: 'uppercase',
+          color: 'rgba(245,240,232,0.55)', textTransform: 'uppercase',
         }}>
           PROPRIETARY &amp; CONFIDENTIAL &nbsp;&middot;&nbsp; ALL RIGHTS RESERVED &nbsp;&middot;&nbsp; 2026
         </div>
-        <div style={{ display: 'flex', gap: 18, marginTop: 4, opacity: 0.28 }}>
+        <div style={{ display: 'flex', gap: 18, marginTop: 4, opacity: 0.55 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(245,240,232,0.9)">
             <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
             <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
