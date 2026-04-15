@@ -117,13 +117,13 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
     const spawn = (now: number) => {
       const pos = getPeriodPos();
       flecks.push({
-        x: pos.x + (Math.random() - 0.5) * 4,
+        x: pos.x + (Math.random() - 0.5) * 6,
         y: pos.y,
-        vx: (Math.random() - 0.5) * 0.22,
-        vy: 0.30 + Math.random() * 0.40,
-        size: 0.9 + Math.random() * 1.0,
+        vx: (Math.random() - 0.5) * 0.38,
+        vy: 0.32 + Math.random() * 0.55,
+        size: 1.3 + Math.random() * 1.5,
         born: now,
-        maxAge: 2200 + Math.random() * 1200,
+        maxAge: 2800 + Math.random() * 1400,
       });
     };
 
@@ -131,8 +131,8 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
       if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Spawn a fleck every ~480ms — very sparse, 2-3 visible at once
-      if (now - lastSpawn > 460 + Math.random() * 100) {
+      // Spawn a fleck every ~180ms — 5-7 visible at once for clear visibility
+      if (now - lastSpawn > 160 + Math.random() * 60) {
         spawn(now);
         lastSpawn = now;
       }
@@ -143,11 +143,11 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
         if (age > f.maxAge) { flecks.splice(i, 1); continue; }
 
         const t = age / f.maxAge;
-        const opacity = t < 0.15
-          ? (t / 0.15) * 0.45
-          : t > 0.65
-            ? 0.45 * (1 - (t - 0.65) / 0.35)
-            : 0.45;
+        const opacity = t < 0.10
+          ? (t / 0.10) * 0.78
+          : t > 0.60
+            ? 0.78 * (1 - (t - 0.60) / 0.40)
+            : 0.78;
 
         f.x += f.vx;
         f.y += f.vy;
@@ -155,7 +155,7 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
 
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.size * 0.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(201,168,76,${opacity})`;
+        ctx.fillStyle = `rgba(215,182,88,${opacity})`;
         ctx.fill();
       }
 
@@ -163,7 +163,7 @@ function FleckCanvas({ periodRef }: { periodRef: React.RefObject<HTMLSpanElement
     };
 
     requestAnimationFrame(draw);
-    const stopTimer = setTimeout(() => { running = false; }, 22000);
+    const stopTimer = setTimeout(() => { running = false; }, 30000);
 
     return () => {
       running = false;
@@ -321,8 +321,11 @@ export default function SplashScreen({ onComplete }: Props) {
             ref={periodRef}
             style={{
               fontFamily: '"Playfair Display", "Georgia", serif',
-              fontSize: 'clamp(68px, 8.5vw, 104px)',
+              fontSize: 'clamp(38px, 4.8vw, 58px)',
               fontWeight: 700, color: '#C9A84C', lineHeight: 1,
+              verticalAlign: 'middle',
+              display: 'inline-block',
+              marginBottom: '0.12em',
             }}
           >.</span>
         </div>
