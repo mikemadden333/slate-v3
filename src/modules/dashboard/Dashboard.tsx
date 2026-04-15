@@ -18,6 +18,7 @@ import { useDataStore, useEnrollment, useFinancials, useStaff, useRisks, useFund
 import { fmt, fmtFull, fmtPct, fmtDscr, fmtNum, fmtCompact, fmtDate, fmtRelative, fmtVariance, fmtDaysOut } from '../../core/formatters';
 import { AI_CONFIG } from '../../core/constants';
 import { useWatchSummary } from '../watch/v2/useWatchSummary';
+import ChicagoIntelBrief from './ChicagoIntelBrief';
 import { THREAT_CONFIG } from '../watch/v2/types';
 
 interface DashboardProps {
@@ -236,6 +237,9 @@ FACILITIES: ${facilities.workOrders.filter(w => w.priority === 'urgent').length}
 
       {/* GOLDEN THREAD: Emergency Banner */}
       <EmergencyBanner onNavigate={onNavigate} />
+
+      {/* Chicago Intelligence Brief — Time-Aware Living Card */}
+      <ChicagoIntelBrief onNavigate={onNavigate} />
 
       {/* AI Morning Briefing */}
       <div style={{ marginBottom: 28 }}>
