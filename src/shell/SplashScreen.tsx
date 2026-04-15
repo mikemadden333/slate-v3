@@ -381,17 +381,50 @@ export default function SplashScreen({ onComplete }: Props) {
         }}>
           PROPRIETARY &amp; CONFIDENTIAL &nbsp;&middot;&nbsp; ALL RIGHTS RESERVED &nbsp;&middot;&nbsp; 2026
         </div>
-        <div style={{ display: 'flex', gap: 18, marginTop: 4, opacity: 0.55 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(245,240,232,0.9)">
-            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-            <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+        <div style={{ display: 'flex', gap: 22, marginTop: 6, opacity: 0.55 }}>
+          {/* Bunny */}
+          <svg width="16" height="16" viewBox="0 0 100 100" fill="rgba(245,240,232,0.9)">
+            <ellipse cx="50" cy="72" rx="22" ry="18"/>
+            <ellipse cx="50" cy="46" rx="16" ry="14"/>
+            <ellipse cx="38" cy="20" rx="7" ry="18" transform="rotate(-10 38 20)"/>
+            <ellipse cx="62" cy="20" rx="7" ry="18" transform="rotate(10 62 20)"/>
+            <circle cx="44" cy="48" r="2"/>
+            <circle cx="56" cy="48" r="2"/>
+            <ellipse cx="50" cy="53" rx="3" ry="2" fill="rgba(220,150,150,0.8)"/>
+            <path d="M44 56 Q50 60 56 56" stroke="rgba(245,240,232,0.9)" strokeWidth="1.5" fill="none"/>
+            <ellipse cx="36" cy="76" rx="8" ry="5" transform="rotate(-20 36 76)"/>
+            <ellipse cx="64" cy="76" rx="8" ry="5" transform="rotate(20 64 76)"/>
+            <ellipse cx="72" cy="65" rx="6" ry="4" transform="rotate(40 72 65)"/>
           </svg>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(245,240,232,0.9)">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          {/* Butterfly */}
+          <svg width="16" height="16" viewBox="0 0 100 100" fill="rgba(245,240,232,0.9)">
+            <ellipse cx="28" cy="38" rx="22" ry="16" transform="rotate(-30 28 38)"/>
+            <ellipse cx="72" cy="38" rx="22" ry="16" transform="rotate(30 72 38)"/>
+            <ellipse cx="32" cy="65" rx="14" ry="10" transform="rotate(20 32 65)"/>
+            <ellipse cx="68" cy="65" rx="14" ry="10" transform="rotate(-20 68 65)"/>
+            <ellipse cx="50" cy="50" rx="4" ry="22" fill="rgba(245,240,232,0.9)"/>
+            <path d="M46 30 Q50 26 54 30" stroke="rgba(245,240,232,0.7)" strokeWidth="1.2" fill="none"/>
           </svg>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          {/* Poodle */}
+          <svg width="16" height="16" viewBox="0 0 100 100" fill="rgba(245,240,232,0.9)">
+            <circle cx="50" cy="28" r="14"/>
+            <circle cx="36" cy="20" r="8"/>
+            <circle cx="64" cy="20" r="8"/>
+            <ellipse cx="50" cy="55" rx="18" ry="16"/>
+            <circle cx="50" cy="40" r="10"/>
+            <line x1="35" y1="70" x2="30" y2="90" stroke="rgba(245,240,232,0.9)" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="45" y1="71" x2="42" y2="91" stroke="rgba(245,240,232,0.9)" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="55" y1="71" x2="58" y2="91" stroke="rgba(245,240,232,0.9)" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="65" y1="70" x2="70" y2="90" stroke="rgba(245,240,232,0.9)" strokeWidth="4" strokeLinecap="round"/>
+            <circle cx="30" cy="90" r="5"/>
+            <circle cx="42" cy="91" r="5"/>
+            <circle cx="58" cy="91" r="5"/>
+            <circle cx="70" cy="90" r="5"/>
+            <circle cx="43" cy="26" r="2" fill="rgba(10,20,40,0.9)"/>
+            <circle cx="57" cy="26" r="2" fill="rgba(10,20,40,0.9)"/>
+            <ellipse cx="50" cy="32" rx="4" ry="3" fill="rgba(220,150,150,0.7)"/>
+            <path d="M72 50 Q82 46 80 54" stroke="rgba(245,240,232,0.9)" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <circle cx="82" cy="54" r="4"/>
           </svg>
         </div>
       </div>
