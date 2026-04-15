@@ -265,6 +265,7 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [aiLine, setAiLine] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [feedOpen, setFeedOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [visitInfo] = useState(() => getLastVisitInfo());
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -346,6 +347,13 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
   // ── Displayed news ────────────────────────────────────────────────────────
   const displayedNews = expanded ? news : news.slice(0, 5);
 
+  // ── Story count label for collapsed state ─────────────────────────────────
+  const storyLabel = newsLoading
+    ? 'Loading Chicago stories...'
+    : news.length > 0
+    ? `${news.length} Chicago stories · ${news.filter(n => n.category === 'crime').length} crime · ${news.filter(n => n.category === 'schools' || n.category === 'education').length} education`
+    : 'No stories loaded';
+
   // ── Re-engagement line ────────────────────────────────────────────────────
   const reengageLine = visitInfo.hoursAway >= 8
     ? `You've been away ${visitInfo.hoursAway} hours. Here's what changed.`
@@ -363,21 +371,26 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
     <div style={{
       marginBottom: 24,
       borderRadius: radius.lg,
-      border: `1px solid ${border.light}`,
+      border: `1px solid ${feedOpen ? config.accentColor + '40' : border.light}`,
       background: bg.card,
-      boxShadow: shadow.sm,
+      boxShadow: feedOpen ? shadow.md : shadow.sm,
       overflow: 'hidden',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
     }}>
-      {/* ── Header Bar ── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '14px 20px',
-        borderBottom: `1px solid ${border.light}`,
-        background: config.accentBg,
-        borderLeft: `4px solid ${config.accentColor}`,
-      }}>
+      {/* ── Header Bar (always visible, click to toggle) ── */}
+      <div
+        onClick={() => setFeedOpen(o => !o)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '11px 20px',
+          borderBottom: feedOpen ? `1px solid ${border.light}` : 'none',
+          background: config.accentBg,
+          borderLeft: `4px solid ${config.accentColor}`,
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{
             fontSize: 13,
@@ -428,11 +441,53 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
           >
             ↻
           </button>
+          {/* Expand chevron */}
+          <span style={{
+            fontSize: 11,
+            color: text.muted,
+            fontFamily: font.mono,
+            transition: 'transform 0.2s ease',
+            display: 'inline-block',
+            transform: feedOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            marginLeft: 2,
+          }}>▼</span>
         </div>
       </div>
 
-      {/* ── AI Status Line ── */}
-      <div style={{
+      {/* ── Collapsed summary row (always visible when closed) ── */}
+      {!feedOpen && (
+        <div
+          onClick={() => setFeedOpen(true)}
+          style={{
+            padding: '8px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            cursor: 'pointer',
+            borderTop: `1px solid ${border.light}`,
+          }}
+        >
+          {aiLoading ? (
+            <span style={{ fontSize: fontSize.xs, color: text.light, fontStyle: 'italic' }}>Generating status...</span>
+          ) : aiLine ? (
+            <span style={{ fontSize: fontSize.xs, color: text.secondary, flex: 1, lineHeight: 1.4 }}>{aiLine}</span>
+          ) : null}
+          <span style={{
+            flexShrink: 0,
+            fontSize: '10px',
+            color: config.accentColor,
+            fontFamily: font.mono,
+            fontWeight: fontWeight.semibold,
+            letterSpacing: '0.5px',
+            marginLeft: 'auto',
+          }}>
+            {storyLabel} ▼
+          </span>
+        </div>
+      )}
+
+      {/* ── AI Status Line (expanded only) ── */}
+      {feedOpen && <div style={{
         padding: '10px 20px',
         borderBottom: `1px solid ${border.light}`,
         display: 'flex',
@@ -463,7 +518,7 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
         ) : null}
         {onNavigate && !watch.isLoading && (
           <button
-            onClick={() => onNavigate('watch')}
+            onClick={(e) => { e.stopPropagation(); onNavigate('watch'); }}
             style={{
               marginLeft: 'auto',
               background: 'none',
@@ -482,10 +537,10 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
             OPEN WATCH
           </button>
         )}
-      </div>
+      </div>}
 
-      {/* ── News Items ── */}
-      <div style={{ padding: '4px 0' }}>
+      {/* ── News Items (expanded only) ── */}
+      {feedOpen && <div style={{ padding: '4px 0' }}>
         {newsLoading ? (
           <div style={{ padding: '20px', textAlign: 'center' }}>
             {[1, 2, 3, 4, 5].map(i => (
@@ -513,10 +568,10 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
             />
           ))
         )}
-      </div>
+      </div>}
 
-      {/* ── Footer: Show more / Show less ── */}
-      {news.length > 5 && !newsLoading && (
+      {/* ── Footer: Show more / Show less / Close (expanded only) ── */}
+      {feedOpen && (
         <div style={{
           borderTop: `1px solid ${border.light}`,
           padding: '8px 20px',
@@ -524,17 +579,32 @@ export default function ChicagoIntelBrief({ onNavigate }: ChicagoIntelBriefProps
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <button
-            onClick={() => setExpanded(e => !e)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: fontSize.xs, color: config.accentColor,
-              fontFamily: font.mono, letterSpacing: '0.5px',
-              fontWeight: fontWeight.semibold, padding: 0,
-            }}
-          >
-            {expanded ? `SHOW LESS ▲` : `+${news.length - 5} MORE STORIES ▼`}
-          </button>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            {news.length > 5 && !newsLoading && (
+              <button
+                onClick={() => setExpanded(e => !e)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: fontSize.xs, color: config.accentColor,
+                  fontFamily: font.mono, letterSpacing: '0.5px',
+                  fontWeight: fontWeight.semibold, padding: 0,
+                }}
+              >
+                {expanded ? `SHOW LESS ▲` : `+${news.length - 5} MORE STORIES ▼`}
+              </button>
+            )}
+            <button
+              onClick={() => { setFeedOpen(false); setExpanded(false); }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: fontSize.xs, color: text.muted,
+                fontFamily: font.mono, letterSpacing: '0.5px',
+                padding: 0,
+              }}
+            >
+              CLOSE ✕
+            </button>
+          </div>
           <span style={{ fontSize: '10px', color: text.light, fontFamily: font.mono }}>
             CWB · Block Club · WTTW · WGN
           </span>
