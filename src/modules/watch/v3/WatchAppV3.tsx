@@ -42,6 +42,10 @@ import { createGangBoundaryLayer, GANG_BOUNDARY_CSS } from '../v2/gangBoundaries
 
 // ─── Contagion Tab ─────────────────────────────────────────────────────────
 import ContagionTab from '../components/shared/ContagionTab';
+// ─── Briefing Tab V2 (Mars Landing Phase 1) ────────────────────────────────
+import { BriefingTabV2 } from './BriefingTabV2';
+// ─── Response Tab (Mars Landing Phase 4) ─────────────────────────────────────
+import ResponseTab from './ResponseTab';
 
 // ─── Design System ─────────────────────────────────────────────────────────
 import {
@@ -392,18 +396,23 @@ interface WatchMapProps {
   newIncidentIds: Set<string>;
   demoIncident: WatchIncident | null;
   showGangBoundaries: boolean;
+  contagionZones?: ContagionZone[];
+  showContagionRings?: boolean;
+  showSafetyPerimeters?: boolean;
 }
 
 function WatchMap({
   campusThreats, incidents, selectedCampus,
   onSelectCampus, onSelectIncident, newIncidentIds,
   demoIncident, showGangBoundaries,
+  contagionZones = [], showContagionRings = true, showSafetyPerimeters = true,
 }: WatchMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const gangLayerRef = useRef<L.LayerGroup | null>(null);
-
+  const contagionRingLayerRef = useRef<L.LayerGroup | null>(null);
+  const safetyPerimeterLayerRef = useRef<L.LayerGroup | null>(null);
   // Initialize map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -442,6 +451,86 @@ function WatchMap({
       gangLayerRef.current = gl;
     }
   }, [showGangBoundaries]);
+
+  // Contagion rings — animated Papachristos decay zones
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (contagionRingLayerRef.current) {
+      contagionRingLayerRef.current.remove();
+      contagionRingLayerRef.current = null;
+    }
+    if (!showContagionRings || contagionZones.length === 0) return;
+    const cl = L.layerGroup().addTo(map);
+    contagionRingLayerRef.current = cl;
+    for (const zone of contagionZones) {
+      const phaseColor = zone.phase === 'ACUTE' ? '#E5484D' : zone.phase === 'ACTIVE' ? '#E07020' : '#F59E0B';
+      const radiusMiles = zone.phase === 'ACUTE' ? 0.35 : zone.phase === 'ACTIVE' ? 0.7 : 1.1;
+      const radiusMeters = radiusMiles * 1609.34;
+      const opacity = zone.phase === 'ACUTE' ? 0.22 : zone.phase === 'ACTIVE' ? 0.14 : 0.09;
+      // Outer ring
+      L.circle([zone.lat, zone.lng], {
+        radius: radiusMeters,
+        color: phaseColor,
+        weight: zone.phase === 'ACUTE' ? 2 : 1.5,
+        opacity: zone.phase === 'ACUTE' ? 0.7 : 0.5,
+        fillColor: phaseColor,
+        fillOpacity: opacity,
+        dashArray: zone.phase === 'WATCH' ? '4,6' : undefined,
+      }).addTo(cl).bindPopup(`
+        <div style="min-width:200px;">
+          <div style="font-size:11px;font-weight:700;color:${phaseColor};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">
+            ${zone.phase} CONTAGION ZONE
+          </div>
+          <div style="font-size:13px;font-weight:500;color:#0F1728;margin-bottom:6px;">${zone.homicideAddress || 'Homicide location'}</div>
+          <div style="font-size:11px;color:#7A8699;">
+            Risk radius: ${radiusMiles} mi · Decay: ${Math.round((1 - zone.decayFactor) * 100)}% elapsed
+          </div>
+          ${zone.retWin ? '<div style="font-size:11px;color:#E5484D;font-weight:600;margin-top:4px;">⚠ RETALIATION WINDOW ACTIVE</div>' : ''}
+        </div>
+      `, { maxWidth: 280 });
+      // Retaliation window pulse ring (inner)
+      if (zone.retWin) {
+        L.circle([zone.lat, zone.lng], {
+          radius: radiusMeters * 0.4,
+          color: '#E5484D',
+          weight: 1,
+          opacity: 0.6,
+          fillColor: '#E5484D',
+          fillOpacity: 0.08,
+          dashArray: '2,4',
+        }).addTo(cl);
+      }
+    }
+  }, [contagionZones, showContagionRings]);
+
+  // Safety perimeters — 0.25mi campus radius
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (safetyPerimeterLayerRef.current) {
+      safetyPerimeterLayerRef.current.remove();
+      safetyPerimeterLayerRef.current = null;
+    }
+    if (!showSafetyPerimeters) return;
+    const pl = L.layerGroup().addTo(map);
+    safetyPerimeterLayerRef.current = pl;
+    for (const ct of campusThreats) {
+      const cfg = { GREEN: '#17B26A', AMBER: '#F59E0B', ORANGE: '#E07020', RED: '#E5484D' };
+      const color = cfg[ct.threatLevel] || '#17B26A';
+      const opacity = ct.threatLevel === 'RED' ? 0.12 : ct.threatLevel === 'ORANGE' ? 0.08 : 0.05;
+      L.circle([ct.lat, ct.lng], {
+        radius: 402, // 0.25mi in meters
+        color,
+        weight: 1,
+        opacity: 0.4,
+        fillColor: color,
+        fillOpacity: opacity,
+        dashArray: '3,5',
+        interactive: false,
+      }).addTo(pl);
+    }
+  }, [campusThreats, showSafetyPerimeters]);
 
   // Render markers
   useEffect(() => {
@@ -1009,18 +1098,22 @@ interface MapTabProps {
   onSelectIncident: (inc: WatchIncident) => void;
   onSelectCampus: (id: number | null) => void;
   selectedCampus: number | null;
+  contagionZones?: ContagionZone[];
 }
 
 function MapTab({
   data, demoIncident, demoPhase, newIncidentIds,
   showGangBoundaries, onToggleGangBoundaries,
   selectedIncident, onSelectIncident, onSelectCampus, selectedCampus,
+  contagionZones = [],
 }: MapTabProps) {
+  const [showContagionRings, setShowContagionRings] = useState(true);
+  const [showSafetyPerimeters, setShowSafetyPerimeters] = useState(true);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
   const feedIncidents = useMemo(() => {
     const real = data.incidents.filter(i => i.ageMinutes <= 360).slice(0, 40);
     return demoIncident ? [demoIncident, ...real] : real;
   }, [data.incidents, demoIncident]);
-
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       {/* MAP — 70% */}
@@ -1034,6 +1127,9 @@ function MapTab({
           newIncidentIds={newIncidentIds}
           demoIncident={demoIncident}
           showGangBoundaries={showGangBoundaries}
+          contagionZones={contagionZones}
+          showContagionRings={showContagionRings}
+          showSafetyPerimeters={showSafetyPerimeters}
         />
 
         {/* Map overlays */}
@@ -1095,27 +1191,81 @@ function MapTab({
           </div>
         )}
 
-        {/* Gang boundaries toggle */}
-        <button
-          onClick={onToggleGangBoundaries}
-          style={{
-            position: 'absolute', top: 16, right: 16, zIndex: 1000,
-          background: showGangBoundaries ? 'rgba(43, 95, 138, 0.9)' : 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(8px)',
-          border: `1px solid ${showGangBoundaries ? '#2B5F8A' : W.border}`,
-          borderRadius: 8, padding: '8px 14px',
-          cursor: 'pointer', fontSize: '11px', fontWeight: 600,
-          fontFamily: font.body,
-          color: showGangBoundaries ? '#fff' : W.textSecondary,
-            transition: 'all 0.2s ease',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}
-          title="Toggle CPD 2024 Gang Territory Boundaries"
-        >
-          <span style={{ fontSize: '12px' }}>{showGangBoundaries ? '◼' : '◻'}</span>
-          GANG TERRITORIES
-          <span style={{ fontSize: '9px', opacity: 0.7 }}>CPD 2024</span>
-        </button>
+        {/* Layer Control Panel */}
+        <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 1000 }}>
+          <button
+            onClick={() => setShowLayerPanel(p => !p)}
+            style={{
+              background: showLayerPanel ? 'rgba(201,165,78,0.95)' : 'rgba(255,255,255,0.95)',
+              backdropFilter: 'blur(8px)',
+              border: `1px solid ${showLayerPanel ? W.gold : W.border}`,
+              borderRadius: 8, padding: '8px 14px',
+              cursor: 'pointer', fontSize: '11px', fontWeight: 600,
+              fontFamily: font.body,
+              color: showLayerPanel ? '#1A1A2E' : W.textSecondary,
+              transition: 'all 0.2s ease',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            <span>⊞</span> LAYERS
+          </button>
+          {showLayerPanel && (
+            <div style={{
+              position: 'absolute', top: 44, right: 0,
+              background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)',
+              border: `1px solid ${W.border}`, borderRadius: 10,
+              padding: '12px 0', minWidth: 220,
+              boxShadow: '0 8px 24px rgba(26,35,50,0.14)',
+              animation: 'v3FadeIn 0.2s ease-out',
+            }}>
+              <div style={{ padding: '0 14px 8px', fontSize: '9px', fontWeight: 700, color: W.textDim, letterSpacing: '0.1em' }}>MAP LAYERS</div>
+              {[
+                { key: 'contagion', label: 'Contagion Rings', sub: 'Papachristos decay zones', active: showContagionRings, color: '#E07020', toggle: () => setShowContagionRings(v => !v) },
+                { key: 'perimeters', label: 'Safety Perimeters', sub: '0.25mi campus radius', active: showSafetyPerimeters, color: W.blue, toggle: () => setShowSafetyPerimeters(v => !v) },
+                { key: 'gang', label: 'Gang Territories', sub: 'CPD 2024 boundaries', active: showGangBoundaries, color: '#2B5F8A', toggle: onToggleGangBoundaries },
+              ].map(layer => (
+                <div
+                  key={layer.key}
+                  onClick={layer.toggle}
+                  style={{
+                    padding: '8px 14px', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', gap: 10, transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(26,35,50,0.04)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <div style={{
+                    width: 16, height: 16, borderRadius: 3, flexShrink: 0,
+                    background: layer.active ? layer.color : 'transparent',
+                    border: `2px solid ${layer.color}`,
+                    transition: 'all 0.15s ease',
+                  }} />
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: W.textPrimary }}>{layer.label}</div>
+                    <div style={{ fontSize: '10px', color: W.textDim }}>{layer.sub}</div>
+                  </div>
+                </div>
+              ))}
+              {/* Contagion legend */}
+              {showContagionRings && contagionZones.length > 0 && (
+                <div style={{ margin: '8px 14px 0', paddingTop: 8, borderTop: `1px solid ${W.border}` }}>
+                  <div style={{ fontSize: '9px', fontWeight: 700, color: W.textDim, letterSpacing: '0.1em', marginBottom: 6 }}>CONTAGION PHASES</div>
+                  {[
+                    { phase: 'ACUTE',  color: '#E5484D', label: 'Acute (0-72h)',   count: contagionZones.filter(z => z.phase === 'ACUTE').length },
+                    { phase: 'ACTIVE', color: '#E07020', label: 'Active (3-14d)',  count: contagionZones.filter(z => z.phase === 'ACTIVE').length },
+                    { phase: 'WATCH',  color: '#F59E0B', label: 'Watch (14-30d)', count: contagionZones.filter(z => z.phase === 'WATCH').length },
+                  ].map(p => p.count > 0 && (
+                    <div key={p.phase} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', border: `2px solid ${p.color}`, background: `${p.color}20` }} />
+                      <span style={{ fontSize: '10px', color: W.textSecondary }}>{p.label}</span>
+                      <span style={{ fontSize: '10px', color: W.textDim, marginLeft: 'auto' }}>{p.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Refreshing sweep */}
         {data.isRefreshing && (
@@ -1400,12 +1550,13 @@ function ContagionWrapper({ contagionZones, contagionIncidents, data }: Contagio
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN: WATCH APP V3
 // ═══════════════════════════════════════════════════════════════════════════
-type WatchTab = 'briefing' | 'map' | 'contagion';
+type WatchTab = 'briefing' | 'map' | 'contagion' | 'response';
 
 const TABS: { id: WatchTab; label: string; sub: string }[] = [
   { id: 'briefing',  label: 'Briefing',   sub: 'What does this mean?' },
   { id: 'map',       label: 'Map',        sub: 'Where is it happening?' },
   { id: 'contagion', label: 'Contagion',  sub: 'What happens next?' },
+  { id: 'response',  label: 'Response',   sub: 'What do we do?' },
 ];
 
 export const WatchAppV3: React.FC = () => {
@@ -1713,10 +1864,11 @@ export const WatchAppV3: React.FC = () => {
       {/* ─── TAB CONTENT ───────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'briefing' && (
-          <BriefingTab
+          <BriefingTabV2
             data={data}
             demoIncident={demoIncident}
             contagionZones={contagionZones}
+            viewMode="ceo"
           />
         )}
         {activeTab === 'map' && (
@@ -1731,6 +1883,7 @@ export const WatchAppV3: React.FC = () => {
             onSelectIncident={setSelectedIncident}
             onSelectCampus={setSelectedCampus}
             selectedCampus={selectedCampus}
+            contagionZones={contagionZones}
           />
         )}
         {activeTab === 'contagion' && (
@@ -1739,6 +1892,14 @@ export const WatchAppV3: React.FC = () => {
             contagionIncidents={contagionIncidents}
             data={data}
           />
+        )}
+        {activeTab === 'response' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <ResponseTab
+              data={data}
+              contagionZones={contagionZones}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -12,6 +12,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import ContagionAnalystChat from './ContagionAnalystChat';
 
 // ─── Explainer Panel ─────────────────────────────────────────────────────────
 
@@ -528,12 +529,74 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
         </div>
       </div>
 
-      {/* ═══ AI ANALYSIS ═══ */}
-      <AIAnalysisSection
-        analysis={aiAnalysis}
-        loading={aiLoading}
-        onRun={onRunAi}
-        label={`Analyze ${zones.length} Contagion Zone${zones.length !== 1 ? 's' : ''}`}
+      {/* ═══ DECAY TIMELINE VISUALIZATION ═══ */}
+      <div style={{
+        background: bg.card, border: `1px solid ${border.light}`, borderRadius: radius.lg,
+        padding: '20px 24px', marginBottom: 20,
+      }}>
+        <div style={{ marginBottom: 14 }}>
+          <SectionLabel>CONTAGION DECAY TIMELINE</SectionLabel>
+          <div style={{ fontSize: fontSize.xs, color: text.muted, marginTop: -4 }}>
+            Each bar represents one active zone — width shows time elapsed in the 125-day window
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {zones.slice(0, 12).map((zone, i) => {
+            const pct = Math.min(100, Math.round((zone.ageH / (125 * 24)) * 100));
+            const remaining = Math.max(0, 125 - Math.floor(zone.ageH / 24));
+            const phaseColor = zone.phase === 'ACUTE' ? '#DC2626' : zone.phase === 'ACTIVE' ? '#EA580C' : '#D97706';
+            const phaseBg = zone.phase === 'ACUTE' ? '#FEF2F2' : zone.phase === 'ACTIVE' ? '#FFF7ED' : '#FFFBEB';
+            return (
+              <div key={zone.incidentId || i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 52, flexShrink: 0, textAlign: 'right' }}>
+                  <span style={{ fontSize: '9px', fontWeight: fontWeight.bold, padding: '1px 5px', borderRadius: 3, background: phaseColor, color: '#fff' }}>
+                    {zone.phase}
+                  </span>
+                </div>
+                <div style={{ flex: 1, height: 18, background: phaseBg, borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0,
+                    width: `${pct}%`,
+                    background: `linear-gradient(90deg, ${phaseColor}CC, ${phaseColor}66)`,
+                    borderRadius: 4,
+                  }} />
+                  {zone.retWin && (
+                    <div style={{
+                      position: 'absolute', right: 4, top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '8px', color: '#DC2626', fontWeight: fontWeight.bold,
+                    }}>⚠ RET</div>
+                  )}
+                </div>
+                <div style={{ width: 52, flexShrink: 0, fontSize: fontSize.xs, color: text.muted, textAlign: 'right' }}>
+                  {remaining}d left
+                </div>
+                <div style={{ width: 130, flexShrink: 0, fontSize: fontSize.xs, color: text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {zone.block || zone.homicideAddress || 'Unknown block'}
+                </div>
+              </div>
+            );
+          })}
+          {zones.length > 12 && (
+            <div style={{ fontSize: fontSize.xs, color: text.muted, paddingLeft: 62, paddingTop: 4 }}>
+              + {zones.length - 12} more zones not shown
+            </div>
+          )}
+          {zones.length === 0 && (
+            <div style={{ fontSize: fontSize.sm, color: text.muted, textAlign: 'center', padding: '16px 0' }}>
+              No active contagion zones. Network is clear.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══ AI CONTAGION ANALYST (CONVERSATIONAL) ═══ */}
+      <ContagionAnalystChat
+        zones={zones}
+        stats={s}
+        aiAnalysis={aiAnalysis}
+        aiLoading={aiLoading}
+        onRunAi={onRunAi}
       />
 
       {/* ═══ EXPLAINER (COLLAPSED BY DEFAULT) ═══ */}
