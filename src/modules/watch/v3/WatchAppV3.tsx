@@ -44,9 +44,10 @@ import { createGangBoundaryLayer, GANG_BOUNDARY_CSS } from '../v2/gangBoundaries
 import ContagionTab from '../components/shared/ContagionTab';
 // ─── Briefing Tab V2 (Mars Landing Phase 1) ────────────────────────────────
 import { BriefingTabV2 } from './BriefingTabV2';
-// ─── Response Tab (Mars Landing Phase 4) ─────────────────────────────────────
+// ─── Response Tab (Mars Landing Phase 4) ───────────────────────────────────────
 import ResponseTab from './ResponseTab';
-
+// ─── Situation Room (Mars Landing: Opening Statement) ───────────────────────────
+import { SituationRoom } from './SituationRoom';
 // ─── Design System ─────────────────────────────────────────────────────────
 import {
   brand, bg, text, font, fontSize, fontWeight,
@@ -1861,6 +1862,12 @@ export const WatchAppV3: React.FC = () => {
         </div>
       </div>
 
+      {/* ─── SITUATION ROOM ─────────────────────────────────────────────── */}
+      <SituationRoom
+        data={data}
+        contagionZones={contagionZones}
+        isRefreshing={data.isRefreshing}
+      />
       {/* ─── TAB CONTENT ───────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'briefing' && (

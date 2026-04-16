@@ -13,6 +13,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import ContagionAnalystChat from './ContagionAnalystChat';
+import { NetworkStoryArc } from '../../v3/NetworkStoryArc';
 
 // ─── Explainer Panel ─────────────────────────────────────────────────────────
 
@@ -588,6 +589,12 @@ function NetworkContagionView({ stats, zones, allRisks, aiAnalysis, aiLoading, o
             </div>
           )}
         </div>
+      </div>
+
+      {/* ═══ NETWORK STORY ARC ═══ */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', letterSpacing: '0.1em', marginBottom: 12, fontFamily: 'IBM Plex Mono, monospace' }}>THE 125-DAY STORY</div>
+        <NetworkStoryArc zones={zones} />
       </div>
 
       {/* ═══ AI CONTAGION ANALYST (CONVERSATIONAL) ═══ */}
