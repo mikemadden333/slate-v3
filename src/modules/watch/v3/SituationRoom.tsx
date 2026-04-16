@@ -521,6 +521,7 @@ export function SituationRoom({ data, contagionZones, isRefreshing }: SituationR
   const [isGenerating, setIsGenerating] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
   const [charIndex, setCharIndex] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const [showDismissal, setShowDismissal] = useState(isDismissalWindow() || (new Date().getHours() * 60 + new Date().getMinutes() >= 75 && new Date().getHours() * 60 + new Date().getMinutes() < 90));
   const hasGenerated = useRef(false);
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -623,6 +624,11 @@ Write the situation statement.`,
   const acuteCount = contagionZones.filter(z => z.phase === 'ACUTE').length;
   const retActive = contagionZones.some(z => z.retWin);
 
+  // First sentence only for collapsed view
+  const firstSentence = displayedText
+    ? displayedText.split(/(?<=[.!?])\s+/)[0] ?? displayedText
+    : '';
+
   return (
     <>
       <style>{SITUATION_CSS}</style>
@@ -630,14 +636,15 @@ Write the situation statement.`,
       {/* ═══ DISMISSAL BANNER (conditional) ═══ */}
       {showDismissal && <DismissalBanner data={data} zones={contagionZones} />}
 
-      {/* ═══ SITUATION ROOM HEADER ═══ */}
+      {/* ═══ SITUATION ROOM ═══ */}
       <div style={{
         background: `linear-gradient(180deg, ${W.bgDark} 0%, ${W.bgDarkCard} 100%)`,
         borderBottom: `1px solid ${W.border}`,
-        padding: '20px 32px 24px',
+        padding: expanded ? '14px 32px 18px' : '10px 32px',
         flexShrink: 0,
         position: 'relative',
         overflow: 'hidden',
+        transition: 'padding 0.2s ease',
       }}>
         {/* Scan line animation */}
         <div style={{
@@ -651,10 +658,10 @@ Write the situation statement.`,
           }} />
         </div>
 
-        {/* Top row: Status badge + Live pulse + Share */}
+        {/* Single compact row: Status + first sentence + expand + live pulse + share */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 16,
+          gap: 12,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* Threat badge */}
@@ -707,7 +714,53 @@ Write the situation statement.`,
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Inline first sentence (collapsed) */}
+          {!expanded && firstSentence && (
+            <span style={{
+              fontFamily: FONT_BODY, fontSize: 12, color: W.textDimDark,
+              fontWeight: 300, flex: 1, minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              marginLeft: 8,
+            }}>
+              {firstSentence}
+              {charIndex < situationText.length && (
+                <span style={{
+                  display: 'inline-block', width: 2, height: '0.8em',
+                  background: W.gold, marginLeft: 2, verticalAlign: 'text-bottom',
+                  animation: 'srBlink 0.7s ease-in-out infinite',
+                }} />
+              )}
+            </span>
+          )}
+          {!expanded && isGenerating && !firstSentence && (
+            <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: W.textDimDark, marginLeft: 8 }}>
+              Generating assessment...
+            </span>
+          )}
+          {!expanded && !firstSentence && !isGenerating && (
+            <button onClick={generateSituation} style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: FONT_MONO, fontSize: 10, color: W.gold,
+              letterSpacing: '0.06em', marginLeft: 8, padding: 0,
+            }}>
+              ✶ Generate assessment
+            </button>
+          )}
+          {/* Expand/collapse toggle */}
+          {displayedText && (
+            <button
+              onClick={() => setExpanded(e => !e)}
+              style={{
+                background: 'transparent', border: `1px solid ${W.border}`,
+                borderRadius: 4, padding: '2px 8px', cursor: 'pointer',
+                fontFamily: FONT_MONO, fontSize: 9, color: W.textDimDark,
+                flexShrink: 0, marginLeft: 8,
+              }}
+            >
+              {expanded ? '▲ Collapse' : '▼ Full assessment'}
+            </button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <LivePulse
               sources={sources}
               isRefreshing={isRefreshing}
@@ -717,81 +770,35 @@ Write the situation statement.`,
           </div>
         </div>
 
-        {/* The Situation Statement */}
-        <div style={{ position: 'relative' }}>
-          {isGenerating && !displayedText && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <div style={{
-                width: 12, height: 12, borderRadius: '50%',
-                border: `2px solid ${W.goldBorder}`, borderTopColor: W.gold,
-                animation: 'v3Spin 0.8s linear infinite',
-              }} />
-              <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: W.textDimDark, letterSpacing: '0.06em' }}>
-                GENERATING SITUATION ASSESSMENT...
-              </span>
+        {/* Expanded: full assessment paragraph */}
+        {expanded && displayedText && (
+          <div style={{ marginTop: 12, animation: 'srFadeIn 0.2s ease-out' }}>
+            <div style={{
+              fontFamily: FONT_MONO, fontSize: 9, fontWeight: 700,
+              color: W.gold, letterSpacing: '0.12em', marginBottom: 8,
+            }}>
+              SITUATION ASSESSMENT · {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} CDT
             </div>
-          )}
-
-          {displayedText && (
-            <div style={{ animation: 'srFadeIn 0.3s ease-out' }}>
-              <div style={{
-                fontFamily: FONT_MONO, fontSize: 9, fontWeight: 700,
-                color: W.gold, letterSpacing: '0.12em', marginBottom: 10,
-              }}>
-                SITUATION ASSESSMENT · {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} CDT
-              </div>
-              <p style={{
-                fontFamily: FONT_BODY,
-                fontSize: 15,
-                lineHeight: 1.75,
-                color: W.textOnDark,
-                margin: 0,
-                maxWidth: 820,
-                fontWeight: 300,
-                letterSpacing: '0.01em',
-              }}>
-                {displayedText}
-                {charIndex < situationText.length && (
-                  <span style={{
-                    display: 'inline-block', width: 2, height: '1em',
-                    background: W.gold, marginLeft: 2, verticalAlign: 'text-bottom',
-                    animation: 'srBlink 0.7s ease-in-out infinite',
-                  }} />
-                )}
-              </p>
-            </div>
-          )}
-
-          {!displayedText && !isGenerating && (
-            <button
-              onClick={generateSituation}
-              style={{
-                background: 'transparent', border: `1px solid ${W.goldBorder}`,
-                borderRadius: 6, padding: '8px 18px', cursor: 'pointer',
-                fontFamily: FONT_MONO, fontSize: 10, fontWeight: 600,
-                color: W.gold, letterSpacing: '0.06em',
-              }}
-            >
-              ✦ GENERATE SITUATION ASSESSMENT
-            </button>
-          )}
-        </div>
-
-        {/* Bottom row: Data freshness + refresh button */}
-        {situationText && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 16,
-            marginTop: 14, paddingTop: 14,
-            borderTop: `1px solid ${W.border}`,
-          }}>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: W.textDimDark }}>
-              Auto-refreshes every 2 minutes · Based on live data from {sources.length} source types
-            </span>
+            <p style={{
+              fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7,
+              color: W.textOnDark, margin: 0, maxWidth: 860,
+              fontWeight: 300, letterSpacing: '0.01em',
+            }}>
+              {displayedText}
+              {charIndex < situationText.length && (
+                <span style={{
+                  display: 'inline-block', width: 2, height: '1em',
+                  background: W.gold, marginLeft: 2, verticalAlign: 'text-bottom',
+                  animation: 'srBlink 0.7s ease-in-out infinite',
+                }} />
+              )}
+            </p>
             <button
               onClick={() => { hasGenerated.current = false; generateSituation(); }}
               style={{
-                background: 'transparent', border: `1px solid ${W.border}`,
-                borderRadius: 4, padding: '3px 10px', cursor: 'pointer',
+                marginTop: 10, background: 'transparent',
+                border: `1px solid ${W.border}`, borderRadius: 4,
+                padding: '3px 10px', cursor: 'pointer',
                 fontFamily: FONT_MONO, fontSize: 9, color: W.textDimDark,
               }}
             >

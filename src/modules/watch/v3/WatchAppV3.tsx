@@ -1862,21 +1862,24 @@ export const WatchAppV3: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── SITUATION ROOM ─────────────────────────────────────────────── */}
-      <SituationRoom
-        data={data}
-        contagionZones={contagionZones}
-        isRefreshing={data.isRefreshing}
-      />
       {/* ─── TAB CONTENT ───────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'briefing' && (
-          <BriefingTabV2
-            data={data}
-            demoIncident={demoIncident}
-            contagionZones={contagionZones}
-            viewMode="ceo"
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <SituationRoom
+              data={data}
+              contagionZones={contagionZones}
+              isRefreshing={data.isRefreshing}
+            />
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <BriefingTabV2
+                data={data}
+                demoIncident={demoIncident}
+                contagionZones={contagionZones}
+                viewMode="ceo"
+              />
+            </div>
+          </div>
         )}
         {activeTab === 'map' && (
           <MapTab
