@@ -46,8 +46,13 @@ import ContagionTab from '../components/shared/ContagionTab';
 import { BriefingTabV2 } from './BriefingTabV2';
 // ─── Response Tab (Mars Landing Phase 4) ───────────────────────────────────────
 import ResponseTab from './ResponseTab';
+import ResponseWarRoom from './ResponseWarRoom';
 // ─── Situation Room (Mars Landing: Opening Statement) ───────────────────────────
 import { SituationRoom } from './SituationRoom';
+// ─── Map Overlays (Pulse Rings + Temporal Replay) ─────────────────────────────
+import { getPulseRingHtml, TemporalReplayBar } from './MapOverlays';
+// ─── Contagion Network Graph + Decay Clocks ───────────────────────────────────
+import { NetworkOrganismGraph, DecayClock } from './ContagionNetworkGraph';
 // ─── Design System ─────────────────────────────────────────────────────────
 import {
   brand, bg, text, font, fontSize, fontWeight,
@@ -639,14 +644,13 @@ function WatchMap({
         `, { maxWidth: 320 });
         m.on('click', () => onSelectIncident(inc));
       } else {
-        const marker = L.circleMarker([inc.lat, inc.lng], {
-          radius: r,
-          fillColor,
-          fillOpacity: decayedOpacity,
-          color: inc.isEstimatedLocation ? W.amber : 'rgba(255,255,255,0.6)',
-          weight: 1.5,
-          dashArray: inc.isEstimatedLocation ? '3,3' : undefined,
-        }).addTo(lg);
+        const pulseIcon = L.divIcon({
+          className: '',
+          html: getPulseRingHtml(inc.crimeType, inc.ageMinutes, isNew),
+          iconSize: [0, 0],
+          iconAnchor: [0, 0],
+        });
+        const marker = L.marker([inc.lat, inc.lng], { icon: pulseIcon }).addTo(lg);
         marker.bindPopup(`
           <div style="min-width:220px;max-width:300px;">
             <div style="font-size:11px;font-weight:600;color:${fillColor};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">
@@ -1111,6 +1115,7 @@ function MapTab({
   const [showContagionRings, setShowContagionRings] = useState(true);
   const [showSafetyPerimeters, setShowSafetyPerimeters] = useState(true);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
+  const [replayMinutesAgo, setReplayMinutesAgo] = useState<number | null>(null);
   const feedIncidents = useMemo(() => {
     const real = data.incidents.filter(i => i.ageMinutes <= 360).slice(0, 40);
     return demoIncident ? [demoIncident, ...real] : real;
@@ -1281,6 +1286,12 @@ function MapTab({
             }} />
           </div>
         )}
+        {/* Temporal Replay Bar */}
+        <TemporalReplayBar
+          incidents={data.incidents}
+          currentMinutesAgo={replayMinutesAgo}
+          onTimeChange={setReplayMinutesAgo}
+        />
       </div>
 
       {/* LIVE FEED — 30% */}
@@ -1538,6 +1549,20 @@ function ContagionWrapper({ contagionZones, contagionIncidents, data }: Contagio
 
   return (
     <div style={{ flex: 1, overflow: 'auto' }}>
+      {/* Network Organism Graph + Decay Clocks */}
+      {contagionZones.length > 0 && (
+        <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${W.border}` }}>
+          <div style={{ flex: '0 0 60%', borderRight: `1px solid ${W.border}` }}>
+            <NetworkOrganismGraph
+              campusThreats={data.campusThreats}
+              zones={contagionZones}
+            />
+          </div>
+          <div style={{ flex: '0 0 40%' }}>
+            <DecayClock zones={contagionZones} />
+          </div>
+        </div>
+      )}
       <ContagionTab
         zones={contagionZones}
         allRisks={allRisks}
@@ -1905,6 +1930,10 @@ export const WatchAppV3: React.FC = () => {
         )}
         {activeTab === 'response' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
+            <ResponseWarRoom
+              data={data}
+              contagionZones={contagionZones}
+            />
             <ResponseTab
               data={data}
               contagionZones={contagionZones}
