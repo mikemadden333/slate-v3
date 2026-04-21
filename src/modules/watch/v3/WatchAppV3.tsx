@@ -528,6 +528,15 @@ function WatchMap({
     }
   }, [selectedIncidentId, incidents, demoIncident]);
 
+  // Pan to selected campus when it changes (e.g. principal view campus switch)
+  useEffect(() => {
+    if (!selectedCampus || !mapInstanceRef.current) return;
+    const campus = campusThreats.find(c => c.campusId === selectedCampus);
+    if (campus) {
+      mapInstanceRef.current.setView([campus.lat, campus.lng], 14, { animate: true });
+    }
+  }, [selectedCampus, campusThreats]);
+
   // Gang boundaries
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -766,7 +775,7 @@ function WatchMap({
       });
       L.marker([41.92, -87.67], { icon: dismissalIcon, interactive: false, zIndexOffset: 2000 }).addTo(lg);
     }
-  }, [campusThreats, incidents, onSelectCampus, onSelectIncident, newIncidentIds, demoIncident, selectedIncidentId]);
+  }, [campusThreats, incidents, onSelectCampus, onSelectIncident, newIncidentIds, demoIncident, selectedIncidentId, selectedCampus]);
 
   return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />;
 }
@@ -1495,7 +1504,7 @@ function MapTab({
         )}
         {/* Temporal Replay Bar */}
         <TemporalReplayBar
-          incidents={data.incidents}
+          incidents={feedIncidents}
           currentMinutesAgo={replayMinutesAgo}
           onTimeChange={setReplayMinutesAgo}
         />
@@ -1942,11 +1951,16 @@ function MapTab({
               padding: '10px 18px', borderTop: `1px solid ${W.border}`, flexShrink: 0,
             }}>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {data.sourceStatuses.slice(0, 4).map(s => (
+                {(isPrincipal && principalCampus ? [
+                  { source: 'CITIZEN', status: 'LIVE' },
+                  { source: 'SCANNER', status: 'LIVE' },
+                  { source: 'CPD', status: feedIncidents.some(i => i.source === 'CPD') ? 'LIVE' : 'STANDBY' },
+                  { source: 'NEWS', status: feedIncidents.some(i => i.source === 'NEWS') ? 'LIVE' : 'STANDBY' },
+                ] : data.sourceStatuses.slice(0, 4)).map(s => (
                   <div key={s.source} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{
                       width: 6, height: 6, borderRadius: '50%',
-                      background: s.status === 'LIVE' ? W.green : s.status === 'DEGRADED' ? W.amber : W.red,
+                      background: s.status === 'LIVE' ? W.green : s.status === 'DEGRADED' ? W.amber : s.status === 'STANDBY' ? W.textDim : W.red,
                     }} />
                     <span style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
                       {s.source}
