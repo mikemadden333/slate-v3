@@ -116,11 +116,25 @@ export function getPulseRingHtml(
     "></div>
   ` : '';
 
+  // Transparent center dot — fills the icon bounding box so pointer events register
+  // even when the user clicks between the animated rings.
+  const centerDot = `
+    <div style="
+      position: absolute;
+      width: ${size}px; height: ${size}px;
+      left: ${-half}px; top: ${-half}px;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+    "></div>
+  `;
+
   return `
-    <div style="position:relative; width:0; height:0; overflow:visible;">
+    <div style="position:relative; width:0; height:0; overflow:visible; cursor:pointer;">
       <style>${PULSE_CSS}</style>
       ${selectedHtml}
       ${ringHtml}
+      ${centerDot}
     </div>
   `;
 }

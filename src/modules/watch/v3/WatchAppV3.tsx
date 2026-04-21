@@ -729,16 +729,18 @@ function WatchMap({
         m.on('click', () => onSelectIncident(inc));
       } else {
         const isSelected = selectedIncidentId === inc.id;
+        // Hit-area size must match the ring size so clicks register anywhere on the ring
+        const hitSize = inc.crimeType === 'HOMICIDE' ? 64 : inc.crimeType === 'SHOOTING' ? 52 : 40;
         const pulseIcon = L.divIcon({
           className: '',
           html: isSelected
-            ? getPulseRingHtml(inc.crimeType, inc.ageMinutes, true, true)  // selected = forced bright + ring
+            ? getPulseRingHtml(inc.crimeType, inc.ageMinutes, true, true)
             : getPulseRingHtml(inc.crimeType, inc.ageMinutes, isNew),
-          iconSize: [0, 0],
-          iconAnchor: [0, 0],
+          // Give the icon a real bounding box so Leaflet registers pointer events
+          iconSize: [hitSize, hitSize],
+          iconAnchor: [hitSize / 2, hitSize / 2],
         });
         const marker = L.marker([inc.lat, inc.lng], { icon: pulseIcon, zIndexOffset: isSelected ? 1000 : 0 }).addTo(lg);
-        // Clicking the ring fires onSelectIncident — the rich panel handles display
         marker.on('click', () => onSelectIncident(inc));
       }
     }
@@ -1353,6 +1355,75 @@ function MapTab({
               )}
             </div>
           )}
+        </div>
+
+        {/* ── MAP LEGEND ─────────────────────────────────────── */}
+        <div style={{
+          position: 'absolute', bottom: 56, left: 16, zIndex: 1000,
+          background: 'rgba(11,18,32,0.88)', backdropFilter: 'blur(12px)',
+          borderRadius: 10, padding: '10px 14px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+          minWidth: 210,
+        }}>
+          <div style={{
+            fontFamily: font.mono, fontSize: '9px', fontWeight: 700,
+            color: 'rgba(232,228,220,0.45)', letterSpacing: '0.12em',
+            textTransform: 'uppercase', marginBottom: 8,
+          }}>How to read this map</div>
+
+          {/* Incident rings */}
+          <div style={{ marginBottom: 7 }}>
+            <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.45)', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>Incident rings — click any ring</div>
+            {[
+              { color: '#E5484D', label: 'Homicide', size: 14 },
+              { color: '#E07020', label: 'Shooting', size: 11 },
+              { color: '#F59E0B', label: 'Shots Fired / Stabbing', size: 9 },
+            ].map(r => (
+              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                <div style={{
+                  width: r.size, height: r.size, borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${r.color}`,
+                  boxShadow: `0 0 5px ${r.color}55`,
+                  background: `${r.color}18`,
+                }} />
+                <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{r.label}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: '10px', color: 'rgba(232,228,220,0.4)', fontFamily: font.body, marginTop: 2 }}>
+              Fast pulse = recent · slow pulse = older
+            </div>
+          </div>
+
+          {/* Campus badges */}
+          <div style={{ marginBottom: 7, paddingTop: 7, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.45)', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>Campus badges — click any campus</div>
+            {[
+              { color: '#E5484D', label: 'RED — Immediate threat nearby' },
+              { color: '#E07020', label: 'ORANGE — Elevated activity' },
+              { color: '#17B26A', label: 'GREEN — Clear' },
+            ].map(b => (
+              <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, background: b.color }} />
+                <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{b.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Confidence */}
+          <div style={{ paddingTop: 7, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.45)', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>Confidence (in feed)</div>
+            {[
+              { color: '#17B26A', label: 'CONFIRMED — CPD verified (97%)' },
+              { color: '#4F7CFF', label: 'CORROBORATED — 2+ sources (85%)' },
+              { color: '#F59E0B', label: 'REPORTED — single source (70%)' },
+            ].map(c => (
+              <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: c.color }} />
+                <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{c.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Refreshing sweep */}
