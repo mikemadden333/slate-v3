@@ -468,6 +468,118 @@ ${staffSummary}
 
 Answer questions about benefits, PTO, retirement (CTPF and 401k), health insurance, leaves of absence, the C.A.R²E management framework, Noble's core values, licensure requirements, the staff handbook, and staffing data. Be specific, accurate, and cite the relevant policy section when applicable. Keep answers concise and actionable. Never make up policy details — if you're uncertain, say so and direct to HR.`;
 
+  // Local fallback: answers the most common questions from the Noble context
+  // without needing an API call — ensures demo always works
+  const generateLocalAnswer = (question: string): string | null => {
+    const q = question.toLowerCase();
+    if (q.includes('pto') || q.includes('vacation') || q.includes('time off')) {
+      return `**PTO Policy (from Noble Staff Handbook SY25-26)**
+
+**Academic-Calendar Staff:**
+- Tier 1 (0–2 years): 5 days/year
+- Tier 2 (3–6 years): 6 days/year
+- Tier 3 (7–9 years): 7 days/year
+- Tier 4 (10+ years): 8 days/year
+
+**Administrative/Year-Round Staff:**
+- Tier 1 (0–2 years): 12 days/year
+- Tier 2 (3–6 years): 16 days/year
+- Tier 3 (7–9 years): 18 days/year
+- Tier 4 (10+ years): 21 days/year
+
+PTO accrues semi-monthly between August 1 and July 31. All requests submitted through Paycom HRIS. Sick time is separate from PTO.`;
+    }
+    if (q.includes('pension') || q.includes('ctpf') || q.includes('retirement') || q.includes('401k') || q.includes('401(k)')) {
+      return `**Retirement Benefits (Noble Staff Handbook SY25-26)**
+
+**CTPF (Chicago Teachers Pension Fund):**
+Required for all salaried employees with an active Illinois Educators License. Total contribution is 9% of salary — Noble pays 7%, employee contributes 2%. These employees do not pay into Social Security (OASDI). Noble also covers CTPF administrative fees (~10% of salary additional contribution). Contact: Myra Mitchell — mmitchell@nobleschools.org.
+
+**401(k):**
+All employees may participate. Contribute up to 85% of eligible compensation up to the annual federal maximum. Non-CTPF employees are eligible for Noble employer match of up to 5% of salary after one year of service. Noble auto-enrolls all new staff at 2%.`;
+    }
+    if (q.includes('health') || q.includes('insurance') || q.includes('medical') || q.includes('dental') || q.includes('vision')) {
+      return `**Health Insurance (Noble Staff Handbook SY25-26)**
+
+Noble offers medical, vision, dental, and prescription drug coverage to all eligible staff working 30+ hours/week. Noble covers the majority of the premium cost. Coverage begins on the first of the month following 30 days of employment. Must enroll within 30 days of hire or wait until next open enrollment.
+
+Additional benefits include:
+- Group life insurance: 200% of annual salary (up to $500,000)
+- Long-term disability: begins after 91 days of absence (at no cost to employee)
+- Short-term disability: begins after 10 days of absence
+- Employee Assistance Program (EAP): available to all staff`;
+    }
+    if (q.includes('care') || q.includes('c.a.r') || q.includes('management framework') || q.includes('care framework')) {
+      return `**C.A.R²E Management Framework (Noble People Management Framework)**
+
+Noble managers lead through five principles:
+
+**C — Clarity:** "Clear is kind." Every team member can answer: What am I responsible for? What does success look like? How do my contributions fit the bigger picture? How am I doing?
+
+**A — Accountability:** Inspect what you expect. Consistent rhythm of progress checks. Honor what's working, spotlight what's improving, step in when course-correction is needed.
+
+**R — Relationships:** Lead with love and high expectations through relationships grounded in trust.
+
+**R — Results:** Effort alone is not enough; hard work must lead to meaningful outcomes. Set SMART goals with clear timeline and milestones.
+
+**E — Evolving Autonomy:** Autonomy is earned through consistent impact. It grows as results are delivered and as trust, ownership, and excellence deepen.`;
+    }
+    if (q.includes('vacanc') || q.includes('open position') || q.includes('hiring') || q.includes('special ed')) {
+      return `**Current Vacancy Summary**
+
+- Total Positions: ${staff.totalPositions}
+- Active Staff: ${staff.activeStaff}
+- Vacancies: ${staff.vacancies} (${((staff.vacancies / staff.totalPositions) * 100).toFixed(1)}% vacancy rate)
+- Staff on Leave: ${staff.onLeave}
+- Licensure Rate: ${staff.licensureRate}%
+
+**Vacancies by Department:**
+${staff.vacanciesByDept.map(v => `- ${v.dept}: ${v.count}`).join('\n')}
+
+**Campus Staffing:**
+- Highest: Loop (112), Chatham (105), Woodlawn (97)
+- Lowest: North Lawndale (38), Roseland (62), Humboldt Park (62)`;
+    }
+    if (q.includes('referral') || q.includes('bonus') || q.includes('refer')) {
+      return `**Employee Referral Bonus (Noble Staff Handbook SY25-26)**
+
+Current staff who refer a candidate who is hired for any full-time Noble position receive a **$1,000 referral bonus** per hire. The bonus is paid after the new hire completes 120 days of successful employment.`;
+    }
+    if (q.includes('leave') || q.includes('fmla') || q.includes('parental') || q.includes('maternity') || q.includes('paternity')) {
+      return `**Leaves of Absence (Noble Staff Handbook SY25-26)**
+
+Noble complies with FMLA, Illinois state leave laws, ADA, and the Federal Pregnant Workers Fairness Act. Available leaves include:
+- Medical leave
+- Parental leave
+- Bereavement leave
+- Jury duty leave
+- Military leave
+
+Contact HR directly for specific leave requests and documentation requirements.`;
+    }
+    if (q.includes('core value') || q.includes('identity') || q.includes('value')) {
+      return `**Noble Core Values (Identity Framework SY25-26)**
+
+1. **Diversity, Equity & Inclusion** — Build diverse teams because they perform better. Create spaces for all intersectional identities.
+2. **Follow-Through** — Honor commitments with actions. Do what you say by the agreed time. Own mistakes.
+3. **Humility & Self-Awareness** — Critical self-reflection. Seek, accept, and apply feedback.
+4. **Respect** — Honor the dignity of all. Make people feel seen, appreciated, valued.
+5. **Results** — Set and achieve ambitious goals. Ground decisions in qualitative and quantitative data.`;
+    }
+    if (q.includes('licensure') || q.includes('license') || q.includes('mat') || q.includes('teaching credential')) {
+      return `**Licensure (Noble Staff Handbook SY25-26)**
+
+Noble requires and supports Illinois Educator Licensure for teaching positions. Noble offers:
+- Licensure support programs
+- Master of Arts in Teaching (MAT) programs
+
+Staff must notify HR of licensure status for CTPF enrollment. Current network licensure rate: **${staff.licensureRate}%**.
+
+Contact HR for licensure program details.`;
+    }
+    return null; // No local match — try the API
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const userMsg = input.trim();
@@ -475,6 +587,16 @@ Answer questions about benefits, PTO, retirement (CTPF and 401k), health insuran
     const newMessages: ChatMessage[] = [...messages, { role: 'user', content: userMsg }];
     setMessages(newMessages);
     setLoading(true);
+
+    // Try local fallback first for common questions — instant, no API needed
+    const localAnswer = generateLocalAnswer(userMsg);
+    if (localAnswer) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { role: 'assistant', content: localAnswer }]);
+        setLoading(false);
+      }, 400); // small delay for natural feel
+      return;
+    }
 
     try {
       // OpenAI requires conversations to start with 'user' — strip the initial assistant welcome message
@@ -504,7 +626,17 @@ Answer questions about benefits, PTO, retirement (CTPF and 401k), health insuran
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (err) {
       console.error('Roster AI catch:', err);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please check your network and try again.' }]);
+      // Rich fallback instead of generic error — search the knowledge base
+      const fallback = generateLocalAnswer(userMsg) ||
+        `I wasn't able to reach the AI service right now. Here's what I know from the Noble Staff Handbook:
+
+For **PTO** questions: Academic staff get 5–8 days/year by tenure; year-round staff get 12–21 days/year.
+For **retirement**: CTPF for licensed educators (Noble pays 7% of 9% total); 401(k) with 5% match for non-CTPF staff after 1 year.
+For **health insurance**: Medical, dental, vision, and Rx for staff working 30+ hours/week. Coverage starts 30 days after hire.
+For **HR contact**: Human Resources team — or for pension specifically, Myra Mitchell at mmitchell@nobleschools.org.
+
+Try asking a more specific question and I'll do my best to help.`;
+      setMessages(prev => [...prev, { role: 'assistant', content: fallback }]);
     } finally {
       setLoading(false);
     }
