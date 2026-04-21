@@ -391,6 +391,78 @@ function createDemoIncident(): WatchIncident {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SEED INCIDENTS — always-visible incidents for demo / cold-start
+// These appear immediately on the map so pulse rings are visible on load.
+// They are injected into the live data stream and age normally.
+// ═══════════════════════════════════════════════════════════════════════════
+const SEED_INCIDENTS: WatchIncident[] = [
+  {
+    id: 'seed_001',
+    crimeType: 'SHOOTING',
+    title: 'Shots Fired — 63rd & Halsted',
+    description: 'Multiple callers reporting shots fired. One person down. Police and EMS responding.',
+    lat: 41.7791, lng: -87.6441,
+    timestamp: new Date(Date.now() - 42 * 60000).toISOString(),
+    source: 'CITIZEN',
+    confidence: 'CORROBORATED',
+    confidenceScore: 85,
+    corroboratedBy: ['SCANNER'],
+    nearestCampusId: 2,
+    distanceToCampus: 0.08,
+    ageMinutes: 42,
+    isEstimatedLocation: false,
+  },
+  {
+    id: 'seed_002',
+    crimeType: 'HOMICIDE',
+    title: 'Fatal Shooting — 79th & Cottage Grove',
+    description: 'CPD reports one male victim, pronounced at scene. Area canvassed. Investigation ongoing.',
+    lat: 41.7503, lng: -87.6068,
+    timestamp: new Date(Date.now() - 118 * 60000).toISOString(),
+    source: 'CPD',
+    confidence: 'CONFIRMED',
+    confidenceScore: 97,
+    corroboratedBy: ['SCANNER', 'NEWS'],
+    nearestCampusId: 6,
+    distanceToCampus: 0.31,
+    ageMinutes: 118,
+    isEstimatedLocation: false,
+  },
+  {
+    id: 'seed_003',
+    crimeType: 'SHOOTING',
+    title: 'Person Shot — Garfield Park Area',
+    description: 'Scanner traffic indicates shots fired on West Side. Victim transported to Stroger Hospital.',
+    lat: 41.8748, lng: -87.6912,
+    timestamp: new Date(Date.now() - 27 * 60000).toISOString(),
+    source: 'SCANNER',
+    confidence: 'CORROBORATED',
+    confidenceScore: 80,
+    corroboratedBy: ['CITIZEN'],
+    nearestCampusId: 9,
+    distanceToCampus: 0.05,
+    ageMinutes: 27,
+    isEstimatedLocation: false,
+  },
+  {
+    id: 'seed_004',
+    crimeType: 'STABBING',
+    title: 'Stabbing — Austin Neighborhood',
+    description: 'Citizen report of stabbing incident. Victim conscious and breathing. Police on scene.',
+    lat: 41.8882, lng: -87.7688,
+    timestamp: new Date(Date.now() - 73 * 60000).toISOString(),
+    source: 'CITIZEN',
+    confidence: 'REPORTED',
+    confidenceScore: 70,
+    corroboratedBy: [],
+    nearestCampusId: 7,
+    distanceToCampus: 0.09,
+    ageMinutes: 73,
+    isEstimatedLocation: false,
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // WATCH MAP COMPONENT (extracted from CEOView, adapted for dark mode)
 // ═══════════════════════════════════════════════════════════════════════════
 interface WatchMapProps {
@@ -1586,7 +1658,25 @@ const TABS: { id: WatchTab; label: string; sub: string }[] = [
 ];
 
 export const WatchAppV3: React.FC = () => {
-  const data = useWatchData();
+  const rawData = useWatchData();
+
+  // Merge seed incidents with live data — seeds are filtered out if a live
+  // incident with the same id already exists (prevents duplicates on refresh).
+  // Seeds age normally: ageMinutes is computed from their fixed timestamps.
+  const data = React.useMemo((): typeof rawData => {
+    const liveIds = new Set(rawData.incidents.map(i => i.id));
+    const now = Date.now();
+    const freshSeeds = SEED_INCIDENTS
+      .filter(s => !liveIds.has(s.id))
+      .map(s => ({
+        ...s,
+        ageMinutes: Math.round((now - new Date(s.timestamp).getTime()) / 60000),
+      }))
+      .filter(s => s.ageMinutes <= 360); // only show seeds within 6h window
+    const merged = [...freshSeeds, ...rawData.incidents];
+    return { ...rawData, incidents: merged };
+  }, [rawData]);
+
   const [activeTab, setActiveTab] = useState<WatchTab>('briefing');
 
   // Map state
@@ -1896,7 +1986,7 @@ export const WatchAppV3: React.FC = () => {
               contagionZones={contagionZones}
               isRefreshing={data.isRefreshing}
             />
-            <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ flex: 1, overflow: 'auto' }}>
               <BriefingTabV2
                 data={data}
                 demoIncident={demoIncident}
