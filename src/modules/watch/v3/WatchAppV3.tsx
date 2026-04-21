@@ -471,6 +471,7 @@ interface WatchMapProps {
   selectedCampus: number | null;
   onSelectCampus: (id: number | null) => void;
   onSelectIncident: (inc: WatchIncident) => void;
+  selectedIncidentId?: string | null;
   newIncidentIds: Set<string>;
   demoIncident: WatchIncident | null;
   showGangBoundaries: boolean;
@@ -481,7 +482,8 @@ interface WatchMapProps {
 
 function WatchMap({
   campusThreats, incidents, selectedCampus,
-  onSelectCampus, onSelectIncident, newIncidentIds,
+  onSelectCampus, onSelectIncident, selectedIncidentId,
+  newIncidentIds,
   demoIncident, showGangBoundaries,
   contagionZones = [], showContagionRings = true, showSafetyPerimeters = true,
 }: WatchMapProps) {
@@ -514,6 +516,16 @@ function WatchMap({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Pan to selected incident when it changes
+  useEffect(() => {
+    if (!selectedIncidentId || !mapInstanceRef.current) return;
+    const allInc = demoIncident ? [demoIncident, ...incidents] : incidents;
+    const inc = allInc.find(i => i.id === selectedIncidentId);
+    if (inc) {
+      mapInstanceRef.current.setView([inc.lat, inc.lng], Math.max(mapInstanceRef.current.getZoom(), 14), { animate: true });
+    }
+  }, [selectedIncidentId, incidents, demoIncident]);
 
   // Gang boundaries
   useEffect(() => {
@@ -716,30 +728,17 @@ function WatchMap({
         `, { maxWidth: 320 });
         m.on('click', () => onSelectIncident(inc));
       } else {
+        const isSelected = selectedIncidentId === inc.id;
         const pulseIcon = L.divIcon({
           className: '',
-          html: getPulseRingHtml(inc.crimeType, inc.ageMinutes, isNew),
+          html: isSelected
+            ? getPulseRingHtml(inc.crimeType, inc.ageMinutes, true, true)  // selected = forced bright + ring
+            : getPulseRingHtml(inc.crimeType, inc.ageMinutes, isNew),
           iconSize: [0, 0],
           iconAnchor: [0, 0],
         });
-        const marker = L.marker([inc.lat, inc.lng], { icon: pulseIcon }).addTo(lg);
-        marker.bindPopup(`
-          <div style="min-width:220px;max-width:300px;">
-            <div style="font-size:11px;font-weight:600;color:${fillColor};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">
-              ${VIOLENT_CRIME_LABELS[inc.crimeType]}${isDemo ? ' — DEMO' : ''}
-            </div>
-            <div style="font-size:14px;font-weight:500;color:${W.textPrimary};line-height:1.4;margin-bottom:8px;">${inc.title}</div>
-            <div style="font-size:12px;color:${W.textMuted};margin-bottom:4px;">
-              ${fmtAgo(inc.timestamp)} · ${inc.source}
-              ${inc.isEstimatedLocation ? ` · <span style="color:${W.amber};font-weight:500;">EST. LOCATION</span>` : ''}
-            </div>
-            <div style="font-size:12px;color:${W.textMuted};">
-              Confidence: <span style="font-weight:600;color:${inc.confidence === 'CONFIRMED' ? W.green : inc.confidence === 'CORROBORATED' ? W.blue : W.amber};">${inc.confidence} ${inc.confidenceScore}%</span>
-            </div>
-            ${dirStr && nearestCampus ? `<div style="font-size:12px;color:${W.textMuted};margin-top:2px;font-weight:500;">${dirStr} of ${nearestCampus.campusShort}</div>` : ''}
-            ${inc.corroboratedBy.length > 0 ? `<div style="font-size:11px;color:${W.green};margin-top:4px;font-weight:500;">+ Corroborated by ${inc.corroboratedBy.join(', ')}</div>` : ''}
-          </div>
-        `, { maxWidth: 320 });
+        const marker = L.marker([inc.lat, inc.lng], { icon: pulseIcon, zIndexOffset: isSelected ? 1000 : 0 }).addTo(lg);
+        // Clicking the ring fires onSelectIncident — the rich panel handles display
         marker.on('click', () => onSelectIncident(inc));
       }
     }
@@ -759,7 +758,7 @@ function WatchMap({
       });
       L.marker([41.92, -87.67], { icon: dismissalIcon, interactive: false, zIndexOffset: 2000 }).addTo(lg);
     }
-  }, [campusThreats, incidents, onSelectCampus, onSelectIncident, newIncidentIds, demoIncident]);
+  }, [campusThreats, incidents, onSelectCampus, onSelectIncident, newIncidentIds, demoIncident, selectedIncidentId]);
 
   return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />;
 }
@@ -1188,10 +1187,20 @@ function MapTab({
   const [showSafetyPerimeters, setShowSafetyPerimeters] = useState(true);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [replayMinutesAgo, setReplayMinutesAgo] = useState<number | null>(null);
+  const feedListRef = useRef<HTMLDivElement>(null);
   const feedIncidents = useMemo(() => {
     const real = data.incidents.filter(i => i.ageMinutes <= 360).slice(0, 40);
     return demoIncident ? [demoIncident, ...real] : real;
   }, [data.incidents, demoIncident]);
+
+  // When selectedIncident changes (e.g. from map ring click), scroll the feed row into view
+  useEffect(() => {
+    if (!selectedIncident || !feedListRef.current) return;
+    const el = feedListRef.current.querySelector(`[data-incident-id="${selectedIncident.id}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedIncident]);
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       {/* MAP — 70% */}
@@ -1202,6 +1211,7 @@ function MapTab({
           selectedCampus={selectedCampus}
           onSelectCampus={onSelectCampus}
           onSelectIncident={onSelectIncident}
+          selectedIncidentId={selectedIncident?.id ?? null}
           newIncidentIds={newIncidentIds}
           demoIncident={demoIncident}
           showGangBoundaries={showGangBoundaries}
@@ -1366,200 +1376,442 @@ function MapTab({
         />
       </div>
 
-      {/* LIVE FEED — 30% */}
+      {/* RIGHT PANEL — 30%: Feed + Rich Incident Detail */}
       <div style={{
         flex: '0 0 30%', display: 'flex', flexDirection: 'column',
-        borderLeft: `1px solid ${W.border}`, overflow: 'hidden',
+        borderLeft: `1px solid ${W.border}`, overflow: 'hidden', position: 'relative',
       }}>
-        {/* Feed header */}
-        <div style={{
-          padding: '14px 18px', borderBottom: `1px solid ${W.border}`,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          flexShrink: 0,
-        }}>
-          <div style={{
-          fontFamily: font.body, fontSize: '11px', fontWeight: 600,
-          color: W.textMuted,
-        }}>
-          Live Violent Crime Feed
-        </div>
-          <div style={{
-            fontFamily: font.mono, fontSize: '10px', color: W.textDim,
-          }}>
-            {feedIncidents.length} active
-          </div>
-        </div>
 
-        {/* Incident detail overlay */}
-        {selectedIncident && (
-          <div style={{
-            position: 'absolute', right: 0, top: 0, bottom: 0,
-            width: '30%', background: W.bgCard,
-            borderLeft: `1px solid ${W.border}`,
-            zIndex: 100, overflow: 'auto', padding: '20px',
-            animation: 'v3SlideIn 0.25s ease-out',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <span style={{
-                fontFamily: font.body, fontSize: '11px', fontWeight: 600,
-                color: W.textMuted,
+        {/* ── RICH INCIDENT DETAIL PANEL ─────────────────────────────── */}
+        {selectedIncident ? (() => {
+          const inc = selectedIncident;
+          const nearestCampus = data.campusThreats.find(c => c.campusId === inc.nearestCampusId);
+          const dirStr = nearestCampus && inc.distanceToCampus !== null
+            ? dirFromCampus(nearestCampus.lat, nearestCampus.lng, inc.lat, inc.lng, inc.distanceToCampus)
+            : null;
+          const incColor = inc.crimeType === 'HOMICIDE' ? '#E5484D' :
+                           inc.crimeType === 'SHOOTING' ? W.red :
+                           inc.crimeType === 'SHOTS_FIRED' ? W.amber :
+                           inc.crimeType === 'STABBING' ? '#E07020' :
+                           inc.crimeType === 'SEXUAL_ASSAULT' ? '#9B2C8C' : W.textSecondary;
+          const confColor = inc.confidence === 'CONFIRMED' ? W.green :
+                            inc.confidence === 'CORROBORATED' ? W.blue : W.amber;
+          const confBg = inc.confidence === 'CONFIRMED' ? W.greenDim :
+                         inc.confidence === 'CORROBORATED' ? W.blueDim : W.amberDim;
+
+          // Build confidence pipeline stages
+          const allSources = ['CITIZEN', 'SCANNER', 'NEWS', 'CPD'] as const;
+          const activeSources = new Set([inc.source, ...inc.corroboratedBy]);
+          const stages = [
+            { source: inc.source, level: 'REPORTED', score: 70, active: true },
+            ...inc.corroboratedBy.map(s => ({
+              source: s,
+              level: s === 'CPD' ? 'CONFIRMED' : 'CORROBORATED',
+              score: s === 'CPD' ? 97 : 85,
+              active: true,
+            })),
+            ...allSources.filter(s => !activeSources.has(s)).map(s => ({
+              source: s, level: 'AWAITING', score: 0, active: false,
+            })),
+          ];
+
+          // AI reasoning
+          const reasons: string[] = [];
+          if (nearestCampus) {
+            const nearby = nearestCampus.incidents;
+            const within025 = nearby.filter(i => i.distanceToCampus !== null && i.distanceToCampus <= 0.25);
+            const within05  = nearby.filter(i => i.distanceToCampus !== null && i.distanceToCampus <= 0.5);
+            if (within025.length > 0) {
+              reasons.push(`CRITICAL: ${within025.length} incident${within025.length > 1 ? 's' : ''} within ¼ mile of ${nearestCampus.campusShort} — immediate campus proximity.`);
+            } else if (within05.length > 0) {
+              reasons.push(`${within05.length} incident${within05.length > 1 ? 's' : ''} within ½ mile of ${nearestCampus.campusShort} — elevated proximity.`);
+            } else if (dirStr) {
+              reasons.push(`Incident is ${dirStr} of ${nearestCampus.campusShort}.`);
+            }
+            const confirmed = nearby.filter(i => i.confidence === 'CONFIRMED').length;
+            const corroborated = nearby.filter(i => i.confidence === 'CORROBORATED').length;
+            if (confirmed > 0) reasons.push(`${confirmed} CPD-confirmed incident${confirmed > 1 ? 's' : ''} in this area (97% confidence).`);
+            if (corroborated > 0) reasons.push(`${corroborated} multi-source corroborated incident${corroborated > 1 ? 's' : ''} (85% confidence).`);
+            const trajectory = getThreatTrajectory(data.incidents, nearestCampus.lat, nearestCampus.lng);
+            if (trajectory === 'rising') reasons.push('TRAJECTORY: Rising — more activity in the last 3 hours than the previous 3.');
+            else if (trajectory === 'falling') reasons.push('TRAJECTORY: Falling — activity decreasing over time.');
+            if (isDismissalWindow()) reasons.push('⚠ DISMISSAL WINDOW ACTIVE — heightened risk during student movement.');
+            const cfg = THREAT_CONFIG[nearestCampus.threatLevel];
+            reasons.push(`ASSESSMENT: ${nearestCampus.threatLevel} — ${cfg.description}`);
+          } else {
+            reasons.push('Incident detected outside mapped campus radius.');
+            if (inc.confidence === 'CONFIRMED') reasons.push('CPD-confirmed incident — high reliability (97%).');
+            else if (inc.confidence === 'CORROBORATED') reasons.push('Multi-source corroboration — elevated reliability (85%).');
+            else reasons.push('Single-source report — awaiting corroboration (70%).');
+          }
+
+          return (
+            <div style={{
+              flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              animation: 'v3SlideIn 0.22s ease-out',
+            }}>
+              {/* Detail header */}
+              <div style={{
+                padding: '14px 18px', borderBottom: `1px solid ${W.border}`,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                flexShrink: 0,
               }}>
-                Incident Detail
-              </span>
-              <button
-                onClick={() => onSelectIncident(null as unknown as WatchIncident)}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: W.textMuted, fontSize: '16px',
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div style={{
-              fontFamily: font.body, fontSize: '12px', fontWeight: 700,
-              color: W.red, marginBottom: 10,
-            }}>
-              {VIOLENT_CRIME_LABELS[selectedIncident.crimeType]}
-            </div>
-            <div style={{
-              fontSize: '15px', fontWeight: 500, color: W.textPrimary,
-              lineHeight: 1.5, marginBottom: 12,
-            }}>
-              {selectedIncident.title}
-            </div>
-            <div style={{ fontSize: '12px', color: W.textMuted, lineHeight: 1.6 }}>
-              {selectedIncident.description}
-            </div>
-            <div style={{
-              marginTop: 16, padding: '12px 14px',
-              background: W.bg, borderRadius: 8,
-              border: `1px solid ${W.border}`,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: '11px', color: W.textDim, fontFamily: font.mono }}>Source</span>
-                <span style={{ fontSize: '11px', color: W.textSecondary, fontFamily: font.mono }}>{selectedIncident.source}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: '11px', color: W.textDim, fontFamily: font.mono }}>Confidence</span>
-                <span style={{
-                  fontSize: '11px', fontFamily: font.mono, fontWeight: 600,
-                  color: selectedIncident.confidence === 'CONFIRMED' ? W.green :
-                         selectedIncident.confidence === 'CORROBORATED' ? W.blue : W.amber,
-                }}>
-                  {selectedIncident.confidence} {selectedIncident.confidenceScore}%
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', color: W.textDim, fontFamily: font.mono }}>Time</span>
-                <span style={{ fontSize: '11px', color: W.textSecondary, fontFamily: font.mono }}>
-                  {fmtAgo(selectedIncident.timestamp)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Feed list */}
-        <div style={{ flex: 1, overflow: 'auto' }}>
-          {feedIncidents.length === 0 ? (
-            <div style={{
-              padding: '32px 18px', textAlign: 'center',
-              color: W.textDim, fontSize: '13px',
-            }}>
-              No violent incidents in the last 6 hours.
-            </div>
-          ) : (
-            feedIncidents.map(inc => {
-              const isDemo = inc.id.startsWith('demo_');
-              const isNew = newIncidentIds.has(inc.id);
-              const nearestCampus = data.campusThreats.find(c => c.campusId === inc.nearestCampusId);
-              const dirStr = nearestCampus && inc.distanceToCampus !== null
-                ? dirFromCampus(nearestCampus.lat, nearestCampus.lng, inc.lat, inc.lng, inc.distanceToCampus)
-                : null;
-              const incColor = inc.crimeType === 'HOMICIDE' ? '#FF6B6B' :
-                               inc.crimeType === 'SHOOTING' ? W.red :
-                               inc.crimeType === 'SHOTS_FIRED' ? W.amber : W.textSecondary;
-              return (
-                <div
-                  key={inc.id}
-                  className="v3-incident-row"
-                  style={{
-                    padding: '12px 18px',
-                    borderBottom: `1px solid ${W.border}`,
-                    cursor: 'pointer', transition: 'background 0.15s ease',
-                    background: isDemo ? 'rgba(224, 82, 82, 0.06)' : 'transparent',
-                    animation: isNew || isDemo ? 'v3FadeIn 0.4s ease-out' : undefined,
-                  }}
-                  onClick={() => onSelectIncident(inc)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {isNew && (
-                        <span className="v3-new-badge" style={{
-                          fontFamily: font.mono, fontSize: '9px', fontWeight: 700,
-                          color: W.red, letterSpacing: '0.06em',
-                        }}>
-                          NEW
-                        </span>
-                      )}
-                      <span style={{
-                        fontFamily: font.body, fontSize: '11px', fontWeight: 700,
-                        color: incColor,
-                      }}>
-                        {VIOLENT_CRIME_LABELS[inc.crimeType]}
-                        {isDemo && ' — DEMO'}
-                      </span>
-                    </div>
-                    <span style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
-                      {fmtAgo(inc.timestamp)}
-                    </span>
+                <div>
+                  <div style={{
+                    fontFamily: font.body, fontSize: '10px', fontWeight: 700,
+                    color: incColor, textTransform: 'uppercase', letterSpacing: '0.08em',
+                    marginBottom: 3,
+                  }}>
+                    {VIOLENT_CRIME_LABELS[inc.crimeType]}
+                    {inc.id.startsWith('demo_') && <span style={{ color: W.textDim }}> — DEMO</span>}
                   </div>
                   <div style={{
-                    fontSize: '12.5px', color: W.textPrimary, lineHeight: 1.4,
-                    marginBottom: 5,
+                    fontSize: '14px', fontWeight: 600, color: W.textPrimary, lineHeight: 1.35,
                   }}>
                     {inc.title}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{
-                      fontFamily: font.mono, fontSize: '10px',
-                      color: inc.confidence === 'CONFIRMED' ? W.green :
-                             inc.confidence === 'CORROBORATED' ? W.blue : W.amber,
-                    }}>
-                      {inc.confidence} {inc.confidenceScore}%
+                </div>
+                <button
+                  onClick={() => onSelectIncident(null as unknown as WatchIncident)}
+                  style={{
+                    background: 'none', border: `1px solid ${W.border}`,
+                    borderRadius: 6, padding: '3px 9px', cursor: 'pointer',
+                    color: W.textMuted, fontSize: '14px', flexShrink: 0, marginLeft: 8,
+                  }}
+                >✕</button>
+              </div>
+
+              {/* Detail body — scrollable */}
+              <div style={{ flex: 1, overflow: 'auto', padding: '16px 18px' }}>
+
+                {/* Reported time */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{
+                    fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                    letterSpacing: '0.07em', marginBottom: 4, fontFamily: font.mono,
+                  }}>Reported</div>
+                  <div style={{ fontSize: '13px', color: W.textPrimary }}>
+                    {new Date(inc.timestamp).toLocaleString('en-US', {
+                      weekday: 'short', month: 'short', day: 'numeric',
+                      hour: 'numeric', minute: '2-digit', hour12: true,
+                    })}
+                    <span style={{ color: W.textDim, marginLeft: 8, fontSize: '12px' }}>({fmtAgo(inc.timestamp)})</span>
+                  </div>
+                </div>
+
+                {/* Confidence pipeline */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{
+                    fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                    letterSpacing: '0.07em', marginBottom: 8, fontFamily: font.mono,
+                  }}>Confidence Pipeline</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {stages.map((stage, i) => {
+                      const sc = stage.level === 'CONFIRMED' ? W.green :
+                                 stage.level === 'CORROBORATED' ? W.blue :
+                                 stage.level === 'REPORTED' ? W.amber : W.textDim;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{
+                            width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                            background: stage.active ? `${sc}18` : W.bgSurface,
+                            border: `2px solid ${stage.active ? sc : W.border}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {stage.active && <div style={{ width: 7, height: 7, borderRadius: '50%', background: sc }} />}
+                          </div>
+                          <div style={{ flex: 1, fontSize: '11px', fontFamily: font.mono, color: stage.active ? W.textPrimary : W.textDim }}>
+                            {stage.source}
+                          </div>
+                          <div style={{
+                            padding: '2px 7px', borderRadius: 4,
+                            background: stage.active ? `${sc}12` : W.bgSurface,
+                            fontSize: '10px', fontFamily: font.mono, fontWeight: 600,
+                            color: stage.active ? sc : W.textDim,
+                          }}>
+                            {stage.active ? `${stage.level} ${stage.score}%` : 'AWAITING'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Progress bar */}
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1, height: 5, borderRadius: 3, background: W.bgSurface, overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${inc.confidenceScore}%`, height: '100%', borderRadius: 3,
+                        background: confColor, transition: 'width 0.5s ease',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '11px', fontFamily: font.mono, fontWeight: 700, color: confColor, minWidth: 36, textAlign: 'right' }}>
+                      {inc.confidenceScore}%
                     </span>
-                    {dirStr && nearestCampus && (
-                      <span style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
-                        {dirStr} · {nearestCampus.campusShort}
+                  </div>
+                </div>
+
+                {/* AI Reasoning */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{
+                    fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                    letterSpacing: '0.07em', marginBottom: 8, fontFamily: font.mono,
+                  }}>AI Assessment</div>
+                  <div style={{
+                    padding: '10px 12px', background: W.bgSurface, borderRadius: 8,
+                    borderLeft: `3px solid ${W.blue}`,
+                  }}>
+                    {reasons.map((r, i) => (
+                      <div key={i} style={{
+                        fontSize: '11.5px', lineHeight: 1.55,
+                        marginBottom: i < reasons.length - 1 ? 4 : 0,
+                        fontWeight: r.startsWith('CRITICAL') || r.startsWith('ASSESSMENT') ? 600 : 400,
+                        color: r.startsWith('CRITICAL') ? W.red :
+                               r.startsWith('ASSESSMENT') ? W.textPrimary :
+                               r.startsWith('⚠') ? W.amber : W.textSecondary,
+                      }}>{r}</div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{
+                    fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                    letterSpacing: '0.07em', marginBottom: 4, fontFamily: font.mono,
+                  }}>Location</div>
+                  <div style={{ fontSize: '13px', color: W.textPrimary }}>
+                    {dirStr && nearestCampus ? (
+                      <span>
+                        <strong style={{ fontWeight: 600 }}>{dirStr}</strong>
+                        <span style={{ color: W.textMuted }}> of {nearestCampus.campusShort}</span>
                       </span>
+                    ) : (
+                      <span style={{ fontFamily: font.mono, fontSize: '12px' }}>{inc.lat.toFixed(4)}, {inc.lng.toFixed(4)}</span>
+                    )}
+                    {inc.isEstimatedLocation && (
+                      <span style={{
+                        marginLeft: 8, padding: '1px 6px', borderRadius: 4,
+                        background: W.amberDim, color: W.amber,
+                        fontSize: '10px', fontWeight: 600, fontFamily: font.mono,
+                      }}>EST.</span>
                     )}
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
 
-        {/* Source freshness */}
-        <div style={{
-          padding: '10px 18px', borderTop: `1px solid ${W.border}`,
-          flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {data.sourceStatuses.slice(0, 4).map(s => (
-              <div key={s.source} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: s.status === 'LIVE' ? W.green : s.status === 'DEGRADED' ? W.amber : W.red,
-                }} />
-                <span style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
-                  {s.source}
-                </span>
+                {/* Description / Details */}
+                {inc.description && inc.description !== inc.title && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{
+                      fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                      letterSpacing: '0.07em', marginBottom: 4, fontFamily: font.mono,
+                    }}>Details</div>
+                    <div style={{
+                      fontSize: '12.5px', color: W.textPrimary, lineHeight: 1.6,
+                      padding: '10px 12px', background: W.bgSurface, borderRadius: 8,
+                    }}>
+                      {inc.description}
+                    </div>
+                  </div>
+                )}
+
+                {/* Corroborated by */}
+                {inc.corroboratedBy.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{
+                      fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                      letterSpacing: '0.07em', marginBottom: 4, fontFamily: font.mono,
+                    }}>Corroborated By</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {inc.corroboratedBy.map(s => (
+                        <span key={s} style={{
+                          padding: '3px 9px', borderRadius: 4,
+                          background: W.greenDim, color: W.green,
+                          fontSize: '11px', fontFamily: font.mono, fontWeight: 600,
+                        }}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Scanner audio */}
+                {inc.scannerAudioUrl && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{
+                      fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                      letterSpacing: '0.07em', marginBottom: 6, fontFamily: font.mono,
+                    }}>Scanner Audio</div>
+                    <audio controls src={inc.scannerAudioUrl} style={{ width: '100%', height: 32 }} />
+                  </div>
+                )}
+
+                {/* Source link */}
+                {inc.url && (
+                  <a
+                    href={inc.url} target="_blank" rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 14px', borderRadius: 6,
+                      background: W.blueDim, color: W.blue,
+                      fontSize: '12px', fontWeight: 600, fontFamily: font.body,
+                      textDecoration: 'none', border: `1px solid rgba(79,124,255,0.2)`,
+                    }}
+                  >
+                    View Source →
+                  </a>
+                )}
+
+                {/* Raw title (if different) */}
+                {inc.rawTitle && inc.rawTitle !== inc.title && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{
+                      fontSize: '10px', color: W.textDim, textTransform: 'uppercase',
+                      letterSpacing: '0.07em', marginBottom: 4, fontFamily: font.mono,
+                    }}>Raw Source Title</div>
+                    <div style={{ fontSize: '11px', color: W.textDim, fontStyle: 'italic', lineHeight: 1.5 }}>
+                      {inc.rawTitle}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
+
+              {/* Detail footer — source freshness */}
+              <div style={{
+                padding: '10px 18px', borderTop: `1px solid ${W.border}`, flexShrink: 0,
+              }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {data.sourceStatuses.slice(0, 4).map(s => (
+                    <div key={s.source} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: s.status === 'LIVE' ? W.green : s.status === 'DEGRADED' ? W.amber : W.red,
+                      }} />
+                      <span style={{ fontFamily: font.mono, fontSize: '9px', color: W.textDim }}>{s.source}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })() : (
+          /* ── LIVE FEED (no selection) ─────────────────────────────── */
+          <>
+            {/* Feed header */}
+            <div style={{
+              padding: '14px 18px', borderBottom: `1px solid ${W.border}`,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <div style={{ fontFamily: font.body, fontSize: '11px', fontWeight: 600, color: W.textMuted }}>
+                Live Violent Crime Feed
+              </div>
+              <div style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
+                {feedIncidents.length} active
+              </div>
+            </div>
+
+            {/* Feed list */}
+            <div ref={feedListRef} style={{ flex: 1, overflow: 'auto' }}>
+              {feedIncidents.length === 0 ? (
+                <div style={{
+                  padding: '32px 18px', textAlign: 'center',
+                  color: W.textDim, fontSize: '13px',
+                }}>
+                  No violent incidents in the last 6 hours.
+                </div>
+              ) : (
+                feedIncidents.map(inc => {
+                  const isDemo = inc.id.startsWith('demo_');
+                  const isNew = newIncidentIds.has(inc.id);
+                  const isActive = selectedIncident?.id === inc.id;
+                  const nearestCampus = data.campusThreats.find(c => c.campusId === inc.nearestCampusId);
+                  const dirStr = nearestCampus && inc.distanceToCampus !== null
+                    ? dirFromCampus(nearestCampus.lat, nearestCampus.lng, inc.lat, inc.lng, inc.distanceToCampus)
+                    : null;
+                  const incColor = inc.crimeType === 'HOMICIDE' ? '#E5484D' :
+                                   inc.crimeType === 'SHOOTING' ? W.red :
+                                   inc.crimeType === 'SHOTS_FIRED' ? W.amber :
+                                   inc.crimeType === 'STABBING' ? '#E07020' : W.textSecondary;
+                  return (
+                    <div
+                      key={inc.id}
+                      data-incident-id={inc.id}
+                      className="v3-incident-row"
+                      style={{
+                        padding: '12px 18px',
+                        borderBottom: `1px solid ${W.border}`,
+                        cursor: 'pointer', transition: 'background 0.15s ease',
+                        background: isActive
+                          ? `rgba(201,165,78,0.08)`
+                          : isDemo ? 'rgba(224, 82, 82, 0.06)' : 'transparent',
+                        borderLeft: isActive ? `3px solid ${W.gold}` : '3px solid transparent',
+                        animation: isNew || isDemo ? 'v3FadeIn 0.4s ease-out' : undefined,
+                      }}
+                      onClick={() => onSelectIncident(inc)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {isNew && (
+                            <span className="v3-new-badge" style={{
+                              fontFamily: font.mono, fontSize: '9px', fontWeight: 700,
+                              color: W.red, letterSpacing: '0.06em',
+                            }}>NEW</span>
+                          )}
+                          <span style={{
+                            fontFamily: font.body, fontSize: '11px', fontWeight: 700,
+                            color: incColor,
+                          }}>
+                            {VIOLENT_CRIME_LABELS[inc.crimeType]}
+                            {isDemo && ' — DEMO'}
+                          </span>
+                        </div>
+                        <span style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
+                          {fmtAgo(inc.timestamp)}
+                        </span>
+                      </div>
+                      <div style={{
+                        fontSize: '12.5px', color: W.textPrimary, lineHeight: 1.4, marginBottom: 5,
+                      }}>
+                        {inc.title}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontFamily: font.mono, fontSize: '10px',
+                          color: inc.confidence === 'CONFIRMED' ? W.green :
+                                 inc.confidence === 'CORROBORATED' ? W.blue : W.amber,
+                        }}>
+                          {inc.confidence} {inc.confidenceScore}%
+                        </span>
+                        {dirStr && nearestCampus && (
+                          <span style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
+                            {dirStr} · {nearestCampus.campusShort}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Source freshness footer */}
+            <div style={{
+              padding: '10px 18px', borderTop: `1px solid ${W.border}`, flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {data.sourceStatuses.slice(0, 4).map(s => (
+                  <div key={s.source} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{
+                      width: 6, height: 6, borderRadius: '50%',
+                      background: s.status === 'LIVE' ? W.green : s.status === 'DEGRADED' ? W.amber : W.red,
+                    }} />
+                    <span style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
+                      {s.source}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

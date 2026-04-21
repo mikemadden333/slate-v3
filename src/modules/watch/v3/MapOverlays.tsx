@@ -67,6 +67,7 @@ export function getPulseRingHtml(
   crimeType: string,
   ageMinutes: number,
   isNew: boolean,
+  isSelected?: boolean,
 ): string {
   const color = crimeType === 'HOMICIDE' ? '#E5484D'
     : crimeType === 'SHOOTING'  ? '#E07020'
@@ -94,9 +95,31 @@ export function getPulseRingHtml(
     "></div>
   `).join('');
 
+  const selectedHtml = isSelected ? `
+    <div style="
+      position: absolute;
+      width: ${size + 16}px; height: ${size + 16}px;
+      left: ${-(half + 8)}px; top: ${-(half + 8)}px;
+      border: 2.5px solid #C9A54E;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(201,165,78,0.25), 0 0 12px rgba(201,165,78,0.4);
+      pointer-events: none;
+    "></div>
+    <div style="
+      position: absolute;
+      width: 10px; height: 10px;
+      left: -5px; top: -5px;
+      border-radius: 50%;
+      background: #C9A54E;
+      box-shadow: 0 0 6px #C9A54E;
+      pointer-events: none;
+    "></div>
+  ` : '';
+
   return `
     <div style="position:relative; width:0; height:0; overflow:visible;">
       <style>${PULSE_CSS}</style>
+      ${selectedHtml}
       ${ringHtml}
     </div>
   `;
