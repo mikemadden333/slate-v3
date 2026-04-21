@@ -28,6 +28,7 @@ import 'leaflet/dist/leaflet.css';
 
 // ─── Data Layer ────────────────────────────────────────────────────────────
 import { useWatchData } from '../v2/useWatchData';
+import { useRole } from '../../../data/DataStore';
 import type { WatchDataState } from '../v2/useWatchData';
 import type { WatchIncident, ThreatLevel } from '../v2/types';
 import { THREAT_CONFIG, VIOLENT_CRIME_LABELS } from '../v2/types';
@@ -632,16 +633,19 @@ function WatchMap({
     const allIncidents = demoIncident ? [demoIncident, ...incidents] : incidents;
 
     // Campus markers
+    const anyCampusSelected = selectedCampus !== null;
     for (const ct of campusThreats) {
       const cfg = W.threat[ct.threatLevel];
       const isSelected = ct.campusId === selectedCampus;
+      // Dim non-selected campuses when one is selected — creates visual hierarchy
+      const campusOpacity = anyCampusSelected && !isSelected ? 0.35 : 1.0;
       const icon = L.divIcon({
         className: '',
         html: `<div style="
           width:${isSelected ? 44 : 36}px;height:${isSelected ? 44 : 36}px;
           border-radius:50%;
           background:${cfg.bg};
-          border:2px solid ${cfg.color};
+          border:${isSelected ? '2.5px' : '2px'} solid ${cfg.color};
           display:flex;align-items:center;justify-content:center;
           font-family:'IBM Plex Sans',sans-serif;
           font-size:9px;font-weight:600;
@@ -652,6 +656,8 @@ function WatchMap({
           cursor:pointer;
           line-height:1.1;
           padding:2px;
+          opacity:${campusOpacity};
+          transition:opacity 0.3s ease;
         ">${ct.campusShort.split(' ')[0]}</div>`,
         iconSize: [isSelected ? 44 : 36, isSelected ? 44 : 36],
         iconAnchor: [isSelected ? 22 : 18, isSelected ? 22 : 18],
@@ -1177,6 +1183,8 @@ interface MapTabProps {
   onSelectCampus: (id: number | null) => void;
   selectedCampus: number | null;
   contagionZones?: ContagionZone[];
+  role?: string;
+  principalCampusId?: number | null;
 }
 
 function MapTab({
@@ -1184,16 +1192,31 @@ function MapTab({
   showGangBoundaries, onToggleGangBoundaries,
   selectedIncident, onSelectIncident, onSelectCampus, selectedCampus,
   contagionZones = [],
+  role = 'ceo',
+  principalCampusId = null,
 }: MapTabProps) {
+  const isPrincipal = role === 'principal';
   const [showContagionRings, setShowContagionRings] = useState(true);
   const [showSafetyPerimeters, setShowSafetyPerimeters] = useState(true);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [replayMinutesAgo, setReplayMinutesAgo] = useState<number | null>(null);
   const feedListRef = useRef<HTMLDivElement>(null);
+
+  // In Principal View, filter the feed to only incidents near the selected campus
+  const principalCampus = isPrincipal && principalCampusId
+    ? data.campusThreats.find(c => c.campusId === principalCampusId) ?? null
+    : null;
+
   const feedIncidents = useMemo(() => {
-    const real = data.incidents.filter(i => i.ageMinutes <= 360).slice(0, 40);
+    let real = data.incidents.filter(i => i.ageMinutes <= 360);
+    if (isPrincipal && principalCampusId) {
+      // Show incidents within 1 mile of the principal's campus
+      real = real.filter(i => i.nearestCampusId === principalCampusId ||
+        (i.distanceToCampus !== null && i.distanceToCampus <= 1.0 && i.nearestCampusId === principalCampusId));
+    }
+    real = real.slice(0, 40);
     return demoIncident ? [demoIncident, ...real] : real;
-  }, [data.incidents, demoIncident]);
+  }, [data.incidents, demoIncident, isPrincipal, principalCampusId]);
 
   // When selectedIncident changes (e.g. from map ring click), scroll the feed row into view
   useEffect(() => {
@@ -1209,8 +1232,12 @@ function MapTab({
       <div style={{ flex: '0 0 70%', position: 'relative' }}>
         <WatchMap
           campusThreats={data.campusThreats}
-          incidents={data.incidents.filter(i => i.ageMinutes <= 360)}
-          selectedCampus={selectedCampus}
+          incidents={
+            isPrincipal && principalCampusId
+              ? data.incidents.filter(i => i.ageMinutes <= 360 && i.nearestCampusId === principalCampusId)
+              : data.incidents.filter(i => i.ageMinutes <= 360)
+          }
+          selectedCampus={isPrincipal && principalCampusId ? principalCampusId : selectedCampus}
           onSelectCampus={onSelectCampus}
           onSelectIncident={onSelectIncident}
           selectedIncidentId={selectedIncident?.id ?? null}
@@ -1223,7 +1250,7 @@ function MapTab({
         />
 
         {/* Map overlays */}
-        {/* Network status pill */}
+        {/* Status pill — Network Status (CEO) or Campus Status (Principal) */}
         <div style={{
           position: 'absolute', top: 16, left: 16, zIndex: 1000,
           background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
@@ -1231,31 +1258,42 @@ function MapTab({
           border: `1px solid ${W.border}`,
           boxShadow: '0 4px 16px rgba(26,35,50,0.12)',
         }}>
-          <div style={{
-            fontFamily: font.body, fontSize: '10px', fontWeight: 600,
-            color: W.textMuted, marginBottom: 4,
-          }}>
-            Network Status
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: data.networkStatus
-                ? W.threat[data.networkStatus.overallThreat].color
-                : W.green,
-              boxShadow: `0 0 6px ${data.networkStatus ? W.threat[data.networkStatus.overallThreat].color : W.green}`,
-            }} />
-            <span style={{
-              fontFamily: font.mono, fontSize: '12px', fontWeight: 600,
-              color: data.networkStatus
-                ? W.threat[data.networkStatus.overallThreat].color
-                : W.green,
-            }}>
-              {data.networkStatus
-                ? THREAT_CONFIG[data.networkStatus.overallThreat].label.toUpperCase()
-                : 'SCANNING'}
-            </span>
-          </div>
+          {isPrincipal && principalCampus ? (() => {
+            const cfg = W.threat[principalCampus.threatLevel];
+            return (
+              <>
+                <div style={{ fontFamily: font.body, fontSize: '10px', fontWeight: 600, color: W.textMuted, marginBottom: 2 }}>
+                  {principalCampus.campusShort}
+                </div>
+                <div style={{ fontFamily: font.mono, fontSize: '9px', color: W.textDim, marginBottom: 4 }}>Your Campus</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, boxShadow: `0 0 6px ${cfg.color}` }} />
+                  <span style={{ fontFamily: font.mono, fontSize: '12px', fontWeight: 600, color: cfg.color }}>
+                    {principalCampus.threatLevel}
+                  </span>
+                </div>
+                <div style={{ marginTop: 6, fontSize: '11px', color: W.textMuted }}>
+                  {feedIncidents.length} incident{feedIncidents.length !== 1 ? 's' : ''} nearby
+                </div>
+              </>
+            );
+          })() : (
+            <>
+              <div style={{ fontFamily: font.body, fontSize: '10px', fontWeight: 600, color: W.textMuted, marginBottom: 4 }}>
+                Network Status
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: data.networkStatus ? W.threat[data.networkStatus.overallThreat].color : W.green,
+                  boxShadow: `0 0 6px ${data.networkStatus ? W.threat[data.networkStatus.overallThreat].color : W.green}`,
+                }} />
+                <span style={{ fontFamily: font.mono, fontSize: '12px', fontWeight: 600, color: data.networkStatus ? W.threat[data.networkStatus.overallThreat].color : W.green }}>
+                  {data.networkStatus ? THREAT_CONFIG[data.networkStatus.overallThreat].label.toUpperCase() : 'SCANNING'}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Demo phase indicator */}
@@ -1357,74 +1395,90 @@ function MapTab({
           )}
         </div>
 
-        {/* ── MAP LEGEND ─────────────────────────────────────── */}
-        <div style={{
-          position: 'absolute', bottom: 56, left: 16, zIndex: 1000,
-          background: 'rgba(11,18,32,0.88)', backdropFilter: 'blur(12px)',
-          borderRadius: 10, padding: '10px 14px',
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-          minWidth: 210,
-        }}>
-          <div style={{
-            fontFamily: font.mono, fontSize: '9px', fontWeight: 700,
-            color: 'rgba(232,228,220,0.45)', letterSpacing: '0.12em',
-            textTransform: 'uppercase', marginBottom: 8,
-          }}>How to read this map</div>
+        {/* ── MAP LEGEND (collapsible pill) ───────────────────────── */}
+        {(() => {
+          const [legendOpen, setLegendOpen] = React.useState(false);
+          return (
+            <div style={{ position: 'absolute', bottom: 56, left: 16, zIndex: 1000 }}>
+              {/* Collapsed pill — always visible */}
+              <div
+                onClick={() => setLegendOpen(o => !o)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(11,18,32,0.82)', backdropFilter: 'blur(10px)',
+                  borderRadius: 20, padding: '5px 12px 5px 8px',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  cursor: 'pointer', userSelect: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                }}
+              >
+                {[{ c: '#E5484D', s: 10 }, { c: '#E07020', s: 8 }, { c: '#F59E0B', s: 7 }].map((r, i) => (
+                  <div key={i} style={{ width: r.s, height: r.s, borderRadius: '50%', border: `1.5px solid ${r.c}`, background: `${r.c}30`, flexShrink: 0 }} />
+                ))}
+                <span style={{ fontFamily: font.mono, fontSize: '10px', color: 'rgba(232,228,220,0.6)', marginLeft: 2 }}>
+                  {legendOpen ? 'HIDE' : 'LEGEND'}
+                </span>
+              </div>
 
-          {/* Incident rings */}
-          <div style={{ marginBottom: 7 }}>
-            <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.45)', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>Incident rings — click any ring</div>
-            {[
-              { color: '#E5484D', label: 'Homicide', size: 14 },
-              { color: '#E07020', label: 'Shooting', size: 11 },
-              { color: '#F59E0B', label: 'Shots Fired / Stabbing', size: 9 },
-            ].map(r => (
-              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+              {/* Expanded panel */}
+              {legendOpen && (
                 <div style={{
-                  width: r.size, height: r.size, borderRadius: '50%', flexShrink: 0,
-                  border: `2px solid ${r.color}`,
-                  boxShadow: `0 0 5px ${r.color}55`,
-                  background: `${r.color}18`,
-                }} />
-                <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{r.label}</span>
-              </div>
-            ))}
-            <div style={{ fontSize: '10px', color: 'rgba(232,228,220,0.4)', fontFamily: font.body, marginTop: 2 }}>
-              Fast pulse = recent · slow pulse = older
+                  position: 'absolute', bottom: 36, left: 0,
+                  background: 'rgba(11,18,32,0.92)', backdropFilter: 'blur(14px)',
+                  borderRadius: 10, padding: '12px 14px',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                  minWidth: 220, animation: 'v3FadeIn 0.15s ease-out',
+                }}>
+                  <div style={{ fontFamily: font.mono, fontSize: '9px', fontWeight: 700, color: 'rgba(232,228,220,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>How to read this map</div>
+
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.4)', letterSpacing: '0.08em', marginBottom: 5, textTransform: 'uppercase' }}>Incident rings — click any ring</div>
+                    {[
+                      { color: '#E5484D', label: 'Homicide', size: 13 },
+                      { color: '#E07020', label: 'Shooting', size: 10 },
+                      { color: '#F59E0B', label: 'Shots Fired / Stabbing', size: 8 },
+                    ].map(r => (
+                      <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ width: r.size, height: r.size, borderRadius: '50%', flexShrink: 0, border: `1.5px solid ${r.color}`, background: `${r.color}18` }} />
+                        <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{r.label}</span>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: '10px', color: 'rgba(232,228,220,0.35)', fontFamily: font.body, marginTop: 2 }}>Bright = recent · faded = older</div>
+                  </div>
+
+                  <div style={{ marginBottom: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                    <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.4)', letterSpacing: '0.08em', marginBottom: 5, textTransform: 'uppercase' }}>Campus badges — click any campus</div>
+                    {[
+                      { color: '#E5484D', label: 'RED — Immediate threat' },
+                      { color: '#E07020', label: 'ORANGE — Elevated' },
+                      { color: '#17B26A', label: 'GREEN — Clear' },
+                    ].map(b => (
+                      <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ width: 9, height: 9, borderRadius: 2, flexShrink: 0, background: b.color }} />
+                        <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{b.label}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                    <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.4)', letterSpacing: '0.08em', marginBottom: 5, textTransform: 'uppercase' }}>Confidence (in feed)</div>
+                    {[
+                      { color: '#17B26A', label: 'CONFIRMED — CPD (97%)' },
+                      { color: '#4F7CFF', label: 'CORROBORATED — 2+ sources (85%)' },
+                      { color: '#F59E0B', label: 'REPORTED — 1 source (70%)' },
+                    ].map(c => (
+                      <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: c.color }} />
+                        <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{c.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          {/* Campus badges */}
-          <div style={{ marginBottom: 7, paddingTop: 7, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-            <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.45)', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>Campus badges — click any campus</div>
-            {[
-              { color: '#E5484D', label: 'RED — Immediate threat nearby' },
-              { color: '#E07020', label: 'ORANGE — Elevated activity' },
-              { color: '#17B26A', label: 'GREEN — Clear' },
-            ].map(b => (
-              <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, background: b.color }} />
-                <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{b.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Confidence */}
-          <div style={{ paddingTop: 7, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-            <div style={{ fontFamily: font.mono, fontSize: '9px', color: 'rgba(232,228,220,0.45)', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>Confidence (in feed)</div>
-            {[
-              { color: '#17B26A', label: 'CONFIRMED — CPD verified (97%)' },
-              { color: '#4F7CFF', label: 'CORROBORATED — 2+ sources (85%)' },
-              { color: '#F59E0B', label: 'REPORTED — single source (70%)' },
-            ].map(c => (
-              <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: c.color }} />
-                <span style={{ fontFamily: font.body, fontSize: '11px', color: 'rgba(232,228,220,0.8)' }}>{c.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Refreshing sweep */}
         {data.isRefreshing && (
@@ -1763,8 +1817,28 @@ function MapTab({
             </div>
           );
         })() : (
-          /* ── LIVE FEED (no selection) ─────────────────────────────── */
+              /* ── LIVE FEED (no selection) ───────────────────────── */
           <>
+            {/* Principal View banner */}
+            {isPrincipal && principalCampus && (
+              <div style={{
+                padding: '10px 18px',
+                background: `${W.threat[principalCampus.threatLevel].bg}`,
+                borderBottom: `2px solid ${W.threat[principalCampus.threatLevel].color}`,
+                flexShrink: 0,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: W.threat[principalCampus.threatLevel].color, flexShrink: 0 }} />
+                  <span style={{ fontFamily: font.mono, fontSize: '11px', fontWeight: 700, color: W.threat[principalCampus.threatLevel].color }}>
+                    {principalCampus.campusShort} — {principalCampus.threatLevel}
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: W.textMuted, marginTop: 3 }}>
+                  Showing incidents within 1 mile of your campus
+                </div>
+              </div>
+            )}
+
             {/* Feed header */}
             <div style={{
               padding: '14px 18px', borderBottom: `1px solid ${W.border}`,
@@ -1772,7 +1846,7 @@ function MapTab({
               flexShrink: 0,
             }}>
               <div style={{ fontFamily: font.body, fontSize: '11px', fontWeight: 600, color: W.textMuted }}>
-                Live Violent Crime Feed
+                {isPrincipal ? 'Campus Incident Feed' : 'Live Violent Crime Feed'}
               </div>
               <div style={{ fontFamily: font.mono, fontSize: '10px', color: W.textDim }}>
                 {feedIncidents.length} active
@@ -1982,6 +2056,7 @@ const TABS: { id: WatchTab; label: string; sub: string }[] = [
 
 export const WatchAppV3: React.FC = () => {
   const rawData = useWatchData();
+  const { role, selectedCampusId: principalCampusId } = useRole();
 
   // Merge seed incidents with live data — seeds are filtered out if a live
   // incident with the same id already exists (prevents duplicates on refresh).
@@ -2332,6 +2407,8 @@ export const WatchAppV3: React.FC = () => {
             onSelectCampus={setSelectedCampus}
             selectedCampus={selectedCampus}
             contagionZones={contagionZones}
+            role={role}
+            principalCampusId={principalCampusId}
           />
         )}
         {activeTab === 'contagion' && (

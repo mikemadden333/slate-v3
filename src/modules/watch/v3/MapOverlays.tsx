@@ -83,15 +83,22 @@ export function getPulseRingHtml(
   const size = crimeType === 'HOMICIDE' ? 60 : crimeType === 'SHOOTING' ? 48 : 36;
   const half = size / 2;
 
-  const rings = isNew ? 3 : 2;
+  // Opacity decay: vivid for recent, fade toward 20% for 6h-old incidents
+  // 0-10 min: 1.0, 10-60 min: 0.75, 1-3 h: 0.45, 3-6 h: 0.22
+  const baseOpacity = ageMinutes < 10 ? 1.0
+    : ageMinutes < 60 ? 0.75
+    : ageMinutes < 180 ? 0.45
+    : 0.22;
+
+  const rings = isNew ? 3 : (ageMinutes < 60 ? 2 : 1);
   const ringHtml = Array.from({ length: rings }).map((_, i) => `
     <div class="pulse-ring" style="
       width: ${size}px; height: ${size}px;
-      border: 2px solid ${color};
+      border: ${ageMinutes < 60 ? '2px' : '1.5px'} solid ${color};
       left: ${-half}px; top: ${-half}px;
       animation-duration: ${duration}s;
       animation-delay: ${(i * duration) / rings}s;
-      opacity: 0.7;
+      opacity: ${baseOpacity};
     "></div>
   `).join('');
 
