@@ -9,7 +9,7 @@ import type { WatchIncident, CampusThreat, NetworkStatus, SourceStatus, ScannerR
 import { fetchCitizenIncidents, fetchCPDIncidents, fetchNewsIncidents, fetchScannerActivity, fetchWeather, getSourceStatuses } from './fetchers';
 import { fuseIncidents, assessCampusThreats, computeNetworkStatus } from './fusion';
 
-const REFRESH_INTERVAL_MS = 120_000; // 2 minutes
+const REFRESH_INTERVAL_MS = 300_000; // 5 minutes
 
 export interface WatchDataState {
   // Core data
