@@ -177,40 +177,234 @@ function DraftWorkspace({ template }: { template: DraftTemplate }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [customContext, setCustomContext] = useState('');
 
-  const generateDraft = useCallback(() => {
-    setIsGenerating(true);
-
-    // Build a context-rich draft based on template type and real data
-    let content = '';
+  const buildDataContext = useCallback(() => {
     const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const tier1Risks = risks.register.filter((r: { tier: string }) => r.tier === 'Tier 1 — Board Focus');
+    return [
+      `Network: ${network.name}`,
+      `Date: ${date}`,
+      `Campuses: ${network.campusCount} campuses in ${network.city}`,
+      `Enrollment: ${enrollment.networkTotal.toLocaleString()} students (target: ${enrollment.targetEnrollment.toLocaleString()}, ${fmtPct((enrollment.networkTotal / enrollment.targetEnrollment) * 100)} of goal)`,
+      `Financials: YTD Revenue ${fmt(financials.ytdSummary.revActual)} (${fmtPct((financials.ytdSummary.revActual / financials.ytdSummary.revBudget) * 100)} of budget), Surplus ${fmt(financials.ytdSummary.surplus)}, DSCR ${financials.ytdSummary.dscr.toFixed(2)}x, Days Cash ${financials.ytdSummary.daysCash}`,
+      `Covenant compliance: DSCR ${financials.ytdSummary.dscr >= financials.covenants.dscrMinimum ? 'COMPLIANT' : 'WATCH'}, Days Cash ${financials.ytdSummary.daysCash >= financials.covenants.daysCashMinimum ? 'COMPLIANT' : 'WATCH'}`,
+      tier1Risks.length > 0 ? `Board-level risks: ${tier1Risks.map((r: { name: string; trend: string }) => `${r.name} (${r.trend})`).join(', ')}` : 'No Tier 1 risks flagged',
+    ].join('\n');
+  }, [network, enrollment, financials, risks]);
 
-    switch (template.id) {
-      case 'board-financial':
-        content = `MEMORANDUM\n\nTO: Board of Directors, ${network.name}\nFROM: President & CEO\nDATE: ${date}\nRE: Monthly Financial Update — ${financials.fiscalYear}\n\n${'─'.repeat(60)}\n\nDear Board Members,\n\nI am pleased to provide the following financial update for ${network.name}.\n\nFINANCIAL SUMMARY\n\nYear-to-date, the network has generated ${fmt(financials.ytdSummary.revActual)} in revenue against a budget of ${fmt(financials.ytdSummary.revBudget)}, representing ${fmtPct((financials.ytdSummary.revActual / financials.ytdSummary.revBudget) * 100)} of the annual target. Total expenses stand at ${fmt(financials.ytdSummary.expActual)} against a budget of ${fmt(financials.ytdSummary.expBudget)}.\n\nThe current net surplus is ${fmt(financials.ytdSummary.surplus)}.\n\nCOVENANT COMPLIANCE\n\n• Debt Service Coverage Ratio (DSCR): ${financials.ytdSummary.dscr.toFixed(2)}x (minimum: ${financials.covenants.dscrMinimum.toFixed(2)}x) — ${financials.ytdSummary.dscr >= financials.covenants.dscrMinimum ? 'COMPLIANT' : 'WATCH'}\n• Days Cash on Hand: ${financials.ytdSummary.daysCash} days (minimum: ${financials.covenants.daysCashMinimum} days) — ${financials.ytdSummary.daysCash >= financials.covenants.daysCashMinimum ? 'COMPLIANT' : 'WATCH'}\n• Current Ratio: ${financials.ytdSummary.currentRatio.toFixed(2)} (minimum: ${financials.covenants.currentRatioMinimum.toFixed(2)}) — ${financials.ytdSummary.currentRatio >= financials.covenants.currentRatioMinimum ? 'COMPLIANT' : 'WATCH'}\n\nENROLLMENT IMPACT\n\nCurrent enrollment stands at ${enrollment.networkTotal.toLocaleString()} students across ${network.campusCount} campuses, against a target of ${enrollment.targetEnrollment.toLocaleString()}. This represents ${fmtPct((enrollment.networkTotal / enrollment.targetEnrollment) * 100)} of our enrollment goal.\n\nI am happy to discuss any of these items in detail at our next meeting.\n\nRespectfully submitted,\n[President & CEO]`;
-        break;
+  const generateFallback = useCallback((context: string) => {
+    const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const hasContext = context.trim().length > 0;
 
-      case 'board-ceo-report':
-        const tier1Risks = risks.register.filter(r => r.tier === 'Tier 1 — Board Focus');
-        content = `CEO REPORT TO THE BOARD\n${network.name}\n${date}\n\n${'─'.repeat(60)}\n\nEXECUTIVE SUMMARY\n\n${network.name} continues to operate across ${network.campusCount} campuses serving ${enrollment.networkTotal.toLocaleString()} students in ${network.city}. This report provides a comprehensive update on organizational health.\n\nFINANCIAL HEALTH\n• YTD Revenue: ${fmt(financials.ytdSummary.revActual)} (${fmtPct((financials.ytdSummary.revActual / financials.ytdSummary.revBudget) * 100)} of budget)\n• YTD Surplus: ${fmt(financials.ytdSummary.surplus)}\n• DSCR: ${financials.ytdSummary.dscr.toFixed(2)}x\n• Days Cash: ${financials.ytdSummary.daysCash}\n\nENROLLMENT\n• Current: ${enrollment.networkTotal.toLocaleString()} / ${enrollment.targetEnrollment.toLocaleString()} target\n• Utilization: ${fmtPct((enrollment.networkTotal / enrollment.targetEnrollment) * 100)}\n\nRISK REGISTER — BOARD-LEVEL ITEMS\n${tier1Risks.length > 0 ? tier1Risks.map(r => `• ${r.name} (Score: ${r.likelihood * r.impact}, Trend: ${r.trend})\n  ${r.description}`).join('\n\n') : '• No Tier 1 risks currently flagged.'}\n\nACTION ITEMS FOR BOARD CONSIDERATION\n1. [Add specific items based on current priorities]\n2. [Add specific items based on current priorities]\n\nRespectfully submitted,\n[President & CEO]`;
-        break;
+    // Detect intent from the user's context
+    const ctx = context.toLowerCase();
+    const isSafety = ctx.includes('gun') || ctx.includes('shot') || ctx.includes('weapon') || ctx.includes('incident') || ctx.includes('safe') || ctx.includes('police') || ctx.includes('cpd') || ctx.includes('lock') || ctx.includes('threat');
+    const isFinancial = ctx.includes('budget') || ctx.includes('financial') || ctx.includes('revenue') || ctx.includes('surplus') || ctx.includes('covenant') || ctx.includes('cash');
+    const isEnrollment = ctx.includes('enroll') || ctx.includes('student') || ctx.includes('registration') || ctx.includes('application');
+    const isStaff = ctx.includes('staff') || ctx.includes('teacher') || ctx.includes('employee') || ctx.includes('all-hands') || ctx.includes('team');
 
-      case 'parent-enrollment':
-        content = `Dear ${network.name} Families,\n\nI hope this message finds you and your family well. I am writing to share some important updates about our school community.\n\nENROLLMENT UPDATE\n\nWe are proud to serve ${enrollment.networkTotal.toLocaleString()} students across our ${network.campusCount} campuses this year. Our schools continue to be in high demand, and we are grateful for your trust in ${network.name}.\n\nIMPORTANT DATES\n\n• [Add upcoming events]\n• [Add registration deadlines]\n• [Add community events]\n\nAs always, please do not hesitate to reach out to your campus principal or our central office with any questions or concerns. We are here to serve you and your children.\n\nWith gratitude,\n[President & CEO]\n${network.name}`;
-        break;
+    if (isSafety || template.id === 'parent-safety' || template.id === 'internal-incident') {
+      const isGun = ctx.includes('gun') || ctx.includes('weapon') || ctx.includes('firearm');
+      const isAllSafe = ctx.includes('all safe') || ctx.includes('no injur') || ctx.includes('safe');
+      const campus = ctx.match(/veritas (\w+)/i)?.[1] || ctx.match(/at (\w+)/i)?.[1] || 'one of our campuses';
+      const isParent = template.category === 'parent';
 
-      case 'parent-safety':
-        content = `Dear ${network.name} Families,\n\nThe safety of your children is our highest priority. I am writing to share an update on our ongoing safety efforts.\n\nOUR COMMITMENT\n\n${network.name} maintains comprehensive safety protocols across all ${network.campusCount} campuses. Our safety team monitors conditions 24/7 and works closely with local law enforcement and community partners.\n\nCURRENT STATUS\n\nAll campuses are operating under normal safety conditions. Our monitoring systems are active and our safety teams are fully staffed.\n\nWHAT WE DO EVERY DAY\n\n• 24/7 real-time safety monitoring of all campus neighborhoods\n• Coordination with Chicago Police Department district commanders\n• Regular safety drills and protocol reviews\n• Trained safety personnel at every campus\n\nIF YOU SEE SOMETHING\n\nPlease report any safety concerns to your campus principal immediately. For emergencies, always call 911 first.\n\nYour partnership in keeping our schools safe is invaluable.\n\nSincerely,\n[President & CEO]\n${network.name}`;
-        break;
+      if (isParent) {
+        return `Dear ${network.name} Families,
 
-      default:
-        content = `[${template.name}]\n\nGenerated for: ${network.name}\nDate: ${date}\n\n${'─'.repeat(60)}\n\nThis draft template is ready for customization. The following data sources are available:\n\n${template.dataSources.map(ds => `• ${ds}`).join('\n')}\n\n[Add your custom context below and regenerate for a data-enriched draft.]`;
+I am writing to inform you of an incident that occurred earlier today${hasContext ? ` at ${campus}` : ''} and to assure you that your children are safe.
+
+${hasContext ? `WHAT HAPPENED\n\n${context.trim()}\n\n` : ''}OUR RESPONSE
+
+Upon being notified, our safety team responded immediately and coordinated with the Chicago Police Department. ${isAllSafe ? 'All students and staff are safe, and the situation has been resolved.' : 'The situation was addressed promptly and all students remained secure.'} ${isGun ? 'The item was secured and removed from campus. CPD conducted a thorough sweep and cleared the building.' : ''}
+
+At no point were students in danger. Our protocols worked exactly as designed.
+
+WHAT THIS MEANS FOR TOMORROW
+
+School will operate on a normal schedule tomorrow. Our safety team will be at heightened awareness, and we will have additional support on campus. If you have any concerns, please contact your campus principal directly.
+
+OUR COMMITMENT
+
+The safety of your children is not a program or a policy. It is a promise. We take every incident seriously, we communicate with you honestly, and we will always tell you the truth about what happened and what we did about it.
+
+Thank you for your trust.
+
+Sincerely,
+[President & CEO]
+${network.name}
+${date}`;
+      } else {
+        return `INTERNAL INCIDENT BRIEF — CONFIDENTIAL
+
+TO: Campus Leadership, Safety Directors
+FROM: Central Office
+DATE: ${date}
+RE: ${hasContext ? context.trim() : 'Campus Safety Incident'}
+
+${'─'.repeat(60)}
+
+SITUATION SUMMARY
+
+${hasContext ? context.trim() : '[Incident description]'}
+
+IMMEDIATE ACTIONS TAKEN
+
+• Campus principal notified immediately
+• Chicago Police Department contacted and responded
+• ${isGun ? 'Firearm secured and removed from campus premises' : 'Situation assessed and contained'}
+• ${isAllSafe ? 'All students and staff confirmed safe' : 'Student and staff safety verified'}
+• Parent communication issued
+• Incident documented per protocol
+
+CURRENT STATUS
+
+${isAllSafe ? 'Situation resolved. Campus secure. Normal operations continuing.' : 'Situation under control. Monitoring in effect.'}
+
+FOLLOW-UP REQUIRED
+
+• Complete incident report within 24 hours
+• Debrief with campus principal and safety director
+• Review and update safety protocols as needed
+• Authorizer notification if required by charter agreement
+
+COMMUNICATIONS GUIDANCE
+
+All external communications should go through the central office. Do not speak to media. Direct all press inquiries to [Communications Director].
+
+For questions, contact the central office immediately.
+
+[President & CEO]
+${network.name}`;
+      }
     }
 
+    if (isFinancial || template.id === 'board-financial') {
+      return `MEMORANDUM
+
+TO: Board of Directors, ${network.name}
+FROM: President & CEO
+DATE: ${date}
+RE: Financial Update${hasContext ? ` — ${context.trim()}` : ` — ${financials.fiscalYear}`}
+
+${'─'.repeat(60)}
+
+Dear Board Members,
+
+${hasContext ? `${context.trim()}\n\n` : ''}FINANCIAL SUMMARY
+
+Year-to-date, the network has generated ${fmt(financials.ytdSummary.revActual)} in revenue against a budget of ${fmt(financials.ytdSummary.revBudget)}, representing ${fmtPct((financials.ytdSummary.revActual / financials.ytdSummary.revBudget) * 100)} of the annual target. Total expenses stand at ${fmt(financials.ytdSummary.expActual)} against a budget of ${fmt(financials.ytdSummary.expBudget)}. The current net surplus is ${fmt(financials.ytdSummary.surplus)}.
+
+COVENANT COMPLIANCE
+
+• DSCR: ${financials.ytdSummary.dscr.toFixed(2)}x (minimum: ${financials.covenants.dscrMinimum.toFixed(2)}x) — ${financials.ytdSummary.dscr >= financials.covenants.dscrMinimum ? 'COMPLIANT' : 'WATCH'}
+• Days Cash on Hand: ${financials.ytdSummary.daysCash} days (minimum: ${financials.covenants.daysCashMinimum} days) — ${financials.ytdSummary.daysCash >= financials.covenants.daysCashMinimum ? 'COMPLIANT' : 'WATCH'}
+• Current Ratio: ${financials.ytdSummary.currentRatio.toFixed(2)} — ${financials.ytdSummary.currentRatio >= financials.covenants.currentRatioMinimum ? 'COMPLIANT' : 'WATCH'}
+
+I am happy to discuss any of these items at our next meeting.
+
+Respectfully submitted,
+[President & CEO]`;
+    }
+
+    if (isEnrollment || template.id === 'parent-enrollment') {
+      return `Dear ${network.name} Families,
+
+I hope this message finds you well. I am writing to share an update on our school community.
+
+${hasContext ? `${context.trim()}\n\n` : ''}ENROLLMENT UPDATE
+
+We are proud to serve ${enrollment.networkTotal.toLocaleString()} students across our ${network.campusCount} campuses this year. Our schools continue to be in high demand, and we are grateful for your trust in ${network.name}.
+
+Looking ahead, registration for the upcoming school year is now open. We encourage all current families to re-enroll early to secure your spot.
+
+As always, please do not hesitate to reach out to your campus principal with any questions.
+
+With gratitude,
+[President & CEO]
+${network.name}
+${date}`;
+    }
+
+    if (isStaff || template.id === 'staff-allhands') {
+      return `STAFF ALL-HANDS BRIEF
+${network.name}
+${date}
+
+${'─'.repeat(60)}
+
+${hasContext ? `CONTEXT\n\n${context.trim()}\n\n` : ''}WHERE WE STAND
+
+We are serving ${enrollment.networkTotal.toLocaleString()} students across ${network.campusCount} campuses. Financially, we are at ${fmtPct((financials.ytdSummary.revActual / financials.ytdSummary.revBudget) * 100)} of our revenue target with a surplus of ${fmt(financials.ytdSummary.surplus)}.
+
+WHAT IS WORKING
+
+• Strong enrollment demand across the network
+• Financial covenants in compliance
+• Safety protocols operating as designed
+
+WHAT WE ARE FOCUSED ON
+
+• [Add current priorities]
+• [Add current priorities]
+
+THANK YOU
+
+The work you do every day matters. Thank you for your commitment to our students and families.
+
+[President & CEO]`;
+    }
+
+    // Generic fallback that incorporates the user's context
+    return `${template.name.toUpperCase()}
+${network.name}
+${date}
+
+${'─'.repeat(60)}
+
+${hasContext ? `${context.trim()}\n\n` : ''}This communication has been prepared for ${network.name}, serving ${enrollment.networkTotal.toLocaleString()} students across ${network.campusCount} campuses in ${network.city}.
+
+Data sources: ${template.dataSources.join(', ')}
+
+[Continue drafting or add more context above and regenerate.]`;
+  }, [template, network, enrollment, financials]);
+
+  const generateDraft = useCallback(async () => {
+    setIsGenerating(true);
+    const dataCtx = buildDataContext();
+    const systemPrompt = `You are the AI speechwriter for ${network.name}, a charter school network in ${network.city}. You write professional, warm, and direct communications for the CEO. Write in first person as the CEO. Be specific, use the real data provided, and incorporate the user's instructions precisely. Do not use em dashes. Do not use generic placeholder text. Output only the final communication, ready to send.`;
+    const userMessage = `Template: ${template.name}\nLive data:\n${dataCtx}\n\nUser instructions: ${customContext.trim() || 'Generate a complete, professional ' + template.name.toLowerCase() + ' using the data above.'}`;
+
+    try {
+      const resp = await fetch('/api/anthropic-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4.1-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+          max_tokens: 1200,
+          temperature: 0.7,
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text && text.length > 100) {
+          setDraft(text.trim());
+          setIsGenerating(false);
+          return;
+        }
+      }
+    } catch { /* fall through to local */ }
+
+    // Local fallback — always produces context-aware output
     setTimeout(() => {
-      setDraft(content);
+      setDraft(generateFallback(customContext));
       setIsGenerating(false);
-    }, 800);
-  }, [template, network, financials, enrollment, risks]);
+    }, 600);
+  }, [template, network, customContext, buildDataContext, generateFallback]);
 
   return (
     <div style={{
